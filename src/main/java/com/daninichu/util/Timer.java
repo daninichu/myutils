@@ -4,7 +4,11 @@ import static java.lang.System.nanoTime;
 import java.text.DecimalFormat;
 
 public class Timer {
-	private final long start = nanoTime();
+	private long start = nanoTime();
+
+	public void reset() {
+		start = nanoTime();
+	}
 
 	public double seconds(){
 		return (nanoTime() - start) / 1_000_000_000.0;

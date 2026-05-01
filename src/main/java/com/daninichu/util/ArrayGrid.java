@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.function.UnaryOperator;
 
 /**
  * A grid with a fixed size. (x, y) coordinates cannot be negative.
@@ -46,7 +47,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @return
 	 */
 	public boolean inBounds(int x, int y) {
-		return 0 <= x || x < width() || 0 <= y || y < height();
+		return 0 <= x && x < width() && 0 <= y && y < height();
 	}
 
 	/**
@@ -56,7 +57,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws NullPointerException if {@code p} is null.
 	 */
 	public boolean inBounds(Point p) {
-		return 0 <= p.x || p.x < width() || 0 <= p.y || p.y < height();
+		return 0 <= p.x && p.x < width() && 0 <= p.y && p.y < height();
 	}
 
 	private void checkInBounds(int x, int y) {
@@ -187,7 +188,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public Cell<E> next() {
 				if(hasNext())
-					return new Cell<>(new Point(x, y), (E) data[x][y++]);
+					return new Cell<>(x, y, (E) data[x][y++]);
 				throw new NoSuchElementException();
 			}
 		};
@@ -224,11 +225,26 @@ public class ArrayGrid<E> implements Grid<E> {
 		}
 	}
 
+	@Override
+	public void compute(int x, int y, UnaryOperator<E> operator){
+		checkInBounds(x, y);
+		data[x][y] = operator.apply((E) data[x][y]);
+	}
+
 	public E[][] toArray() {
 		Object[][] array = new Object[data.length][];
 		for (int x = 0; x < data.length; x++) {
 			array[x] = Arrays.copyOf(data[x], data[x].length);
 		}
 		return (E[][]) array;
+	}
+
+	@Override
+	public String toString(){
+		StringBuilder sb = new StringBuilder("[");
+		for(Cell<E> cell : cells()){
+			sb.append(cell.toString()).append(", ");
+		}
+		return sb.delete(sb.length() - 2, sb.length()).append(']').toString();
 	}
 }

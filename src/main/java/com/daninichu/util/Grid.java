@@ -4,13 +4,19 @@ import java.awt.Point;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 /**
  * Grid points are in (x,y) coordinates.
  * @param <E>
  */
 public interface Grid<E> extends Iterable<E> {
-	record Cell<E>(Point point, E value){}
+	record Cell<E>(int x, int y, E value){
+		@Override
+		public String toString(){
+			return "(" + x + "," + y + ")=" + value;
+		}
+	}
 	
 	/**
 	 * @param x
@@ -105,4 +111,8 @@ public interface Grid<E> extends Iterable<E> {
         }
 		return points;
 	}
+
+	void compute(int x, int y, UnaryOperator<E> operator);
+
+
 }

@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 public class HashGrid<E> implements Grid<E> {
 	private final HashMap<Point, E> data;
@@ -26,7 +27,7 @@ public class HashGrid<E> implements Grid<E> {
         else{
             data = new HashMap<>();
             for(Cell<E> cell : grid.cells())
-                data.put(cell.point(), cell.value());
+                data.put(new Point(cell.x(), cell.y()), cell.value());
         }
 	}
 
@@ -113,7 +114,7 @@ public class HashGrid<E> implements Grid<E> {
             @Override
             public Cell<E> next(){
                 Map.Entry<Point, E> entry = it.next();
-                return new Cell<>(new Point(entry.getKey()), entry.getValue());
+                return new Cell<>(entry.getKey().x, entry.getKey().y, entry.getValue());
             }
         };
     }
@@ -123,7 +124,21 @@ public class HashGrid<E> implements Grid<E> {
 		return data.values().iterator();
 	}
 
+    @Override
+    public void compute(int x, int y, UnaryOperator<E> operator){
+        data.compute(new Point(x, y), (k, e) -> operator.apply(e));
+    }
+
     public Map<Point, E> toMap(){
         return new HashMap<>(data);
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder("[");
+        for(Cell<E> cell : cells()){
+            sb.append(cell.toString()).append(", ");
+        }
+        return sb.delete(sb.length() - 2, sb.length()).append(']').toString();
     }
 }
