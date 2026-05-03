@@ -2,9 +2,12 @@ package com.daninichu.benchmark.grid;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.ArrayGrid;
+import com.daninichu.util.ArrayMatrix;
+import com.daninichu.util.Matrix;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode({
@@ -12,37 +15,59 @@ import java.util.concurrent.TimeUnit;
 //		Mode.SampleTime,
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(		iterations = 2, 	time = 900000000, 	timeUnit = TimeUnit.NANOSECONDS)
-@Measurement(	iterations = 5, 	time = 900000000, 	timeUnit = TimeUnit.NANOSECONDS)
+@Warmup(		iterations = 3, 	time = 1000000000, 	timeUnit = TimeUnit.NANOSECONDS)
+@Measurement(	iterations = 5, 	time = 1000000000, 	timeUnit = TimeUnit.NANOSECONDS)
 @Fork(1)
 @State(Scope.Thread)
 public class ArrayGridBenchmark{
+
 	public static void main(String[] args) throws Exception{
 		Main.benchmark(ArrayGridBenchmark.class);
 	}
 
-	int width =
-			1;
-	int height =
-			200000;
+	@Param({
+//			"100",
+			"2000",
+//			"4000",
+	})	int width;
+	@Param({
+//			"1000",
+			"2000",
+//			"40000",
+	})
+	int height;
 
-	ArrayGrid<Integer> arrayGrid = new ArrayGrid<>(width, height);
+	private ArrayGrid<Integer> arrayGrid;
 
 	@Setup(Level.Trial)
 	public void setup() {
-//		var cells = GridUtils.cells(width, height);
-//		Collections.shuffle(cells);
-//		cells = cells.subList(0, 800000);
-//		GridUtils.setAll(arrayGrid, cells);
+		arrayGrid = new ArrayGrid<>(width, height);
+		var cells = GridUtils.cells(width, height);
+		Collections.shuffle(cells);
+		cells = cells.subList(0, 8);
+		GridUtils.setAll(arrayGrid, cells);
 //		GridUtils.fill(arrayGrid, width, height);
 	}
 
-	@Benchmark
+//	@Benchmark
 	public void arrayGrid(Blackhole bh){
-		for(int x = 0; x < width; x++){
-			for(int y = 0; y < height; y++){
-				arrayGrid.set(x, y, x+y);
+//		var arrayGrid = new ArrayGrid<Integer>(width, height);
+//		for(int x = 0; x < width; x++){
+//			for(int y = 0; y < height; y++){
+//				arrayGrid.set(x, y, x+y);
+//			}
+//		}
+
+		bh.consume(arrayGrid.containsValue(-1));
+	}
+//	@Benchmark
+	public void arrayMatrix(Blackhole bh){
+		var arrayMatrix = new ArrayMatrix<>(height, width);
+		for(int c = 0; c < width; c++){
+			for(int r = 0; r < height; r++){
+				arrayMatrix.set(r, c, r + c);
 			}
 		}
+		bh.consume(arrayMatrix);
 	}
 }

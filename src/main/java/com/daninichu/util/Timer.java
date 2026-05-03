@@ -61,4 +61,9 @@ public class Timer {
 	public String nanosecondsString(){
 		return nanoseconds() + "ns";
 	}
+
+	@Override
+	public String toString(){
+		return secondsString();
+	}
 }

@@ -27,9 +27,8 @@ public class ArrayGrid<E> implements Grid<E> {
 
     public ArrayGrid(ArrayGrid<E> grid) {
 		this.data = new Object[grid.width()][];
-		for (int x = 0; x < grid.width(); x++) {
-			data[x] = Arrays.copyOf(grid.data[x], grid.height());
-		}
+		for (int x = 0; x < grid.width(); x++)
+            data[x] = Arrays.copyOf(grid.data[x], grid.height());
     }
 
 	public int width() {
@@ -113,10 +112,20 @@ public class ArrayGrid<E> implements Grid<E> {
 	}
 
 	/**
+	 * @throws NullPointerException {@inheritDoc}
+	 * @throws IndexOutOfBoundsException If any point in {@code grid} is out of bounds.
+	 */
+	@Override
+	public void setAll(Grid<E> grid){
+		for(Cell<E> cell : grid.cells())
+            set(cell.x(), cell.y(), cell.value());
+	}
+
+	/**
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void remove(int x, int y) {
+    public void removePoint(int x, int y) {
 		checkInBounds(x, y);
         data[x][y] = null;
     }
@@ -126,8 +135,26 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void remove(Point p) {
-        remove(p.x, p.y);
+    public void removePoint(Point p) {
+        removePoint(p.x, p.y);
+    }
+
+	@Override
+	public void removeValue(E e){
+        if(e != null){
+            for(int x = 0; x < width(); x++){
+                Object[] inner = data[x];
+                for(int y = 0; y < inner.length; y++){
+                    Object o = inner[y];
+                    if(o != null){
+                        if(e.equals(o)){
+                            data[x][y] = null;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 	/**
@@ -152,15 +179,10 @@ public class ArrayGrid<E> implements Grid<E> {
 
 	@Override
 	public boolean containsValue(E e){
-		if(e != null){
-            for(Object[] inner : data){
-                for(Object o : inner){
-                    if(o.equals(e)){
-                        return true;
-                    }
-                }
-            }
-        }
+		if(e != null)
+            for(E o : this)
+                if(e.equals(o))
+                    return true;
 		return false;
 	}
 
@@ -200,7 +222,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public E next() {
 				if(hasNext())
-					return (E) data[x][y++];
+                    return (E) data[x][y++];
 				throw new NoSuchElementException();
 			}
 		};
@@ -238,6 +260,13 @@ public class ArrayGrid<E> implements Grid<E> {
 		}
 		return (E[][]) array;
 	}
+
+	@Override
+	public boolean equals(Object obj){
+        if(this != obj && obj instanceof ArrayGrid arrayGrid)
+            return Arrays.deepEquals(data, arrayGrid.data);
+		return false;
+    }
 
 	@Override
 	public String toString(){

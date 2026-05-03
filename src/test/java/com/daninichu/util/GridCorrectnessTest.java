@@ -11,6 +11,7 @@ public class GridCorrectnessTest{
 
     {
         gridList.add(new ArrayGrid<>(width, height));
+        gridList.add(new HashGrid<>());
     }
 
     private void setAll(int x, int y, Integer value) {

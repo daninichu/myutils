@@ -24,23 +24,6 @@ public class ArrayGridTest {
 		assertThrows(IllegalArgumentException.class, () -> new ArrayGrid(10, 0));
 	}
 
-	@Test
-	void testSet(){
-		ArrayGrid<Integer> grid = new ArrayGrid<>(20, 30);
-
-		List<Cell<Integer>> cells = new ArrayList<>();
-		cells.add(new Cell<>(new Point(0, 0), 10));
-		cells.add(new Cell<>(new Point(1, 1), -4));
-		cells.add(new Cell<>(new Point(2, 5), 42));
-		cells.add(new Cell<>(new Point(9, 19), 420));
-
-		for (Cell<Integer> cell : cells) {
-			grid.set(cell.point(), cell.value());
-		}
-		for (Cell<Integer> cell : grid.cells()) {
-			assertTrue(cells.contains(cell));
-		}
-	}
 
 	@Test
     void testFirstIteratorElement() {

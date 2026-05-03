@@ -1,6 +1,7 @@
 package com.daninichu.benchmark;
 
 import com.daninichu.util.Grid;
+import com.daninichu.util.HashGrid;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
@@ -11,9 +12,7 @@ import java.util.Map;
 
 public class Main {
 	public static void main(String[] args){
-		Grid.Cell cell = new Grid.Cell<>(9358,50, 9);
-		System.out.println(cell);
-
+		Grid<Point> grid=new HashGrid<>();
 	}
 	public static void benchmark(Class<?> benchmarkClass) throws Exception {
 		Options opt = new OptionsBuilder()

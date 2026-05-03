@@ -22,13 +22,8 @@ public class HashGrid<E> implements Grid<E> {
     }
 
 	public HashGrid(Grid<E> grid) {
-        if (grid instanceof HashGrid<E> hashGrid)
-            data = new HashMap<>(hashGrid.data);
-        else{
-            data = new HashMap<>();
-            for(Cell<E> cell : grid.cells())
-                data.put(new Point(cell.x(), cell.y()), cell.value());
-        }
+        data = new HashMap<>();
+        setAll(grid);
 	}
 
     @Override
@@ -55,13 +50,27 @@ public class HashGrid<E> implements Grid<E> {
 	}
 
     @Override
-    public void remove(int x, int y) {
+    public void setAll(Grid<E> grid){
+        if (grid instanceof HashGrid<E> hashGrid)
+            data.putAll(hashGrid.data);
+        else
+            for(Cell<E> cell : grid.cells())
+                data.put(new Point(cell.x(), cell.y()), cell.value());
+    }
+
+    @Override
+    public void removePoint(int x, int y) {
         data.remove(new Point(x, y));
     }
 
     @Override
-    public void remove(Point p) {
-        remove(p.x, p.y);
+    public void removePoint(Point p) {
+        removePoint(p.x, p.y);
+    }
+
+    @Override
+    public void removeValue(E e){
+        data.values().remove(e);
     }
 
     @Override

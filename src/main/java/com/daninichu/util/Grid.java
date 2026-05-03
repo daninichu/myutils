@@ -32,7 +32,17 @@ public interface Grid<E> extends Iterable<E> {
      */
 	E get(Point p);
 
-	/**
+    default E getOrDefault(int x, int y, E defaultValue){
+		E e = get(x, y);
+        return e == null ? defaultValue : e;
+    }
+
+    default E getOrDefault(Point p, E defaultValue){
+        E e = get(p.x, p.y);
+		return e == null ? defaultValue : e;
+    }
+
+    /**
 	 * Overwrites the old value in the given point.
 	 * This method does nothing if the {@code e} is null.
 	 * @param x
@@ -51,18 +61,27 @@ public interface Grid<E> extends Iterable<E> {
 	void set(Point p, E e);
 
 	/**
+	 *
+	 * @param grid
+	 * @throws NullPointerException if {@code grid} is null.
+	 */
+	void setAll(Grid<E> grid);
+
+	/**
 	 * Sets the value at the given point to null.
 	 * @param x
 	 * @param y
 	 */
-	void remove(int x, int y);
+	void removePoint(int x, int y);
 
 	/**
 	 * Sets the value at the given point to null.
 	 * @param p The point to remove the value from.
 	 * @throws NullPointerException if {@code p} is null.
 	 */
-	void remove(Point p);
+	void removePoint(Point p);
+
+	void removeValue(E e);
 
 	/**
 	 * Checks if there exists a non-null value at the given point.

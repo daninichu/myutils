@@ -9,7 +9,7 @@ import java.util.List;
 public final class GridUtils {
     public static void setAll(Grid<Integer> grid, Iterable<Grid.Cell<Integer>> cells) {
         for (var cell : cells) {
-            grid.set(cell.point(), cell.value());
+            grid.set(cell.x(), cell.y(), cell.value());
         }
     }
 
@@ -17,7 +17,7 @@ public final class GridUtils {
         List<Grid.Cell<Integer>> cells = new ArrayList<>();
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                cells.add(new Grid.Cell<>(new Point(x, y), x + y));
+                cells.add(new Grid.Cell<>(x, y, x + y));
             }
         }
         return cells;
