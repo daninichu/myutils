@@ -46,7 +46,7 @@ public class QuadTree<T> {
             if(childBounds[i].contains(bounds)){
                 if(depth != maxDepth){
                     if(childTrees[i] == null){
-                        childTrees[i] = new QuadTree<>(childBounds[i], depth + 1);
+                        childTrees[i] = new QuadTree<>(childBounds[i], depth + 1, maxDepth);
                     }
                     childTrees[i].add(element, bounds);
                     return;
