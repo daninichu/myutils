@@ -39,13 +39,6 @@ class QuadTreeTest {
         }
 
         @Test
-        void getBoundsReturnsEqualCopyOfRootBounds() {
-            Rectangle2D returned = tree.getBounds();
-            assertEquals(ROOT_BOUNDS, returned);
-            assertNotSame(ROOT_BOUNDS, returned);
-        }
-
-        @Test
         void searchOnEmptyTreeReturnsEmptyList() {
             assertTrue(tree.search(ROOT_BOUNDS).isEmpty());
         }
@@ -222,13 +215,6 @@ class QuadTreeTest {
 
     @Nested
     class Resize {
-
-        @Test
-        void resizeUpdatesBounds() {
-            Rectangle2D newBounds = new Rectangle2D.Double(0, 0, 200, 200);
-            tree.resize(newBounds);
-            assertEquals(newBounds, tree.getBounds());
-        }
 
         @Test
         void resizeClearsExistingElements() {

@@ -2,6 +2,7 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
+import com.daninichu.util.QuadTree2;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-@Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 public class QuadTreeBenchmark {
@@ -46,7 +47,7 @@ public class QuadTreeBenchmark {
      * Fraction of the world that the search rectangle covers.
      * SMALL = 5 %, MEDIUM = 25 %, LARGE = 60 %.
      */
-    @Param({"0.05", "0.60"})
+    @Param({"0.01","0.25","1"})
     public double fraction;
 
     // -------------------------------------------------------------------------
@@ -60,7 +61,8 @@ public class QuadTreeBenchmark {
     // State
     // -------------------------------------------------------------------------
 
-    private QuadTree<Integer> quadTree;
+    private QuadTree<Object> quadTree, quadTreeHeavy;
+    private QuadTree2<Object> quadTree2;
     private List<Rectangle2D> linearStore;   // brute-force "index"
     private List<Integer>     linearValues;  // parallel list of elements
 
@@ -74,6 +76,8 @@ public class QuadTreeBenchmark {
     public void setUp() {
         Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
         quadTree     = new QuadTree<>(worldBounds);
+        quadTreeHeavy = new QuadTree<>(worldBounds);
+        quadTree2 = new QuadTree2<>(worldBounds);
         linearStore  = new ArrayList<>(elementCount);
         linearValues = new ArrayList<>(elementCount);
 
@@ -84,7 +88,11 @@ public class QuadTreeBenchmark {
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
-            quadTree.add(i, bounds);
+            Object e;
+            e = "p".repeat(790);
+            e = i;
+            quadTree.add(e, bounds);
+            quadTree2.add(e, bounds);
             linearStore.add(bounds);
             linearValues.add(i);
         }
@@ -99,11 +107,20 @@ public class QuadTreeBenchmark {
     // -------------------------------------------------------------------------
 
     @Benchmark
-    public void quadTreeSearch(Blackhole bh) {
+    public void quadTree(Blackhole bh) {
         bh.consume(quadTree.search(searchArea));
+    }
+//    @Benchmark
+    public void quadTreeHeavySearch(Blackhole bh) {
+        bh.consume(quadTreeHeavy.search(searchArea));
     }
 
     @Benchmark
+    public void quadTree2(Blackhole bh) {
+        bh.consume(quadTree2.search(searchArea));
+    }
+
+//    @Benchmark
     public void bruteForceSearch(Blackhole bh) {
         ArrayList<Integer> result = new ArrayList<>();
         for (int i = 0; i < linearStore.size(); i++) {

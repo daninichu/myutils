@@ -17,11 +17,18 @@ public class QuadTree<T> {
     }
 
     /** @noinspection unchecked*/
-    private final QuadTree<T>[] childTrees = new QuadTree[4];
-    private final Rectangle2D bounds;
-    private final Rectangle2D[] childBounds = new Rectangle2D[4];
+    public final QuadTree<T>[] childTrees = new QuadTree[4];
+    private final Rectangle2D.Double[] childBounds = new Rectangle2D.Double[4];
     private final int depth, maxDepth;
     private final List<Entry> entries = new ArrayList<>();
+
+    public QuadTree(double x, double y, double width, double height) {
+        this(new Rectangle2D.Double(x, y, width, height), 0, 8);
+    }
+
+    public QuadTree(double x, double y, double width, double height, int maxDepth) {
+        this(new Rectangle2D.Double(x, y, width, height), 0, maxDepth);
+    }
 
     public QuadTree(Rectangle2D bounds) {
         this(bounds, 0, 8);
@@ -32,9 +39,12 @@ public class QuadTree<T> {
     }
 
     private QuadTree(Rectangle2D bounds, int depth, int maxDepth) {
-        this.bounds = new Rectangle2D.Double();
+        if(maxDepth < 0){
+            throw new IllegalArgumentException("maxDepth can't be negative");
+        }
         this.depth = depth;
         this.maxDepth = maxDepth;
+
         for(int i = 0; i < 4; i++){
             childBounds[i] = new Rectangle2D.Double();
         }
@@ -42,12 +52,11 @@ public class QuadTree<T> {
     }
 
     public void add(T element, Rectangle2D bounds){
-        for(int i = 0; i < 4; i++){
-            if(childBounds[i].contains(bounds)){
-                if(depth != maxDepth){
-                    if(childTrees[i] == null){
+        if(depth != maxDepth){
+            for(int i = 0; i < 4; i++){
+                if(childBounds[i].contains(bounds)){
+                    if(childTrees[i] == null)
                         childTrees[i] = new QuadTree<>(childBounds[i], depth + 1, maxDepth);
-                    }
                     childTrees[i].add(element, bounds);
                     return;
                 }
@@ -64,17 +73,15 @@ public class QuadTree<T> {
 
     public void search(Rectangle2D searchArea, Collection<T> result){
         for(Entry entry : entries){
-            if(entry.bounds.intersects(searchArea)){
+            if(entry.bounds.intersects(searchArea))
                 result.add(entry.element);
-            }
         }
         for(int i = 0; i < 4; i++){
             if(childTrees[i] != null){
-                if(searchArea.contains(childBounds[i])){
+                if(searchArea.contains(childBounds[i]))
                     childTrees[i].copyElements(result);
-                } else if(searchArea.intersects(childBounds[i])){
+                else if(searchArea.intersects(childBounds[i]))
                     childTrees[i].search(searchArea, result);
-                }
             }
         }
     }
@@ -84,32 +91,29 @@ public class QuadTree<T> {
             result.add(entry.element);
         }
         for(int i = 0; i < 4; i++){
-            if(childTrees[i] != null){
+            if(childTrees[i] != null)
                 childTrees[i].copyElements(result);
-            }
         }
     }
 
-    public void resize(Rectangle2D bounds){
+    public void resize(double x, double y, double width, double height){
         clear();
-        this.bounds.setRect(bounds);
 
-        double x = bounds.getX();
-        double y = bounds.getY();
-        double w = bounds.getWidth() / 2.0;
-        double h = bounds.getHeight() / 2.0;
+        double w = width / 2.0;
+        double h = height / 2.0;
         childBounds[0].setRect(x, y, w, h);
         childBounds[1].setRect(x + w, y, w, h);
         childBounds[2].setRect(x, y + h, w, h);
         childBounds[3].setRect(x + w, y + h, w, h);
     }
 
+    public void resize(Rectangle2D bounds){
+        resize(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+    }
+
     public void clear(){
         entries.clear();
         for(int i = 0; i < 4; i++){
-            if(childTrees[i] != null){
-                childTrees[i].clear();
-            }
             childTrees[i] = null;
         }
     }
@@ -117,14 +121,18 @@ public class QuadTree<T> {
     public int size(){
         int size = entries.size();
         for(int i = 0; i < 4; i++){
-            if(childTrees[i] != null){
+            if(childTrees[i] != null)
                 size += childTrees[i].size();
-            }
         }
         return size;
     }
 
     public Rectangle2D getBounds() {
-        return bounds.getBounds2D();
+        Rectangle2D.Double childBound = childBounds[0];
+        double x = childBound.x;
+        double y = childBound.y;
+        double w = childBound.width * 2;
+        double h = childBound.height * 2;
+        return new Rectangle2D.Double(x, y, w, h);
     }
 }
