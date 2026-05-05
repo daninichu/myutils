@@ -127,7 +127,7 @@ public class QuadTree<T> {
         return size;
     }
 
-    public Rectangle2D getBounds() {
+    public Rectangle2D.Double getBounds() {
         Rectangle2D.Double childBound = childBounds[0];
         double x = childBound.x;
         double y = childBound.y;

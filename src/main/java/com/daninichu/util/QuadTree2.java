@@ -57,10 +57,12 @@ public class QuadTree2<T> {
     public void add(T element, double x, double y, double width, double height) {
         if(depth != maxDepth){
             for(int i = 0; i < 4; i++){
-                if(childBounds[i].contains(x, y, width, height)){
-                    if(childTrees[i] == null)
-                        childTrees[i] = new QuadTree2<>(childBounds[i], depth + 1, maxDepth);
-                    childTrees[i].add(element, x, y, width, height);
+                Rectangle2D.Double bound = childBounds[i];
+                if(bound.contains(x, y, width, height)){
+                    QuadTree2<T> tree = childTrees[i];
+                    if(tree == null)
+                        tree = childTrees[i] = new QuadTree2<>(bound, depth + 1, maxDepth);
+                    tree.add(element, x, y, width, height);
                     return;
                 }
             }
@@ -77,43 +79,31 @@ public class QuadTree2<T> {
         search(searchArea, result);
         return result;
     }
-//
-//    public void search(double x, double y, double width, double height, Collection<T> result){
-//        for(Entry entry : entries){
-//            if(intersects(x, y, width, height, entry.x, entry.y, entry.width, entry.height))
-//                result.add(entry.element);
-//        }
-//        for(int i = 0; i < 4; i++){
-//            QuadTree2<T> tree = childTrees[i];
-//            if(tree != null){
-//                if(searchArea.contains(childBounds[i]))
-//                    tree.copyElements(result);
-//                else if(searchArea.intersects(childBounds[i]))
-//                    tree.search(searchArea, result);
-//            }
-//        }
-//    }
 
-    public void search(Rectangle2D searchArea, Collection<T> result){
-        for(Entry e : entries){
-            if(searchArea.intersects(e.x, e.y, e.width, e.height))
-                result.add(e.element);
+    public void search(double x, double y, double width, double height, Collection<T> result){
+        for(Entry entry : entries){
+            if(intersects(x, y, width, height, entry.x, entry.y, entry.width, entry.height))
+                result.add(entry.element);
         }
         for(int i = 0; i < 4; i++){
             QuadTree2<T> tree = childTrees[i];
             if(tree != null){
-                Rectangle2D.Double bounds = childBounds[i];
-                if(searchArea.contains(bounds))
+                Rectangle2D.Double bound = childBounds[i];
+                if(contains(x, y, width, height, bound.x, bound.y, bound.width, bound.height))
                     tree.copyElements(result);
-                else if(searchArea.intersects(bounds))
-                    tree.search(searchArea, result);
+                else if(intersects(x, y, width, height, bound.x, bound.y, bound.width, bound.height))
+                    tree.search(x, y, width, height, result);
             }
         }
     }
 
+    public void search(Rectangle2D searchArea, Collection<T> result){
+        search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+    }
+
     private void copyElements(Collection<T> result){
-        for(Entry e : entries){
-            result.add(e.element);
+        for(Entry entry : entries){
+            result.add(entry.element);
         }
         for(int i = 0; i < 4; i++){
             if(childTrees[i] != null)
@@ -152,17 +142,26 @@ public class QuadTree2<T> {
         return size;
     }
 
-    static boolean intersects(
+    public Rectangle2D.Double getBounds() {
+        Rectangle2D.Double childBound = childBounds[0];
+        double x = childBound.x;
+        double y = childBound.y;
+        double w = childBound.width * 2;
+        double h = childBound.height * 2;
+        return new Rectangle2D.Double(x, y, w, h);
+    }
+
+    private static boolean intersects(
             double x1, double y1, double w1, double h1,
-            double x2, double y2, double w2, double h2)
-    {
+            double x2, double y2, double w2, double h2
+    ){
         return x2 + w2 > x1 && y2 + h2 > y1 && x2 < x1 + w1 && y2 < y1 + h1;
     }
 
-    static boolean contains(
+    private static boolean contains(
             double x1, double y1, double w1, double h1,
-            double x2, double y2, double w2, double h2)
-    {
+            double x2, double y2, double w2, double h2
+    ){
         return x2 >= x1 && y2 >= y1 && x2 + w2 <= x1 + w1 && y2 + h2 <= y1 + h1;
     }
 }
