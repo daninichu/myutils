@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
-public class QuadTreeBenchmark {
+public class QuadTreeSearchBenchmark{
 
     // -------------------------------------------------------------------------
     // Parameters
@@ -115,10 +115,6 @@ public class QuadTreeBenchmark {
     public void quadTree(Blackhole bh) {
         bh.consume(quadTree.search(searchArea));
     }
-//    @Benchmark
-    public void quadTreeHeavySearch(Blackhole bh) {
-        bh.consume(quadTreeHeavy.search(searchArea));
-    }
 
     @Benchmark
     public void quadTree2(Blackhole bh) {
@@ -141,6 +137,6 @@ public class QuadTreeBenchmark {
     // -------------------------------------------------------------------------
 
     public static void main(String[] args) throws Exception{
-        Main.benchmark(QuadTreeBenchmark.class);
+        Main.benchmark(QuadTreeSearchBenchmark.class);
     }
 }
