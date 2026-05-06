@@ -21,7 +21,7 @@ public class QuadTree<T> {
 
     /** @noinspection unchecked*/
     public final QuadTree<T>[] childTrees = new QuadTree[4];
-    private final Rectangle2D.Double[] childBounds = new Rectangle2D.Double[4];
+    private double originX, originY, childW, childH;
     private final int depth, maxDepth;
     private final List<Entry> entries = new ArrayList<>();
 
@@ -48,26 +48,19 @@ public class QuadTree<T> {
     private QuadTree(double x, double y, double width, double height, int depth, int maxDepth) {
         this.depth = depth;
         this.maxDepth = maxDepth;
-
-        for(int i = 0; i < 4; i++){
-            childBounds[i] = new Rectangle2D.Double();
-        }
         resize(x, y, width, height);
     }
 
     public void add(T element, double x, double y, double width, double height) {
         if(depth != maxDepth){
             for(int i = 0; i < 4; i++){
-                Rectangle2D.Double bound = childBounds[i];
-                double bx = bound.x;
-                double by = bound.y;
-                double bw = bound.width;
-                double bh = bound.height;
+                double childX = originX + (i % 2) * childW;
+                double childY = originY + (i / 2) * childH;
 
-                if(contains(bx, by, bw, bh, x, y, width, height)){
+                if(contains(childX, childY, childW, childH, x, y, width, height)){
                     QuadTree<T> tree = childTrees[i];
                     if(tree == null)
-                        childTrees[i] = tree = new QuadTree<>(bx, by, bw, bh, depth + 1, maxDepth);
+                        childTrees[i] = tree = new QuadTree<>(childX, childY, childW, childH, depth + 1, maxDepth);
                     tree.add(element, x, y, width, height);
                     return;
                 }
@@ -94,15 +87,12 @@ public class QuadTree<T> {
         for(int i = 0; i < 4; i++){
             QuadTree<T> tree = childTrees[i];
             if(tree != null){
-                Rectangle2D.Double bound = childBounds[i];
-                double bx = bound.x;
-                double by = bound.y;
-                double bw = bound.width;
-                double bh = bound.height;
+                double childX = originX + (i % 2) * childW;
+                double childY = originY + (i / 2) * childH;
 
-                if(contains(x, y, width, height, bx, by, bw, bh))
+                if(contains(x, y, width, height, childX, childY, childW, childH))
                     tree.copyElements(result);
-                else if(intersects(x, y, width, height, bx, by, bw, bh))
+                else if(intersects(x, y, width, height, childX, childY, childW, childH))
                     tree.search(x, y, width, height, result);
             }
         }
@@ -128,12 +118,10 @@ public class QuadTree<T> {
             throw new IllegalArgumentException("width or height cannot be negative");
         clear();
 
-        double w = width / 2.0;
-        double h = height / 2.0;
-        childBounds[0].setRect(x, y, w, h);
-        childBounds[1].setRect(x + w, y, w, h);
-        childBounds[2].setRect(x, y + h, w, h);
-        childBounds[3].setRect(x + w, y + h, w, h);
+        this.originX = x;
+        this.originY = y;
+        this.childW = width / 2;
+        this.childH = height / 2;
     }
 
     public void resize(Rectangle2D bounds){
@@ -158,8 +146,7 @@ public class QuadTree<T> {
     }
 
     public Rectangle2D.Double getBounds() {
-        Rectangle2D.Double bound = childBounds[0];
-        return new Rectangle2D.Double(bound.x, bound.y, bound.width * 2, bound.height * 2);
+        return new Rectangle2D.Double(originX, originY, childW * 2, childH * 2);
     }
 
     private static boolean intersects(
