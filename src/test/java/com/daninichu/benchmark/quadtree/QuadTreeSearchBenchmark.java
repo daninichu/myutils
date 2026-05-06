@@ -2,7 +2,7 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
-import com.daninichu.util.QuadTreeContainer;
+import com.daninichu.util.QuadTree2;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -33,8 +33,8 @@ import java.util.concurrent.TimeUnit;
 })
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
-@Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 5, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeSearchBenchmark{
 
@@ -42,14 +42,12 @@ public class QuadTreeSearchBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 1000000/2;
+    public int elementCount = 1000000
+//            /2
+            ;
 
-    /**
-     * Fraction of the world that the search rectangle covers.
-     * SMALL = 5 %, MEDIUM = 25 %, LARGE = 60 %.
-     */
     @Param({
-//            "0.01",
+            "0.01",
             "0.25",
 //            "1",
     })
@@ -67,7 +65,7 @@ public class QuadTreeSearchBenchmark{
     // -------------------------------------------------------------------------
 
     private QuadTree<Object> quadTree;
-    private QuadTreeContainer<Object> quadTree2;
+    private QuadTree2<Object> quadTree2;
     private List<Rectangle2D> linearStore;   // brute-force "index"
     private List<Object>     linearValues;  // parallel list of elements
 
@@ -81,8 +79,7 @@ public class QuadTreeSearchBenchmark{
     public void setUp() {
         Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
         quadTree     = new QuadTree<>(worldBounds);
-//        quadTreeHeavy = new QuadTree<>(worldBounds);
-        quadTree2 = new QuadTreeContainer<>(worldBounds);
+        quadTree2 = new QuadTree2<>(worldBounds);
         linearStore  = new ArrayList<>(elementCount);
         linearValues = new ArrayList<>(elementCount);
 
