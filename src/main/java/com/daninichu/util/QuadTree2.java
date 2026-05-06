@@ -25,6 +25,14 @@ public class QuadTree2<T> {
     private final int depth, maxDepth;
     private final List<Entry> entries = new ArrayList<>();
 
+    public QuadTree2(Rectangle2D bounds) {
+        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
+    }
+
+    public QuadTree2(Rectangle2D bounds, int maxDepth) {
+        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
+    }
+
     public QuadTree2(double x, double y, double width, double height) {
         this(x, y, width, height, 8);
     }
@@ -35,14 +43,6 @@ public class QuadTree2<T> {
             throw new IllegalArgumentException("width or height cannot be negative");
         if(maxDepth < 0)
             throw new IllegalArgumentException("maxDepth cannot be negative");
-    }
-
-    public QuadTree2(Rectangle2D bounds) {
-        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
-    }
-
-    public QuadTree2(Rectangle2D bounds, int maxDepth) {
-        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
 
     private QuadTree2(double x, double y, double width, double height, int depth, int maxDepth) {

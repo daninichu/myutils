@@ -2,7 +2,7 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
-import com.daninichu.util.QuadTree2;
+import com.daninichu.util.QuadTreeContainer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -42,14 +42,14 @@ public class QuadTreeSearchBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 1000000;
+    public int elementCount = 1000000/2;
 
     /**
      * Fraction of the world that the search rectangle covers.
      * SMALL = 5 %, MEDIUM = 25 %, LARGE = 60 %.
      */
     @Param({
-//            "0.01",
+            "0.01",
             "0.25",
 //            "1",
     })
@@ -66,8 +66,8 @@ public class QuadTreeSearchBenchmark{
     // State
     // -------------------------------------------------------------------------
 
-    private QuadTree<Object> quadTree, quadTreeHeavy;
-    private QuadTree2<Object> quadTree2;
+    private QuadTree<Object> quadTree;
+    private QuadTreeContainer<Object> quadTree2;
     private List<Rectangle2D> linearStore;   // brute-force "index"
     private List<Object>     linearValues;  // parallel list of elements
 
@@ -82,7 +82,7 @@ public class QuadTreeSearchBenchmark{
         Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
         quadTree     = new QuadTree<>(worldBounds);
 //        quadTreeHeavy = new QuadTree<>(worldBounds);
-        quadTree2 = new QuadTree2<>(worldBounds);
+        quadTree2 = new QuadTreeContainer<>(worldBounds);
         linearStore  = new ArrayList<>(elementCount);
         linearValues = new ArrayList<>(elementCount);
 

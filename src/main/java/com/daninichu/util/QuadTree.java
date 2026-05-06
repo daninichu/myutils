@@ -25,14 +25,6 @@ public class QuadTree<T> {
     private final int depth, maxDepth;
     private final List<Entry> entries = new ArrayList<>();
 
-    public QuadTree(double x, double y, double width, double height) {
-        this(x, y, width, height, 0, 8);
-    }
-
-    public QuadTree(double x, double y, double width, double height, int maxDepth) {
-        this(x, y, width, height, 0, maxDepth);
-    }
-
     public QuadTree(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 0, 8);
     }
@@ -41,13 +33,19 @@ public class QuadTree<T> {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 0, maxDepth);
     }
 
-    private QuadTree(double x, double y, double width, double height, int depth, int maxDepth) {
-        if(width < 0 || height < 0){
+    public QuadTree(double x, double y, double width, double height) {
+        this(x, y, width, height, 0, 8);
+    }
+
+    public QuadTree(double x, double y, double width, double height, int maxDepth) {
+        this(x, y, width, height, 0, maxDepth);
+        if(width < 0 || height < 0)
             throw new IllegalArgumentException("width or height cannot be negative");
-        }
-        if(maxDepth < 0){
+        if(maxDepth < 0)
             throw new IllegalArgumentException("maxDepth cannot be negative");
-        }
+    }
+
+    private QuadTree(double x, double y, double width, double height, int depth, int maxDepth) {
         this.depth = depth;
         this.maxDepth = maxDepth;
 
@@ -95,13 +93,18 @@ public class QuadTree<T> {
         }
         for(int i = 0; i < 4; i++){
             QuadTree<T> tree = childTrees[i];
-            if(tree != null){
-                Rectangle2D.Double bound = childBounds[i];
-                if(contains(x, y, width, height, bound.x, bound.y, bound.width, bound.height))
-                    tree.copyElements(result);
-                else if(intersects(x, y, width, height, bound.x, bound.y, bound.width, bound.height))
-                    tree.search(x, y, width, height, result);
-            }
+            if(tree == null)
+                continue;
+            Rectangle2D.Double bound = childBounds[i];
+            double bx = bound.x;
+            double by = bound.y;
+            double bw = bound.width;
+            double bh = bound.height;
+
+            if(contains(x, y, width, height, bx, by, bw, bh))
+                tree.copyElements(result);
+            else if(intersects(x, y, width, height, bx, by, bw, bh))
+                tree.search(x, y, width, height, result);
         }
     }
 
@@ -120,6 +123,8 @@ public class QuadTree<T> {
     }
 
     public void resize(double x, double y, double width, double height){
+        if(width < 0 || height < 0)
+            throw new IllegalArgumentException("width or height cannot be negative");
         clear();
 
         double w = width / 2.0;
