@@ -1,8 +1,6 @@
 package com.daninichu;
 
-import com.daninichu.util.GameLoop;
-import com.daninichu.util.QuadTree;
-import com.daninichu.util.QuadTree2;
+import com.daninichu.util.*;
 import com.daninichu.util.Timer;
 
 import javax.swing.*;
@@ -49,12 +47,13 @@ public class QuadTreeViewer extends JFrame {
         // World dimensions
         private static final double WORLD_W = 150000;
         private static final double WORLD_H = 150000;
+        private static final int MAX_DEPTH = 8;
 
         // Rectangles
         private static final int N_RECTANGLES = 1000000;
         private static final double MIN_RECTANGLE_SIZE = 10;
         private static final double MAX_RECTANGLE_SIZE = 50;
-        private static final double MAX_SPEED = 0;
+        private static final double MAX_SPEED = 10;
         private static final double RECT_CURSOR_SIZE = 1000;
         private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD_W, WORLD_H);
 
@@ -73,7 +72,7 @@ public class QuadTreeViewer extends JFrame {
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
-        private final QuadTree<ColoredRect> quadTree = new QuadTree<>(worldBounds, 10);
+        private final DynamicQuadTree<ColoredRect> quadTree = new DynamicQuadTree<>(worldBounds, MAX_DEPTH);
         private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(0, 0, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
@@ -103,31 +102,33 @@ public class QuadTreeViewer extends JFrame {
             canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
-            new GameLoop(60, () -> {
-                if(MAX_SPEED != 0){
-                    allRects.forEach(rect -> {
-                        rect.x += rect.vx;
-                        rect.y += rect.vy;
-                        if(rect.x < worldBounds.getX()){
-                            rect.x = worldBounds.getX();
-                            rect.vx = -rect.vx;
-                        }
-                        if(rect.x + rect.w > worldBounds.getMaxX()){
-                            rect.x = worldBounds.getMaxX();
-                            rect.vx = -rect.vx;
-                        }
-                        if(rect.y < worldBounds.getY()){
-                            rect.y = worldBounds.getY();
-                            rect.vy = -rect.vy;
-                        }
-                        if(rect.y + rect.h > worldBounds.getMaxY()){
-                            rect.y = worldBounds.getMaxY();
-                            rect.vy = -rect.vy;
-                        }
-                    });
-                }
-                repaint();
-            }).start();
+//            new GameLoop(60, () -> {
+//                if(MAX_SPEED != 0){
+//                    quadTree.clear();
+//                    allRects.forEach(rect -> {
+//                        rect.x += rect.vx;
+//                        rect.y += rect.vy;
+//                        if(rect.x < worldBounds.getX()){
+//                            rect.x = worldBounds.getX();
+//                            rect.vx = -rect.vx;
+//                        }
+//                        if(rect.x + rect.w > worldBounds.getMaxX()){
+//                            rect.x = worldBounds.getMaxX();
+//                            rect.vx = -rect.vx;
+//                        }
+//                        if(rect.y < worldBounds.getY()){
+//                            rect.y = worldBounds.getY();
+//                            rect.vy = -rect.vy;
+//                        }
+//                        if(rect.y + rect.h > worldBounds.getMaxY()){
+//                            rect.y = worldBounds.getMaxY();
+//                            rect.vy = -rect.vy;
+//                        }
+//                        quadTree.add(rect, rect.x, rect.y, rect.w, rect.h);
+//                    });
+//                }
+//                repaint();
+//            }).start();
         }
 
         // -----------------------------------------------------------------
@@ -162,7 +163,7 @@ public class QuadTreeViewer extends JFrame {
             }
             allRects.sort(Comparator.comparingDouble(rect -> rect.y));
 
-//            repaint();
+            repaint();
         }
 
         // -----------------------------------------------------------------
@@ -211,12 +212,12 @@ public class QuadTreeViewer extends JFrame {
 
             Timer searchTimer = new Timer();
 
-            // Gather objects
-            List<ColoredRect> visible = new ArrayList<>();
+            // Gather values
+            List<DynamicQuadTree.Entry<ColoredRect>> visible = new ArrayList<>();
             if (quadSearch)
                 quadTree.search(viewRect, visible);
-            else
-                bruteForce(viewRect, visible);
+//            else
+//                bruteForce(viewRect, visible);
 
             searchTime += searchTimer.seconds();
 
@@ -227,7 +228,10 @@ public class QuadTreeViewer extends JFrame {
             if (showQuadCells) {
                 drawQuadCells(viewRect, quadTree);
             }
-            visible.parallelStream().forEach(r -> drawRectOutline(r.x, r.y, r.w, r.h, r.color));
+            visible.parallelStream().forEach(e -> {
+                var r = e.element;
+                drawRectOutline(r.x, r.y, r.w, r.h, r.color);
+            });
             drawRectOutline(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
             g.drawImage(canvas, 0, 0, null);
 
@@ -241,9 +245,10 @@ public class QuadTreeViewer extends JFrame {
         }
 
         private void drawRectCursor(Graphics2D g2){
-            List<ColoredRect> inside = new ArrayList<>();
+            List<DynamicQuadTree.Entry<ColoredRect>> inside = new ArrayList<>();
             quadTree.search(rectCursor, inside);
-            for (ColoredRect rect : inside) {
+            for (DynamicQuadTree.Entry<ColoredRect> entry : inside) {
+                ColoredRect rect = entry.element;
                 int sx = toScreenX(rect.x);
                 int sy = toScreenY(rect.y);
                 int sw = toScreenLen(rect.w);
@@ -256,6 +261,8 @@ public class QuadTreeViewer extends JFrame {
                 g2.setColor(color);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRect(sx, sy, sw, sh);
+
+                quadTree.remove(entry);
             }
             g2.setColor(new Color(255, 255, 255, 40));
             g2.fillRect(
@@ -304,7 +311,7 @@ public class QuadTreeViewer extends JFrame {
             }
         }
 
-        private void drawQuadCells(Rectangle2D viewRect, QuadTree<?> node) {
+        private void drawQuadCells(Rectangle2D viewRect, DynamicQuadTree<?> node) {
             if (node == null) {
                 return;
             }
@@ -317,7 +324,7 @@ public class QuadTreeViewer extends JFrame {
             double w = b.getWidth();
             double h = b.getHeight();
             drawRectOutline(x, y, w, h, QUAD_CELL_COLOR);
-            for (QuadTree<?> child : node.childTrees) {
+            for (DynamicQuadTree<?> child : node.childTrees) {
                 drawQuadCells(viewRect, child);
             }
         }
@@ -395,7 +402,7 @@ public class QuadTreeViewer extends JFrame {
                 rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
                 rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
             }
-//            repaint();
+            repaint();
         }
 
         @Override
@@ -409,7 +416,7 @@ public class QuadTreeViewer extends JFrame {
             // Zoom towards cursor
             camX = mx - e.getX() / zoom;
             camY = my - e.getY() / zoom;
-//            repaint();
+            repaint();
         }
 
         // -----------------------------------------------------------------
@@ -425,7 +432,7 @@ public class QuadTreeViewer extends JFrame {
                 case KeyEvent.VK_SPACE -> quadSearch = !quadSearch;
                 case KeyEvent.VK_BACK_SPACE -> showRectCursor = !showRectCursor;
             }
-//            repaint();
+            repaint();
         }
 
         // Unused interface methods

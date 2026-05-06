@@ -2,12 +2,13 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
-import com.daninichu.util.QuadTree2;
+import com.daninichu.util.DynamicQuadTree;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -47,9 +48,9 @@ public class QuadTreeSearchBenchmark{
             ;
 
     @Param({
-//            "0.01",
+            "0.01",
 //            "0.20",
-            "1",
+//            "1",
     })
     public double fraction;
 
@@ -66,9 +67,10 @@ public class QuadTreeSearchBenchmark{
     // -------------------------------------------------------------------------
 
     private final QuadTree<Object> quadTree = new QuadTree<>(worldBounds);
-    private final QuadTree2<Object> quadTree2 = new QuadTree2<>(worldBounds);
+    private final DynamicQuadTree<Object> quadTree2 = new DynamicQuadTree<>(worldBounds);
 
     private final ArrayList<Object> result = new ArrayList<>(elementCount);
+    private final Collection<DynamicQuadTree.Entry<Object>> result2 = new ArrayList<>(elementCount);
 
     private Rectangle2D searchArea;
 
@@ -100,6 +102,7 @@ public class QuadTreeSearchBenchmark{
     @Setup(Level.Invocation)
     public void clear(){
         result.clear();
+        result2.clear();
     }
 
     // -------------------------------------------------------------------------
@@ -114,7 +117,7 @@ public class QuadTreeSearchBenchmark{
 
     @Benchmark
     public void quadTree2(Blackhole bh) {
-        quadTree2.search(searchArea, result);
+        quadTree2.search(searchArea, result2);
         bh.consume(result);
     }
 

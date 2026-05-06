@@ -23,7 +23,7 @@ public class QuadTree<T> {
     public final QuadTree<T>[] childTrees = new QuadTree[4];
     private double originX, originY, childW, childH;
     private final int depth, maxDepth;
-    private final List<Entry> entries = new ArrayList<>();
+    private final ArrayList<Entry> entries = new ArrayList<>();
 
     public QuadTree(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);

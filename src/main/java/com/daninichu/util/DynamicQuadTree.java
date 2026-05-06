@@ -3,15 +3,16 @@ package com.daninichu.util;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
-public class QuadTree2<T> {
-    private class Entry{
-        T element;
+public class DynamicQuadTree<T> {
+    public static class Entry<T>{
+        public final T element;
+        ArrayList<Entry<T>> entries;
         double x, y, width, height;
 
-        Entry(T element, double x, double y, double width, double height){
+        Entry(T element, ArrayList<Entry<T>> entries, double x, double y, double width, double height){
             this.element = element;
+            this.entries = entries;
             this.x = x;
             this.y = y;
             this.width = width;
@@ -20,24 +21,24 @@ public class QuadTree2<T> {
     }
 
     /** @noinspection unchecked*/
-    public final QuadTree2<T>[] childTrees = new QuadTree2[4];
+    public final DynamicQuadTree<T>[] childTrees = new DynamicQuadTree[4];
     private double originX, originY, childW, childH;
     private final int depth, maxDepth;
-    private final ArrayList<Entry> entries = new ArrayList<>();
+    private final ArrayList<Entry<T>> entries = new ArrayList<>();
 
-    public QuadTree2(Rectangle2D bounds) {
+    public DynamicQuadTree(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
     }
 
-    public QuadTree2(Rectangle2D bounds, int maxDepth) {
+    public DynamicQuadTree(Rectangle2D bounds, int maxDepth) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
 
-    public QuadTree2(double x, double y, double width, double height) {
+    public DynamicQuadTree(double x, double y, double width, double height) {
         this(x, y, width, height, 8);
     }
 
-    public QuadTree2(double x, double y, double width, double height, int maxDepth) {
+    public DynamicQuadTree(double x, double y, double width, double height, int maxDepth) {
         this(x, y, width, height, 0, maxDepth);
         if(width < 0 || height < 0)
             throw new IllegalArgumentException("width or height cannot be negative");
@@ -45,7 +46,7 @@ public class QuadTree2<T> {
             throw new IllegalArgumentException("maxDepth cannot be negative");
     }
 
-    private QuadTree2(double x, double y, double width, double height, int depth, int maxDepth) {
+    private DynamicQuadTree(double x, double y, double width, double height, int depth, int maxDepth) {
         this.depth = depth;
         this.maxDepth = maxDepth;
         resize(x, y, width, height);
@@ -58,34 +59,40 @@ public class QuadTree2<T> {
                 double childY = originY + (i / 2) * childH;
 
                 if(contains(childX, childY, childW, childH, x, y, width, height)){
-                    QuadTree2<T> tree = childTrees[i];
+                    DynamicQuadTree<T> tree = childTrees[i];
                     if(tree == null)
-                        childTrees[i] = tree = new QuadTree2<>(childX, childY, childW, childH, depth + 1, maxDepth);
+                        childTrees[i] = tree = new DynamicQuadTree<>(childX, childY, childW, childH, depth + 1, maxDepth);
                     tree.add(element, x, y, width, height);
                     return;
                 }
             }
         }
-        entries.add(new Entry(element, x, y, width, height));
+        entries.add(new Entry<>(element, entries, x, y, width, height));
     }
 
     public void add(T element, Rectangle2D bounds){
         add(element, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
 
-    public ArrayList<T> search(Rectangle2D searchArea){
-        ArrayList<T> result = new ArrayList<>();
-        search(searchArea, result);
+    public ArrayList<Entry<T>> search(double x, double y, double width, double height){
+        ArrayList<Entry<T>> result = new ArrayList<>();
+        search(x, y, width, height, result);
         return result;
     }
 
-    public void search(double x, double y, double width, double height, Collection<T> result){
-        for(Entry entry : entries){
+    public ArrayList<Entry<T>> search(Rectangle2D searchArea){
+        ArrayList<Entry<T>> result = new ArrayList<>();
+        search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+        return result;
+    }
+
+    public void search(double x, double y, double width, double height, Collection<Entry<T>> result){
+        for(Entry<T> entry : entries){
             if(intersects(x, y, width, height, entry.x, entry.y, entry.width, entry.height))
-                result.add(entry.element);
+                result.add(entry);
         }
         for(int i = 0; i < 4; i++){
-            QuadTree2<T> tree = childTrees[i];
+            DynamicQuadTree<T> tree = childTrees[i];
             if(tree != null){
                 double childX = originX + (i % 2) * childW;
                 double childY = originY + (i / 2) * childH;
@@ -98,19 +105,21 @@ public class QuadTree2<T> {
         }
     }
 
-    public void search(Rectangle2D searchArea, Collection<T> result){
+    public void search(Rectangle2D searchArea, Collection<Entry<T>> result){
         search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
-    private void copyElements(Collection<T> result){
-        for(Entry entry : entries){
-            result.add(entry.element);
-        }
+    private void copyElements(Collection<Entry<T>> result){
+        result.addAll(entries);
         for(int i = 0; i < 4; i++){
-            QuadTree2<T> tree = childTrees[i];
+            DynamicQuadTree<T> tree = childTrees[i];
             if(tree != null)
                 tree.copyElements(result);
         }
+    }
+
+    public void remove(Entry<T> entry){
+        entry.entries.remove(entry);
     }
 
     public void resize(double x, double y, double width, double height){
@@ -138,7 +147,7 @@ public class QuadTree2<T> {
     public int size(){
         int size = entries.size();
         for(int i = 0; i < 4; i++){
-            QuadTree2<T> tree = childTrees[i];
+            DynamicQuadTree<T> tree = childTrees[i];
             if(tree != null)
                 size += tree.size();
         }
