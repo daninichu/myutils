@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
         Mode.AverageTime,
 //        Mode.SampleTime,
 })
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(iterations = 5, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
@@ -42,14 +42,14 @@ public class QuadTreeSearchBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 1000000
+    public int elementCount = 2000000
 //            /2
             ;
 
     @Param({
-            "0.01",
-            "0.25",
-//            "1",
+//            "0.01",
+//            "0.20",
+            "1",
     })
     public double fraction;
 
@@ -57,17 +57,18 @@ public class QuadTreeSearchBenchmark{
     // World geometry
     // -------------------------------------------------------------------------
 
-    private static final double WORLD = 1000.0;
+    private static final double WORLD = 10000.0;
     private static final double ELEMENT_SIZE = 2.0;   // each element is 2x2 units
+    private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
     // -------------------------------------------------------------------------
     // State
     // -------------------------------------------------------------------------
 
-    private QuadTree<Object> quadTree;
-    private QuadTree2<Object> quadTree2;
-    private List<Rectangle2D> linearStore;   // brute-force "index"
-    private List<Object>     linearValues;  // parallel list of elements
+    private final QuadTree<Object> quadTree = new QuadTree<>(worldBounds);
+    private final QuadTree2<Object> quadTree2 = new QuadTree2<>(worldBounds);
+
+    private final ArrayList<Object> result = new ArrayList<>(elementCount);
 
     private Rectangle2D searchArea;
 
@@ -77,12 +78,6 @@ public class QuadTreeSearchBenchmark{
 
     @Setup(Level.Trial)
     public void setUp() {
-        Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
-        quadTree     = new QuadTree<>(worldBounds);
-        quadTree2 = new QuadTree2<>(worldBounds);
-        linearStore  = new ArrayList<>(elementCount);
-        linearValues = new ArrayList<>(elementCount);
-
         Random rng = new Random(42);   // fixed seed for reproducible layout
 
         for (int i = 0; i < elementCount; i++) {
@@ -95,13 +90,16 @@ public class QuadTreeSearchBenchmark{
             e = i;
             quadTree.add(e, bounds);
             quadTree2.add(e, bounds);
-            linearStore.add(bounds);
-            linearValues.add(e);
         }
 
         double side = WORLD * Math.sqrt(fraction);   // square centred in the world
         double offset = (WORLD - side) / 2.0;
         searchArea = new Rectangle2D.Double(offset, offset, side, side);
+    }
+
+    @Setup(Level.Invocation)
+    public void clear(){
+        result.clear();
     }
 
     // -------------------------------------------------------------------------
@@ -110,22 +108,13 @@ public class QuadTreeSearchBenchmark{
 
     @Benchmark
     public void quadTree(Blackhole bh) {
-        bh.consume(quadTree.search(searchArea));
+        quadTree.search(searchArea, result);
+        bh.consume(result);
     }
 
     @Benchmark
     public void quadTree2(Blackhole bh) {
-        bh.consume(quadTree2.search(searchArea));
-    }
-
-//    @Benchmark
-    public void bruteForceSearch(Blackhole bh) {
-        ArrayList<Object> result = new ArrayList<>();
-        for (int i = 0; i < linearStore.size(); i++) {
-            if (linearStore.get(i).intersects(searchArea)) {
-                result.add(linearValues.get(i));
-            }
-        }
+        quadTree2.search(searchArea, result);
         bh.consume(result);
     }
 
