@@ -26,15 +26,15 @@ public class QuadTree<T> {
     private final List<Entry> entries = new ArrayList<>();
 
     public QuadTree(Rectangle2D bounds) {
-        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 0, 8);
+        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
     }
 
     public QuadTree(Rectangle2D bounds, int maxDepth) {
-        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 0, maxDepth);
+        this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
 
     public QuadTree(double x, double y, double width, double height) {
-        this(x, y, width, height, 0, 8);
+        this(x, y, width, height, 8);
     }
 
     public QuadTree(double x, double y, double width, double height, int maxDepth) {

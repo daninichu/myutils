@@ -2,6 +2,7 @@ package com.daninichu;
 
 import com.daninichu.util.GameLoop;
 import com.daninichu.util.QuadTree;
+import com.daninichu.util.QuadTree2;
 import com.daninichu.util.Timer;
 
 import javax.swing.*;
@@ -38,8 +39,6 @@ public class QuadTreeViewer extends JFrame {
         add(panel);
         addKeyListener(panel);
         setFocusable(true);
-
-        new GameLoop(60, this::repaint).start();
     }
 
     // =========================================================================
@@ -55,7 +54,7 @@ public class QuadTreeViewer extends JFrame {
         private static final int N_RECTANGLES = 1000000;
         private static final double MIN_RECTANGLE_SIZE = 10;
         private static final double MAX_RECTANGLE_SIZE = 50;
-        private static final double MAX_SPEED = 5;
+        private static final double MAX_SPEED = 0;
         private static final double RECT_CURSOR_SIZE = 1000;
         private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD_W, WORLD_H);
 
@@ -103,6 +102,32 @@ public class QuadTreeViewer extends JFrame {
 
             canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
+
+            new GameLoop(60, () -> {
+                if(MAX_SPEED != 0){
+                    allRects.forEach(rect -> {
+                        rect.x += rect.vx;
+                        rect.y += rect.vy;
+                        if(rect.x < worldBounds.getX()){
+                            rect.x = worldBounds.getX();
+                            rect.vx = -rect.vx;
+                        }
+                        if(rect.x + rect.w > worldBounds.getMaxX()){
+                            rect.x = worldBounds.getMaxX();
+                            rect.vx = -rect.vx;
+                        }
+                        if(rect.y < worldBounds.getY()){
+                            rect.y = worldBounds.getY();
+                            rect.vy = -rect.vy;
+                        }
+                        if(rect.y + rect.h > worldBounds.getMaxY()){
+                            rect.y = worldBounds.getMaxY();
+                            rect.vy = -rect.vy;
+                        }
+                    });
+                }
+                repaint();
+            }).start();
         }
 
         // -----------------------------------------------------------------
@@ -128,8 +153,8 @@ public class QuadTreeViewer extends JFrame {
                 double h = MIN_RECTANGLE_SIZE + rng.nextDouble() * (MAX_RECTANGLE_SIZE - MIN_RECTANGLE_SIZE);
                 double x = rng.nextDouble() * (WORLD_W - w);
                 double y = rng.nextDouble() * (WORLD_H - h);
-                double vx = rng.nextDouble() * MAX_SPEED;
-                double vy = rng.nextDouble() * MAX_SPEED;
+                double vx = (rng.nextDouble() * 2 - 1) * MAX_SPEED;
+                double vy = (rng.nextDouble() * 2 - 1) * MAX_SPEED;
                 Color color = palette[rng.nextInt(palette.length)];
                 ColoredRect rect = new ColoredRect(x, y, w, h, vx, vy, color.getRGB());
                 allRects.add(rect);

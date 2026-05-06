@@ -2,7 +2,7 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
-import com.daninichu.util.QuadTreeContainer;
+import com.daninichu.util.QuadTree2;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -27,7 +27,9 @@ public class QuadTreeAddBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 100000/1;
+    public int elementCount = 100000
+            /2
+            ;
 
     // -------------------------------------------------------------------------
     // World geometry
@@ -42,7 +44,7 @@ public class QuadTreeAddBenchmark{
 
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
     private QuadTree<Object> quadTree = new QuadTree<>(worldBounds);
-    private QuadTreeContainer<Object> quadTree2 = new QuadTreeContainer<>(worldBounds);
+    private QuadTree2<Object> quadTree2 = new QuadTree2<>(worldBounds);
     private List<Rectangle2D> linearStore;
 
 
@@ -84,7 +86,7 @@ public class QuadTreeAddBenchmark{
     }
 
     @Benchmark
-    public void quadTreeContainer(Blackhole bh) {
+    public void quadTree2(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             quadTree2.add(i, linearStore.get(i));
         }
