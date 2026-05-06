@@ -47,14 +47,12 @@ public class QuadTreeContainer<T> {
 
     class Quad{
         /** @noinspection unchecked*/
-        public Quad[] childTrees;
+        public Quad[] childTrees = (Quad[]) Array.newInstance(Quad.class, 4);
         private final Rectangle2D.Double[] childBounds = new Rectangle2D.Double[4];
         private final int depth;
         private final List<Entry> entries = new ArrayList<>();
 
         private Quad(double x, double y, double width, double height, int depth) {
-            childTrees = (Quad[]) Array.newInstance(Quad.class, 4);
-//            childTrees = (Quad[]) new Object[1];
             this.depth = depth;
 
             for(int i = 0; i < 4; i++){
@@ -75,7 +73,7 @@ public class QuadTreeContainer<T> {
                     if(contains(bx, by, bw, bh, x, y, width, height)){
                         Quad tree = childTrees[i];
                         if(tree == null)
-                            tree = childTrees[i] = new Quad(bx, by, bw, bh, depth + 1);
+                            childTrees[i] = tree = new Quad(bx, by, bw, bh, depth + 1);
                         tree.add(element, x, y, width, height);
                         return;
                     }
@@ -91,18 +89,18 @@ public class QuadTreeContainer<T> {
             }
             for(int i = 0; i < 4; i++){
                 Quad tree = childTrees[i];
-                if(tree == null)
-                    continue;
-                Rectangle2D.Double bound = childBounds[i];
-                double bx = bound.x;
-                double by = bound.y;
-                double bw = bound.width;
-                double bh = bound.height;
+                if(tree != null){
+                    Rectangle2D.Double bound = childBounds[i];
+                    double bx = bound.x;
+                    double by = bound.y;
+                    double bw = bound.width;
+                    double bh = bound.height;
 
-                if(contains(x, y, width, height, bx, by, bw, bh))
-                    tree.copyElements(result);
-                else if(intersects(x, y, width, height, bx, by, bw, bh))
-                    tree.search(x, y, width, height, result);
+                    if(contains(x, y, width, height, bx, by, bw, bh))
+                        tree.copyElements(result);
+                    else if(intersects(x, y, width, height, bx, by, bw, bh))
+                        tree.search(x, y, width, height, result);
+                }
             }
         }
 
@@ -111,8 +109,9 @@ public class QuadTreeContainer<T> {
                 result.add(entry.element);
             }
             for(int i = 0; i < 4; i++){
-                if(childTrees[i] != null)
-                    childTrees[i].copyElements(result);
+                Quad tree = childTrees[i];
+                if(tree != null)
+                    tree.copyElements(result);
             }
         }
 
@@ -137,8 +136,9 @@ public class QuadTreeContainer<T> {
         public int size(){
             int size = entries.size();
             for(int i = 0; i < 4; i++){
-                if(childTrees[i] != null)
-                    size += childTrees[i].size();
+                Quad tree = childTrees[i];
+                if(tree != null)
+                    size += tree.size();
             }
             return size;
         }

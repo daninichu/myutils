@@ -27,7 +27,7 @@ public class QuadTreeAddBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 50000;
+    public int elementCount = 100000/1;
 
     // -------------------------------------------------------------------------
     // World geometry
@@ -84,7 +84,7 @@ public class QuadTreeAddBenchmark{
     }
 
     @Benchmark
-    public void quadTreContainer(Blackhole bh) {
+    public void quadTreeContainer(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             quadTree2.add(i, linearStore.get(i));
         }

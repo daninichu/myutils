@@ -67,7 +67,7 @@ public class QuadTree<T> {
                 if(contains(bx, by, bw, bh, x, y, width, height)){
                     QuadTree<T> tree = childTrees[i];
                     if(tree == null)
-                        tree = childTrees[i] = new QuadTree<>(bx, by, bw, bh, depth + 1, maxDepth);
+                        childTrees[i] = tree = new QuadTree<>(bx, by, bw, bh, depth + 1, maxDepth);
                     tree.add(element, x, y, width, height);
                     return;
                 }
@@ -93,18 +93,18 @@ public class QuadTree<T> {
         }
         for(int i = 0; i < 4; i++){
             QuadTree<T> tree = childTrees[i];
-            if(tree == null)
-                continue;
-            Rectangle2D.Double bound = childBounds[i];
-            double bx = bound.x;
-            double by = bound.y;
-            double bw = bound.width;
-            double bh = bound.height;
+            if(tree != null){
+                Rectangle2D.Double bound = childBounds[i];
+                double bx = bound.x;
+                double by = bound.y;
+                double bw = bound.width;
+                double bh = bound.height;
 
-            if(contains(x, y, width, height, bx, by, bw, bh))
-                tree.copyElements(result);
-            else if(intersects(x, y, width, height, bx, by, bw, bh))
-                tree.search(x, y, width, height, result);
+                if(contains(x, y, width, height, bx, by, bw, bh))
+                    tree.copyElements(result);
+                else if(intersects(x, y, width, height, bx, by, bw, bh))
+                    tree.search(x, y, width, height, result);
+            }
         }
     }
 
@@ -117,8 +117,9 @@ public class QuadTree<T> {
             result.add(entry.element);
         }
         for(int i = 0; i < 4; i++){
-            if(childTrees[i] != null)
-                childTrees[i].copyElements(result);
+            QuadTree<T> tree = childTrees[i];
+            if(tree != null)
+                tree.copyElements(result);
         }
     }
 
@@ -149,8 +150,9 @@ public class QuadTree<T> {
     public int size(){
         int size = entries.size();
         for(int i = 0; i < 4; i++){
-            if(childTrees[i] != null)
-                size += childTrees[i].size();
+            QuadTree<T> tree = childTrees[i];
+            if(tree != null)
+                size += tree.size();
         }
         return size;
     }

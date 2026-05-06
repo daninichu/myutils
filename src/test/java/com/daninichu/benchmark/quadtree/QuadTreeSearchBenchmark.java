@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
         Mode.AverageTime,
 //        Mode.SampleTime,
 })
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
@@ -49,7 +49,7 @@ public class QuadTreeSearchBenchmark{
      * SMALL = 5 %, MEDIUM = 25 %, LARGE = 60 %.
      */
     @Param({
-            "0.01",
+//            "0.01",
             "0.25",
 //            "1",
     })
