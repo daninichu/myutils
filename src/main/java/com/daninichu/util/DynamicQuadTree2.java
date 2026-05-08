@@ -155,22 +155,22 @@ public class DynamicQuadTree2<T> {
         if(!tree.entries.remove(entry)){
             return false;
         }
-//        while(tree != this && tree.entries.isEmpty()){
-//            for(int i = 0; i < 4; i++){
-//                if(tree.childTrees[i] != null){
-//                    return true;
-//                }
-//            }
-//            DynamicQuadTree2<T> parent = tree.parent;
-//            DynamicQuadTree2<T>[] parentChildTrees = parent.childTrees;
-//            for(int i = 0; i < 4; i++){
-//                if(parentChildTrees[i] == tree){
-//                    parentChildTrees[i] = null;
-//                    tree = parent;
-//                    break;
-//                }
-//            }
-//        }
+        while(tree != this && tree.entries.isEmpty()){
+            for(int i = 0; i < 4; i++){
+                if(tree.childTrees[i] != null){
+                    return true;
+                }
+            }
+            DynamicQuadTree2<T> parent = tree.parent;
+            DynamicQuadTree2<T>[] parentChildTrees = parent.childTrees;
+            for(int i = 0; i < 4; i++){
+                if(parentChildTrees[i] == tree){
+                    parentChildTrees[i] = null;
+                    tree = parent;
+                    break;
+                }
+            }
+        }
         return true;
     }
 
