@@ -5,15 +5,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-public class DynamicQuadTree<T> {
+public class DynamicQuadTree2<T> {
     public static class Entry<T>{
         public final T element;
-        ArrayList<Entry<T>> entries;
-        public final double x, y, width, height;
+        DynamicQuadTree2<T> tree;
+        ArrayList<DynamicQuadTree2.Entry<T>> entries;
+        double x, y, width, height;
 
-        Entry(T element, ArrayList<Entry<T>> entries, double x, double y, double width, double height){
+        Entry(T element, DynamicQuadTree2<T> tree, double x, double y, double width, double height){
             this.element = element;
-            this.entries = entries;
+            this.tree = tree;
+            entries=tree.entries;
             this.x = x;
             this.y = y;
             this.width = width;
@@ -22,25 +24,25 @@ public class DynamicQuadTree<T> {
     }
 
     /** @noinspection unchecked*/
-    public final DynamicQuadTree<T>[] childTrees = new DynamicQuadTree[4];
-    private DynamicQuadTree<T> parent;
+    public final DynamicQuadTree2<T>[] childTrees = new DynamicQuadTree2[4];
+    private DynamicQuadTree2<T> parent;
     private double originX, originY, childW, childH;
     private final int depth, maxDepth;
     private final ArrayList<Entry<T>> entries = new ArrayList<>();
 
-    public DynamicQuadTree(Rectangle2D bounds) {
+    public DynamicQuadTree2(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
     }
 
-    public DynamicQuadTree(Rectangle2D bounds, int maxDepth) {
+    public DynamicQuadTree2(Rectangle2D bounds, int maxDepth) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
 
-    public DynamicQuadTree(double x, double y, double width, double height) {
+    public DynamicQuadTree2(double x, double y, double width, double height) {
         this(x, y, width, height, 8);
     }
 
-    public DynamicQuadTree(double x, double y, double width, double height, int maxDepth) {
+    public DynamicQuadTree2(double x, double y, double width, double height, int maxDepth) {
         this(x, y, width, height, 0, maxDepth);
         if(width < 0 || height < 0)
             throw new IllegalArgumentException("width or height cannot be negative");
@@ -48,7 +50,7 @@ public class DynamicQuadTree<T> {
             throw new IllegalArgumentException("maxDepth cannot be negative");
     }
 
-    private DynamicQuadTree(double x, double y, double width, double height, int depth, int maxDepth) {
+    private DynamicQuadTree2(double x, double y, double width, double height, int depth, int maxDepth) {
         this.depth = depth;
         this.maxDepth = maxDepth;
         resize(x, y, width, height);
@@ -61,15 +63,16 @@ public class DynamicQuadTree<T> {
                 double childY = originY + (i / 2) * childH;
 
                 if(contains(childX, childY, childW, childH, x, y, width, height)){
-                    DynamicQuadTree<T> tree = childTrees[i];
+                    DynamicQuadTree2<T> tree = childTrees[i];
                     if(tree == null){
-                        childTrees[i] = tree = new DynamicQuadTree<>(childX, childY, childW, childH, depth + 1, maxDepth);
+                        childTrees[i] = tree = new DynamicQuadTree2<>(childX, childY, childW, childH, depth + 1, maxDepth);
+                        tree.parent = this;
                     }
                     return tree.add(element, x, y, width, height);
                 }
             }
         }
-        Entry<T> entry = new Entry<>(element, entries, x, y, width, height);
+        Entry<T> entry = new Entry<>(element, this, x, y, width, height);
         entries.add(entry);
         return entry;
     }
@@ -96,7 +99,7 @@ public class DynamicQuadTree<T> {
                 result.add(entry);
         }
         for(int i = 0; i < 4; i++){
-            DynamicQuadTree<T> tree = childTrees[i];
+            DynamicQuadTree2<T> tree = childTrees[i];
             if(tree != null){
                 double childX = originX + (i % 2) * childW;
                 double childY = originY + (i / 2) * childH;
@@ -116,12 +119,11 @@ public class DynamicQuadTree<T> {
     private void copyElements(Collection<Entry<T>> result){
         result.addAll(entries);
         for(int i = 0; i < 4; i++){
-            DynamicQuadTree<T> tree = childTrees[i];
+            DynamicQuadTree2<T> tree = childTrees[i];
             if(tree != null)
                 tree.copyElements(result);
         }
     }
-
 
     public boolean remove(T element){
         for(int i = 0, n = entries.size(); i < n; i++){
@@ -132,8 +134,16 @@ public class DynamicQuadTree<T> {
             }
         }
         for(int i = 0; i < 4; i++){
-            DynamicQuadTree<T> tree = childTrees[i];
+            DynamicQuadTree2<T> tree = childTrees[i];
             if(tree != null && tree.remove(element)){
+                if(tree.entries.isEmpty()){
+                    for(int j = 0; j < 4; j++){
+                        if(tree.childTrees[j] != null){
+                            return true;
+                        }
+                    }
+                    childTrees[i] = null;
+                }
                 return true;
             }
         }
@@ -141,7 +151,27 @@ public class DynamicQuadTree<T> {
     }
 
     public boolean remove(Entry<T> entry){
-        return entry.entries.remove(entry);
+        DynamicQuadTree2<T> tree = entry.tree;
+        if(!tree.entries.remove(entry)){
+            return false;
+        }
+//        while(tree != this && tree.entries.isEmpty()){
+//            for(int i = 0; i < 4; i++){
+//                if(tree.childTrees[i] != null){
+//                    return true;
+//                }
+//            }
+//            DynamicQuadTree2<T> parent = tree.parent;
+//            DynamicQuadTree2<T>[] parentChildTrees = parent.childTrees;
+//            for(int i = 0; i < 4; i++){
+//                if(parentChildTrees[i] == tree){
+//                    parentChildTrees[i] = null;
+//                    tree = parent;
+//                    break;
+//                }
+//            }
+//        }
+        return true;
     }
 
     public void resize(double x, double y, double width, double height){
@@ -169,7 +199,7 @@ public class DynamicQuadTree<T> {
     public int size(){
         int size = entries.size();
         for(int i = 0; i < 4; i++){
-            DynamicQuadTree<T> tree = childTrees[i];
+            DynamicQuadTree2<T> tree = childTrees[i];
             if(tree != null)
                 size += tree.size();
         }

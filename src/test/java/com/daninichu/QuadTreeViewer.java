@@ -54,7 +54,7 @@ public class QuadTreeViewer extends JFrame {
         private static final double MIN_RECTANGLE_SIZE = 10;
         private static final double MAX_RECTANGLE_SIZE = 50;
         private static final double MAX_SPEED = 10;
-        private static final double RECT_CURSOR_SIZE = 1000;
+        private static final double RECT_CURSOR_SIZE = 10000;
         private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD_W, WORLD_H);
 
         // Camera state (world-space offset of the top-left corner of the viewport)
@@ -68,7 +68,7 @@ public class QuadTreeViewer extends JFrame {
         private int dragStartX, dragStartY;
         private double camXAtDrag, camYAtDrag;
         private boolean dragging = false;
-        private boolean showRectCursor = false;
+        private boolean showRectCursor = true;
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
@@ -76,8 +76,8 @@ public class QuadTreeViewer extends JFrame {
         private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(0, 0, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
-        private boolean showQuadCells = false;
-        private boolean quadSearch = false;
+        private boolean showQuadCells = true;
+        private boolean quadSearch = true;
         private boolean whiteOnly = false;
 
         private final BufferedImage canvas;
@@ -89,6 +89,10 @@ public class QuadTreeViewer extends JFrame {
         private static final int QUAD_CELL_COLOR = new Color(100, 100, 150).getRGB();
         private static final int BORDER_COLOR = new Color(100, 100, 150).getRGB();
 
+        // Times
+        private double searchTime = 0;
+        private double drawTime = 0;
+        private double totalTime = 0;
 
         // In constructor / resize:
 
@@ -207,17 +211,30 @@ public class QuadTreeViewer extends JFrame {
             double vpH = getHeight() / zoom;
             Rectangle2D viewRect = new Rectangle2D.Double(camX, camY, vpW, vpH);
 
-            double repaintTime = 0;
-            double searchTime = 0;
+            drawTime = searchTime = totalTime = 0;
 
+            Timer totalTimer = new Timer();
             Timer searchTimer = new Timer();
 
+
             // Gather values
-            List<DynamicQuadTree.Entry<ColoredRect>> visible = new ArrayList<>();
-            if (quadSearch)
-                quadTree.search(viewRect, visible);
-//            else
-//                bruteForce(viewRect, visible);
+            List<DynamicQuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
+
+            quadTree.search(rectCursor, visibleEntries);
+
+            List<ColoredRect> visibleRects = new ArrayList<>();
+            if (quadSearch){
+                for (DynamicQuadTree.Entry<ColoredRect> entry : visibleEntries) {
+                    quadTree.remove(entry);
+                }
+                visibleEntries.clear();
+                quadTree.search(viewRect, visibleEntries);
+            } else{
+                for (DynamicQuadTree.Entry<ColoredRect> entry : visibleEntries) {
+                    allRects.remove(entry.element);
+                }
+                bruteForce(viewRect, visibleRects);
+            }
 
             searchTime += searchTimer.seconds();
 
@@ -228,42 +245,27 @@ public class QuadTreeViewer extends JFrame {
             if (showQuadCells) {
                 drawQuadCells(viewRect, quadTree);
             }
-            visible.parallelStream().forEach(e -> {
-                var r = e.element;
-                drawRectOutline(r.x, r.y, r.w, r.h, r.color);
-            });
+            if(quadSearch){
+                visibleEntries.parallelStream().forEach(e -> {
+                    var r = e.element;
+                    drawRectOutline(r.x, r.y, r.w, r.h, r.color);
+                });
+            } else {
+                visibleRects.parallelStream().forEach(e -> drawRectOutline(e.x, e.y, e.w, e.h, e.color));
+            }
             drawRectOutline(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
-            g.drawImage(canvas, 0, 0, null);
+            g2.drawImage(canvas, 0, 0, null);
 
             if(showRectCursor){
                 drawRectCursor(g2);
             }
-            repaintTime += repaintTimer.seconds();
-
+            drawTime += repaintTimer.seconds();
+            totalTime += totalTimer.seconds();
             // HUD
-            drawHud(g2, visible.size(), searchTime, repaintTime);
+            drawHud(g2, visibleEntries.size());
         }
 
         private void drawRectCursor(Graphics2D g2){
-            List<DynamicQuadTree.Entry<ColoredRect>> inside = new ArrayList<>();
-            quadTree.search(rectCursor, inside);
-            for (DynamicQuadTree.Entry<ColoredRect> entry : inside) {
-                ColoredRect rect = entry.element;
-                int sx = toScreenX(rect.x);
-                int sy = toScreenY(rect.y);
-                int sw = toScreenLen(rect.w);
-                int sh = toScreenLen(rect.h);
-
-                Color color = new Color(rect.color);
-                g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 60));
-                g2.fillRect(sx, sy, sw, sh);
-
-                g2.setColor(color);
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRect(sx, sy, sw, sh);
-
-                quadTree.remove(entry);
-            }
             g2.setColor(new Color(255, 255, 255, 40));
             g2.fillRect(
                     toScreenX(rectCursor.getX()),
@@ -329,7 +331,7 @@ public class QuadTreeViewer extends JFrame {
             }
         }
 
-        private void drawHud(Graphics2D g2, int visibleCount, double searchTime, double repaintTime) {
+        private void drawHud(Graphics2D g2, int visibleCount) {
             g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
             String[] lines = {
                 String.format("zoom   %.2fx", zoom),
@@ -337,8 +339,8 @@ public class QuadTreeViewer extends JFrame {
                 String.format("drawn  %d/%d rects", visibleCount, allRects.size()),
                 String.format("mode   %s", quadSearch ? "quadtree" : "brute force"),
                 String.format("search time   %f", searchTime),
-                String.format("repaint time   %f", repaintTime),
-                String.format("total time   %f", searchTime + repaintTime),
+                String.format("repaint time   %f", drawTime),
+                String.format("total time   %f", totalTime),
 //                String.format("max quad size   %d", QuadTree.maxQuadSize),
                 "",
                 "drag   pan",
@@ -380,6 +382,11 @@ public class QuadTreeViewer extends JFrame {
             camYAtDrag = camY;
             dragging = true;
             setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+            if(showRectCursor){
+                rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
+                rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
+            }
+            repaint();
         }
 
         @Override

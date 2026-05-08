@@ -77,7 +77,7 @@ public class QuadTreeAddBenchmark{
     // Benchmarks
     // -------------------------------------------------------------------------
 
-    @Benchmark
+//    @Benchmark
     public void quadTree(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             quadTree.add(i, linearStore.get(i));
