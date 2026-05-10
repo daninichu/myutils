@@ -44,8 +44,6 @@ public class DynamicQuadTree2<T> {
 
     public DynamicQuadTree2(double x, double y, double width, double height, int maxDepth) {
         this(x, y, width, height, 0, maxDepth);
-        if(width < 0 || height < 0)
-            throw new IllegalArgumentException("width or height cannot be negative");
         if(maxDepth < 0)
             throw new IllegalArgumentException("maxDepth cannot be negative");
     }
@@ -136,6 +134,23 @@ public class DynamicQuadTree2<T> {
         for(int i = 0; i < 4; i++){
             DynamicQuadTree2<T> tree = childTrees[i];
             if(tree != null && tree.remove(element)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean removeAndCollapse(T element){
+        for(int i = 0, n = entries.size(); i < n; i++){
+            if(entries.get(i).element.equals(element)){
+                Collections.swap(entries, i, n-1);
+                entries.remove(n-1);
+                return true;
+            }
+        }
+        for(int i = 0; i < 4; i++){
+            DynamicQuadTree2<T> tree = childTrees[i];
+            if(tree != null && tree.removeAndCollapse(element)){
                 if(tree.entries.isEmpty()){
                     for(int j = 0; j < 4; j++){
                         if(tree.childTrees[j] != null){
@@ -151,6 +166,10 @@ public class DynamicQuadTree2<T> {
     }
 
     public boolean remove(Entry<T> entry){
+        return entry.tree.entries.remove(entry);
+    }
+
+    public boolean removeAndCollapse(Entry<T> entry){
         DynamicQuadTree2<T> tree = entry.tree;
         if(!tree.entries.remove(entry)){
             return false;

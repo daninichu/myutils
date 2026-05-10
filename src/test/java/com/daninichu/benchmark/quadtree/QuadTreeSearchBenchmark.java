@@ -3,6 +3,7 @@ package com.daninichu.benchmark.quadtree;
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
 import com.daninichu.util.DynamicQuadTree;
+import com.daninichu.util.QuadTree2;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -48,8 +49,8 @@ public class QuadTreeSearchBenchmark{
             ;
 
     @Param({
-            "0.01",
-//            "0.20",
+//            "0.01",
+            "0.20",
 //            "1",
     })
     public double fraction;
@@ -66,11 +67,12 @@ public class QuadTreeSearchBenchmark{
     // State
     // -------------------------------------------------------------------------
 
-    private final QuadTree<Object> quadTree = new QuadTree<>(worldBounds);
-    private final DynamicQuadTree<Object> quadTree2 = new DynamicQuadTree<>(worldBounds);
+    private final QuadTree<Integer> quadTree = new QuadTree<>(worldBounds);
+    private final QuadTree2<Integer> quadTree2 = new QuadTree2<>(worldBounds);
+    private final DynamicQuadTree<Integer> dynamicQuadTree = new DynamicQuadTree<>(worldBounds);
 
-    private final ArrayList<Object> result = new ArrayList<>(elementCount);
-    private final Collection<DynamicQuadTree.Entry<Object>> result2 = new ArrayList<>(elementCount);
+    private final ArrayList<Integer> result = new ArrayList<>(elementCount);
+    private final Collection<DynamicQuadTree.Entry<Integer>> result2 = new ArrayList<>(elementCount);
 
     private Rectangle2D searchArea;
 
@@ -87,11 +89,9 @@ public class QuadTreeSearchBenchmark{
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
-            Object e;
-//            e = "p".repeat(790);
-            e = i;
-            quadTree.add(e, bounds);
-            quadTree2.add(e, bounds);
+            quadTree.add(i, bounds);
+            quadTree2.add(i, bounds);
+            dynamicQuadTree.add(i, bounds);
         }
 
         double side = WORLD * Math.sqrt(fraction);   // square centred in the world
@@ -115,9 +115,17 @@ public class QuadTreeSearchBenchmark{
         bh.consume(result);
     }
 
-    @Benchmark
+//    @Benchmark
     public void quadTree2(Blackhole bh) {
-        quadTree2.search(searchArea, result2);
+        quadTree2.search(searchArea, result);
+        bh.consume(result);
+    }
+
+    @Benchmark
+    public void dynamicQuadTree(Blackhole bh) {
+        dynamicQuadTree.search(searchArea, result2);
+        ArrayList<Object> result = new ArrayList<>(result2.size());
+        result2.forEach(e -> result.add(e.element));
         bh.consume(result);
     }
 

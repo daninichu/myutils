@@ -3,6 +3,7 @@ package com.daninichu.benchmark.quadtree;
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
 import com.daninichu.util.DynamicQuadTree;
+import com.daninichu.util.QuadTree2;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -43,8 +44,9 @@ public class QuadTreeAddBenchmark{
     // -------------------------------------------------------------------------
 
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
-    private QuadTree<Object> quadTree = new QuadTree<>(worldBounds);
-    private DynamicQuadTree<Object> quadTree2 = new DynamicQuadTree<>(worldBounds);
+    private QuadTree<Integer> quadTree = new QuadTree<>(worldBounds);
+    private QuadTree2<Integer> quadTree2 = new QuadTree2<>(worldBounds);
+    private DynamicQuadTree<Integer> dynamicQuadTree = new DynamicQuadTree<>(worldBounds);
     private List<Rectangle2D> linearStore;
 
 
@@ -71,13 +73,14 @@ public class QuadTreeAddBenchmark{
     public void clear(){
         quadTree.clear();
         quadTree2.clear();
+        dynamicQuadTree.clear();
     }
 
     // -------------------------------------------------------------------------
     // Benchmarks
     // -------------------------------------------------------------------------
 
-//    @Benchmark
+    @Benchmark
     public void quadTree(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             quadTree.add(i, linearStore.get(i));
@@ -85,12 +88,20 @@ public class QuadTreeAddBenchmark{
         bh.consume(quadTree);
     }
 
-    @Benchmark
+//    @Benchmark
     public void quadTree2(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             quadTree2.add(i, linearStore.get(i));
         }
         bh.consume(quadTree2);
+    }
+
+    @Benchmark
+    public void dynamicQuadTree(Blackhole bh) {
+        for (int i = 0; i < elementCount; i++) {
+            dynamicQuadTree.add(i, linearStore.get(i));
+        }
+        bh.consume(dynamicQuadTree);
     }
 
     // -------------------------------------------------------------------------
