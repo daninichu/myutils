@@ -8,7 +8,7 @@ import java.util.Iterator;
 public class QuadTreeContainer<T> implements Iterable<T> {
     private Quadrant<T> root;
     private int size;
-    private double boundX, boundY, boundWidth, boundHeight;
+    private double boundX, boundY, boundW, boundH;
 
     public QuadTreeContainer(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
@@ -29,8 +29,8 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         }
         boundX = x;
         boundY = y;
-        boundWidth = width;
-        boundHeight = height;
+        boundW = width;
+        boundH = height;
         root = new Quadrant<>(x, y, width, height, 0, maxDepth);
     }
 
@@ -41,8 +41,9 @@ public class QuadTreeContainer<T> implements Iterable<T> {
 
     public Entry<T> add(T value, double x, double y, double width, double height){
         checkNonNegativity(width, height);
+        Entry<T> entry = root.add(value, x, y, width, height);
         size++;
-        return root.add(value, x, y, width, height);
+        return entry;
     }
 
     public Entry<T> add(T value, Rectangle2D bounds){
@@ -69,22 +70,38 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
+    /**
+     * Performs a search of the entire tree looking for the value to be removed.
+     * For a faster removal method, use {@link #remove(Entry)}, which avoids performing a search.
+     * <p>
+     * The tree does not collapse itself.
+     * @param value The value to search for and remove from the tree.
+     * @return {@code true} if the value was found and removed from the tree.
+     */
     public boolean remove(T value){
         Entry<T> entry = root.removeEntry(value);
         if(entry != null){
-            size--;
             entry.quadrant = null;
+            size--;
             return true;
         }
         return false;
     }
 
+    /**
+     * Performs a search of the entire tree looking for the value to be removed.
+     * For a faster removal method, use {@link #removeAndCollapse(Entry)}, which avoids performing a search.
+     * <p>
+     * The tree collapses on itself if a leaf node is empty.
+     * @param value The value to search for and remove from the tree.
+     * @return {@code true} if the value was found and removed from the tree.
+     */
     public boolean removeAndCollapse(T value){
         Entry<T> entry = root.removeEntry(value);
         if(entry != null){
             collapse(entry.quadrant);
-            size--;
             entry.quadrant = null;
+            size--;
             return true;
         }
         return false;
@@ -93,8 +110,8 @@ public class QuadTreeContainer<T> implements Iterable<T> {
     public boolean remove(Entry<T> entry){
         Quadrant<T> tree = entry.quadrant;
         if(tree != null && tree.entries.remove(entry)){
-            size--;
             entry.quadrant = null;
+            size--;
             return true;
         }
         return false;
@@ -102,10 +119,10 @@ public class QuadTreeContainer<T> implements Iterable<T> {
 
     public boolean removeAndCollapse(Entry<T> entry){
         Quadrant<T> tree = entry.quadrant;
-        if(tree.entries.remove(entry)){
+        if(tree != null && tree.entries.remove(entry)){
             collapse(tree);
-            size--;
             entry.quadrant = null;
+            size--;
             return true;
         }
         return false;
@@ -115,15 +132,15 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         checkNonNegativity(width, height);
         boundX = x;
         boundY = y;
-        boundWidth = width;
-        boundHeight = height;
+        boundW = width;
+        boundH = height;
         clear();
     }
 
     public void clear(){
         size = 0;
         root.clear();
-        root = new Quadrant<>(boundX, boundY, boundWidth, boundHeight, 0, root.maxDepth);
+        root = new Quadrant<>(boundX, boundY, boundW, boundH, 0, root.maxDepth);
     }
 
     public int size(){
@@ -135,7 +152,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
     }
 
     public Rectangle2D.Double getBounds() {
-        return new Rectangle2D.Double(boundX, boundY, boundWidth, boundHeight);
+        return new Rectangle2D.Double(boundX, boundY, boundW, boundH);
     }
 
     public ArrayList<Entry<T>> entries(){
@@ -169,19 +186,19 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return x2 >= x1 && y2 >= y1 && x2 + w2 <= x1 + w1 && y2 + h2 <= y1 + h1;
     }
 
-    private static void collapse(Quadrant<?> tree){
-        Quadrant<?> parent = tree.parent;
-        while(parent != null && tree.entries.isEmpty()){
+    private static void collapse(Quadrant<?> quadrant){
+        Quadrant<?> parent = quadrant.parent;
+        while(parent != null && quadrant.entries.isEmpty()){
             for(int i = 0; i < 4; i++){
-                if(tree.children[i] != null){
+                if(quadrant.children[i] != null){
                     return;
                 }
             }
             Quadrant<?>[] parentChildren = parent.children;
             for(int i = 0; i < 4; i++){
-                if(parentChildren[i] == tree){
+                if(parentChildren[i] == quadrant){
                     parentChildren[i] = null;
-                    tree = parent;
+                    quadrant = parent;
                     parent = parent.parent;
                     break;
                 }
