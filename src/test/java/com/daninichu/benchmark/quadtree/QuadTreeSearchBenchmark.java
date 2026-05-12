@@ -5,6 +5,7 @@ import com.daninichu.util.QuadTree;
 import com.daninichu.util.DynamicQuadTree;
 import com.daninichu.util.QuadTree2;
 import com.daninichu.util.QuadTreeContainer;
+import org.junit.jupiter.api.Nested;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -68,9 +69,9 @@ public class QuadTreeSearchBenchmark{
     // State
     // -------------------------------------------------------------------------
 
-    private final QuadTree<Integer> quadTree = new QuadTree<>(worldBounds);
-    private final QuadTree2<Integer> quadTree2 = new QuadTree2<>(worldBounds);
-    private final DynamicQuadTree<Integer> dynamicQuadTree = new DynamicQuadTree<>(worldBounds);
+    private final QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds);
+    private final QuadTree2<Integer> QuadTree2 = new QuadTree2<>(worldBounds);
+    private final DynamicQuadTree<Integer> DynamicQuadTree = new DynamicQuadTree<>(worldBounds);
     private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds);
 
     private final ArrayList<Integer> result = new ArrayList<>(elementCount);
@@ -92,9 +93,9 @@ public class QuadTreeSearchBenchmark{
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
-            quadTree.add(i, bounds);
-            quadTree2.add(i, bounds);
-            dynamicQuadTree.add(i, bounds);
+            QuadTree.add(i, bounds);
+            QuadTree2.add(i, bounds);
+            DynamicQuadTree.add(i, bounds);
             QuadTreeContainer.add(i, bounds);
         }
 
@@ -115,20 +116,20 @@ public class QuadTreeSearchBenchmark{
     // -------------------------------------------------------------------------
 
 //    @Benchmark
-    public void quadTree(Blackhole bh) {
-        quadTree.search(searchArea, result);
+    public void QuadTree(Blackhole bh) {
+        QuadTree.search(searchArea, result);
         bh.consume(result);
     }
 
 //    @Benchmark
-    public void quadTree2(Blackhole bh) {
-        quadTree2.search(searchArea, result);
+    public void QuadTree2(Blackhole bh) {
+        QuadTree2.search(searchArea, result);
         bh.consume(result);
     }
 
     @Benchmark
-    public void dynamicQuadTree(Blackhole bh) {
-        dynamicQuadTree.search(searchArea, result2);
+    public void DynamicQuadTree(Blackhole bh) {
+        DynamicQuadTree.search(searchArea, result2);
 //        ArrayList<Object> result = new ArrayList<>(result2.size());
 //        result2.forEach(e -> result.add(e.element));
         bh.consume(result2);

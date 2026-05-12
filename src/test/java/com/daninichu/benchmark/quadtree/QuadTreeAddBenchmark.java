@@ -45,10 +45,10 @@ public class QuadTreeAddBenchmark{
     // -------------------------------------------------------------------------
 
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
-    private QuadTree<Integer> quadTree = new QuadTree<>(worldBounds);
-    private QuadTree2<Integer> quadTree2 = new QuadTree2<>(worldBounds);
+    private QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds);
+    private QuadTree2<Integer> QuadTree2 = new QuadTree2<>(worldBounds);
     private QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds);
-    private DynamicQuadTree<Integer> dynamicQuadTree = new DynamicQuadTree<>(worldBounds);
+    private DynamicQuadTree<Integer> DynamicQuadTree = new DynamicQuadTree<>(worldBounds);
     private List<Rectangle2D> linearStore;
 
 
@@ -73,9 +73,9 @@ public class QuadTreeAddBenchmark{
 
     @Setup(Level.Invocation)
     public void clear(){
-        quadTree.clear();
-        quadTree2.clear();
-        dynamicQuadTree.clear();
+        QuadTree.clear();
+        QuadTree2.clear();
+        DynamicQuadTree.clear();
         QuadTreeContainer.clear();
     }
 
@@ -84,27 +84,27 @@ public class QuadTreeAddBenchmark{
     // -------------------------------------------------------------------------
 
 //    @Benchmark
-    public void quadTree(Blackhole bh) {
+    public void QuadTree(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            quadTree.add(i, linearStore.get(i));
+            QuadTree.add(i, linearStore.get(i));
         }
-        bh.consume(quadTree);
+        bh.consume(QuadTree);
     }
 
 //    @Benchmark
-    public void quadTree2(Blackhole bh) {
+    public void QuadTree2(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            quadTree2.add(i, linearStore.get(i));
+            QuadTree2.add(i, linearStore.get(i));
         }
-        bh.consume(quadTree2);
+        bh.consume(QuadTree2);
     }
 
     @Benchmark
-    public void dynamicQuadTree(Blackhole bh) {
+    public void DynamicQuadTree(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            dynamicQuadTree.add(i, linearStore.get(i));
+            DynamicQuadTree.add(i, linearStore.get(i));
         }
-        bh.consume(dynamicQuadTree);
+        bh.consume(DynamicQuadTree);
     }
 
     @Benchmark

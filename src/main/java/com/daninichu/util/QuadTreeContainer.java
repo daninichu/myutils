@@ -1,10 +1,14 @@
 package com.daninichu.util;
 
 import java.awt.geom.Rectangle2D;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 
 public class QuadTreeContainer<T> implements Iterable<T> {
-    private final Quadrant<T> root;
+    private Quadrant<T> root;
+    private int size;
+    private double boundX, boundY, boundWidth, boundHeight;
 
     public QuadTreeContainer(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
@@ -19,66 +23,136 @@ public class QuadTreeContainer<T> implements Iterable<T> {
     }
 
     public QuadTreeContainer(double x, double y, double width, double height, int maxDepth) {
-        if(width < 0 || height < 0)
-            throw new IllegalArgumentException("width or height cannot be negative");
-        if(maxDepth < 0)
+        checkNonNegativity(width, height);
+        if(maxDepth < 0){
             throw new IllegalArgumentException("maxDepth cannot be negative");
+        }
+        boundX = x;
+        boundY = y;
+        boundWidth = width;
+        boundHeight = height;
         root = new Quadrant<>(x, y, width, height, 0, maxDepth);
     }
 
-    public Entry<T> add(T element, double x, double y, double w, double h){
-        return root.add(element, x, y, w, h);
+    private static void checkNonNegativity(double width, double height){
+        if(width < 0 || height < 0)
+            throw new IllegalArgumentException("width or height cannot be negative");
     }
 
-    public Entry<T> add(T element, Rectangle2D bounds){
-        return root.add(element, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+    public Entry<T> add(T value, double x, double y, double width, double height){
+        checkNonNegativity(width, height);
+        size++;
+        return root.add(value, x, y, width, height);
     }
 
-    public ArrayList<Entry<T>> search(Rectangle2D searchArea){
+    public Entry<T> add(T value, Rectangle2D bounds){
+        return add(value, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+    }
+
+    public ArrayList<Entry<T>> search(double x, double y, double width, double height){
+        checkNonNegativity(width, height);
         ArrayList<Entry<T>> result = new ArrayList<>();
-        root.search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+        root.search(x, y, width, height, result);
         return result;
     }
 
+    public ArrayList<Entry<T>> search(Rectangle2D searchArea){
+        return search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
+    }
+
+    public void search(double x, double y, double width, double height, Collection<Entry<T>> result){
+        checkNonNegativity(width, height);
+        root.search(x, y, width, height, result);
+    }
+
     public void search(Rectangle2D searchArea, Collection<Entry<T>> result){
-        root.search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+        search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
-    public boolean remove(T element){
-        return root.removeEntry(element) != null;
-    }
-
-    public boolean removeAndCollapse(T element){
-        Entry<T> entry = root.removeEntry(element);
+    public boolean remove(T value){
+        Entry<T> entry = root.removeEntry(value);
         if(entry != null){
-            collapse(entry.tree);
+            size--;
+            entry.quadrant = null;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeAndCollapse(T value){
+        Entry<T> entry = root.removeEntry(value);
+        if(entry != null){
+            collapse(entry.quadrant);
+            size--;
+            entry.quadrant = null;
             return true;
         }
         return false;
     }
 
     public boolean remove(Entry<T> entry){
-        return entry.tree.entries.remove(entry);
-    }
-
-    public boolean removeAndCollapse(Entry<T> entry){
-        Quadrant<T> tree = entry.tree;
-        if(tree.entries.remove(entry)){
-            collapse(tree);
+        Quadrant<T> tree = entry.quadrant;
+        if(tree != null && tree.entries.remove(entry)){
+            size--;
+            entry.quadrant = null;
             return true;
         }
         return false;
     }
 
+    public boolean removeAndCollapse(Entry<T> entry){
+        Quadrant<T> tree = entry.quadrant;
+        if(tree.entries.remove(entry)){
+            collapse(tree);
+            size--;
+            entry.quadrant = null;
+            return true;
+        }
+        return false;
+    }
+
+    public void resize(double x, double y, double width, double height){
+        checkNonNegativity(width, height);
+        boundX = x;
+        boundY = y;
+        boundWidth = width;
+        boundHeight = height;
+        clear();
+    }
+
     public void clear(){
+        size = 0;
         root.clear();
+        root = new Quadrant<>(boundX, boundY, boundWidth, boundHeight, 0, root.maxDepth);
+    }
+
+    public int size(){
+        return size;
+    }
+
+    public boolean isEmpty(){
+        return size == 0;
+    }
+
+    public Rectangle2D.Double getBounds() {
+        return new Rectangle2D.Double(boundX, boundY, boundWidth, boundHeight);
+    }
+
+    public ArrayList<Entry<T>> entries(){
+        ArrayList<Entry<T>> entries = new ArrayList<>(size);
+        root.copyEntries(entries);
+        return entries;
+    }
+
+    public ArrayList<T> values(){
+        ArrayList<T> values = new ArrayList<>(size);
+        root.copyValues(values);
+        return values;
     }
 
     @Override
     public Iterator<T> iterator(){
-        List<T> entries = new ArrayList<>();
-        root.copyElements(entries);
-        return entries.iterator();
+        return values().iterator();
     }
 
     private static boolean intersects(
@@ -99,14 +173,14 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         Quadrant<?> parent = tree.parent;
         while(parent != null && tree.entries.isEmpty()){
             for(int i = 0; i < 4; i++){
-                if(tree.childTrees[i] != null){
+                if(tree.children[i] != null){
                     return;
                 }
             }
-            Quadrant<?>[] parentChildTrees = parent.childTrees;
+            Quadrant<?>[] parentChildren = parent.children;
             for(int i = 0; i < 4; i++){
-                if(parentChildTrees[i] == tree){
-                    parentChildTrees[i] = null;
+                if(parentChildren[i] == tree){
+                    parentChildren[i] = null;
                     tree = parent;
                     parent = parent.parent;
                     break;
@@ -116,125 +190,113 @@ public class QuadTreeContainer<T> implements Iterable<T> {
     }
 
     public static class Entry<T>{
-        public final T element;
-        Quadrant<T> tree;
-        double x, y, width, height;
+        public final T value;
+        public final double x, y, width, height;
+        private Quadrant<T> quadrant;
 
-        Entry(T element, Quadrant<T> tree, double x, double y, double width, double height){
-            this.element = element;
-            this.tree = tree;
+        private Entry(T value, double x, double y, double width, double height, Quadrant<T> quadrant){
+            this.value = value;
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
+            this.quadrant = quadrant;
         }
     }
 
-    static class Quadrant<T>{
-        /** @noinspection unchecked*/
-        public final Quadrant<T>[] childTrees = new Quadrant[4];
-        private Quadrant<T> parent;
-        private double originX, originY, childW, childH;
-        private final int depth, maxDepth;
-        private final ArrayList<Entry<T>> entries = new ArrayList<>();
+    private static class Quadrant<T>{
+        double originX, originY, childW, childH;
+        int depth, maxDepth;
 
-        private Quadrant(double x, double y, double width, double height, int depth, int maxDepth){
+        @SuppressWarnings("unchecked")
+        Quadrant<T>[] children = new Quadrant[4];
+        Quadrant<T> parent;
+        ArrayList<Entry<T>> entries = new ArrayList<>();
+
+        Quadrant(double x, double y, double width, double height, int depth, int maxDepth){
+            this.originX = x;
+            this.originY = y;
+            this.childW = width / 2;
+            this.childH = height / 2;
             this.depth = depth;
             this.maxDepth = maxDepth;
-            resize(x, y, width, height);
         }
 
-        public Entry<T> add(T element, double x, double y, double width, double height){
+        Entry<T> add(T value, double x, double y, double w, double h){
             if(depth != maxDepth){
                 for(int i = 0; i < 4; i++){
                     double childX = originX + (i % 2) * childW;
                     double childY = originY + (i / 2) * childH;
 
-                    if(contains(childX, childY, childW, childH, x, y, width, height)){
-                        Quadrant<T> tree = childTrees[i];
-                        if(tree == null){
-                            childTrees[i] = tree = new Quadrant<>(childX, childY, childW, childH, depth + 1, maxDepth);
-                            tree.parent = this;
+                    if(contains(childX, childY, childW, childH, x, y, w, h)){
+                        Quadrant<T> child = children[i];
+                        if(child == null){
+                            children[i] = child = new Quadrant<>(childX, childY, childW, childH, depth + 1, maxDepth);
+                            child.parent = this;
                         }
-                        return tree.add(element, x, y, width, height);
+                        return child.add(value, x, y, w, h);
                     }
                 }
             }
-            Entry<T> entry = new Entry<>(element, this, x, y, width, height);
+            Entry<T> entry = new Entry<>(value, x, y, w, h, this);
             entries.add(entry);
             return entry;
         }
 
-        public Entry<T> add(T element, Rectangle2D bounds){
-            return add(element, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
-        }
-
-        public ArrayList<Entry<T>> search(double x, double y, double width, double height){
-            ArrayList<Entry<T>> result = new ArrayList<>();
-            search(x, y, width, height, result);
-            return result;
-        }
-
-        public ArrayList<Entry<T>> search(Rectangle2D searchArea){
-            ArrayList<Entry<T>> result = new ArrayList<>();
-            search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
-            return result;
-        }
-
-        public void search(double x, double y, double width, double height, Collection<Entry<T>> result){
+        void search(double x, double y, double w, double h, Collection<Entry<T>> result){
             for(Entry<T> entry : entries){
-                if(intersects(x, y, width, height, entry.x, entry.y, entry.width, entry.height))
+                if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
                     result.add(entry);
+                }
             }
             for(int i = 0; i < 4; i++){
-                Quadrant<T> tree = childTrees[i];
-                if(tree != null){
+                Quadrant<T> child = children[i];
+                if(child != null){
                     double childX = originX + (i % 2) * childW;
                     double childY = originY + (i / 2) * childH;
 
-                    if(contains(x, y, width, height, childX, childY, childW, childH))
-                        tree.copyEntries(result);
-                    else if(intersects(x, y, width, height, childX, childY, childW, childH))
-                        tree.search(x, y, width, height, result);
+                    if(contains(x, y, w, h, childX, childY, childW, childH))
+                        child.copyEntries(result);
+                    else if(intersects(x, y, w, h, childX, childY, childW, childH))
+                        child.search(x, y, w, h, result);
                 }
             }
         }
 
-        public void search(Rectangle2D searchArea, Collection<Entry<T>> result){
-            search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
-        }
-
-        private void copyEntries(Collection<Entry<T>> result){
+        void copyEntries(Collection<Entry<T>> result){
             result.addAll(entries);
             for(int i = 0; i < 4; i++){
-                Quadrant<T> tree = childTrees[i];
-                if(tree != null)
-                    tree.copyEntries(result);
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    child.copyEntries(result);
+                }
             }
         }
 
-        private void copyElements(Collection<T> result){
+        void copyValues(Collection<T> result){
             for(Entry<T> entry : entries){
-                result.add(entry.element);
+                result.add(entry.value);
             }
             for(int i = 0; i < 4; i++){
-                Quadrant<T> tree = childTrees[i];
-                if(tree != null)
-                    tree.copyElements(result);
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    child.copyValues(result);
+                }
             }
         }
 
-        public Entry<T> removeEntry(T element){
+        Entry<T> removeEntry(T value){
             for(int i = 0, n = entries.size(); i < n; i++){
-                if(entries.get(i).element.equals(element)){
-                    Collections.swap(entries, i, n - 1);
-                    return entries.remove(n - 1);
+                Entry<T> entry = entries.get(i);
+                if(entry.value.equals(value)){
+                    entries.set(i, entries.set(n-1, entry));
+                    return entries.remove(n-1);
                 }
             }
             for(int i = 0; i < 4; i++){
-                Quadrant<T> tree = childTrees[i];
-                if(tree != null){
-                    Entry<T> entry = tree.removeEntry(element);
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    Entry<T> entry = child.removeEntry(value);
                     if(entry != null){
                         return entry;
                     }
@@ -243,30 +305,16 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             return null;
         }
 
-        public void resize(double x, double y, double width, double height){
-            if(width < 0 || height < 0)
-                throw new IllegalArgumentException("width or height cannot be negative");
-            clear();
-
-            this.originX = x;
-            this.originY = y;
-            this.childW = width / 2;
-            this.childH = height / 2;
-        }
-
-        public void resize(Rectangle2D bounds){
-            resize(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
-        }
-
-        public void clear(){
-            entries.clear();
-            for(int i = 0; i < 4; i++){
-                childTrees[i] = null;
+        void clear(){
+            for(Entry<T> entry : entries){
+                entry.quadrant = null;
             }
-        }
-
-        public Rectangle2D.Double getBounds(){
-            return new Rectangle2D.Double(originX, originY, childW * 2, childH * 2);
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    child.clear();
+                }
+            }
         }
     }
 }

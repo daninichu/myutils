@@ -9,13 +9,11 @@ public class DynamicQuadTree2<T> {
     public static class Entry<T>{
         public final T element;
         DynamicQuadTree2<T> tree;
-        ArrayList<DynamicQuadTree2.Entry<T>> entries;
         double x, y, width, height;
 
         Entry(T element, DynamicQuadTree2<T> tree, double x, double y, double width, double height){
             this.element = element;
             this.tree = tree;
-            entries=tree.entries;
             this.x = x;
             this.y = y;
             this.width = width;

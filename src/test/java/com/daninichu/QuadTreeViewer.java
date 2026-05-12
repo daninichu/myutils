@@ -45,12 +45,12 @@ public class QuadTreeViewer extends JFrame {
             MouseMotionListener, MouseWheelListener, KeyListener {
 
         // World dimensions
-        private static final double WORLD_W = 15000;
-        private static final double WORLD_H = 15000;
+        private static final double WORLD_W = 150000;
+        private static final double WORLD_H = 150000;
         private static final int MAX_DEPTH = 9;
 
         // Rectangles
-        private static final int N_RECTANGLES = 1000;
+        private static final int N_RECTANGLES = 1000000;
         private static final double MIN_RECTANGLE_SIZE = 10;
         private static final double MAX_RECTANGLE_SIZE = 50;
         private static final double MAX_SPEED = 0;
@@ -72,7 +72,7 @@ public class QuadTreeViewer extends JFrame {
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
-        private final DynamicQuadTree2<ColoredRect> quadTree = new DynamicQuadTree2<>(worldBounds, MAX_DEPTH);
+        private final QuadTreeContainer<ColoredRect> quadTree = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
         private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(0, 0, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
@@ -106,7 +106,7 @@ public class QuadTreeViewer extends JFrame {
             canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
-            new GameLoop(60, this::repaint).start();
+//            new GameLoop(60, this::repaint).start();
         }
 
         // -----------------------------------------------------------------
@@ -193,20 +193,20 @@ public class QuadTreeViewer extends JFrame {
 
 
             // Gather values
-            List<DynamicQuadTree2.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
+            List<QuadTreeContainer.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
 
             quadTree.search(rectCursor, visibleEntries);
 
             List<ColoredRect> visibleRects = new ArrayList<>();
             if (quadSearch){
-                for (DynamicQuadTree2.Entry<ColoredRect> entry : visibleEntries) {
-                    quadTree.removeAndCollapse(entry.element);
+                for (QuadTreeContainer.Entry<ColoredRect> entry : visibleEntries) {
+                    quadTree.removeAndCollapse(entry.value);
                 }
                 visibleEntries.clear();
                 quadTree.search(viewRect, visibleEntries);
             } else{
-                for (DynamicQuadTree2.Entry<ColoredRect> entry : visibleEntries) {
-                    allRects.remove(entry.element);
+                for (QuadTreeContainer.Entry<ColoredRect> entry : visibleEntries) {
+                    allRects.remove(entry.value);
                 }
                 bruteForce(viewRect, visibleRects);
             }
@@ -222,7 +222,7 @@ public class QuadTreeViewer extends JFrame {
             }
             if(quadSearch){
                 visibleEntries.parallelStream().forEach(e -> {
-                    var r = e.element;
+                    var r = e.value;
                     drawRectOutline(r.x, r.y, r.w, r.h, r.color);
                 });
             } else {
@@ -288,22 +288,22 @@ public class QuadTreeViewer extends JFrame {
             }
         }
 
-        private void drawQuadCells(Rectangle2D viewRect, DynamicQuadTree2<?> node) {
-            if (node == null) {
-                return;
-            }
-            Rectangle2D b = node.getBounds();
-            if(!viewRect.intersects(b)) {
-                return;
-            }
-            double x = b.getX();
-            double y = b.getY();
-            double w = b.getWidth();
-            double h = b.getHeight();
-            drawRectOutline(x, y, w, h, QUAD_CELL_COLOR);
-            for (DynamicQuadTree2<?> child : node.childTrees) {
-                drawQuadCells(viewRect, child);
-            }
+        private void drawQuadCells(Rectangle2D viewRect, QuadTreeContainer<?> node) {
+//            if (node == null) {
+//                return;
+//            }
+//            Rectangle2D b = node.getBounds();
+//            if(!viewRect.intersects(b)) {
+//                return;
+//            }
+//            double x = b.getX();
+//            double y = b.getY();
+//            double w = b.getWidth();
+//            double h = b.getHeight();
+//            drawRectOutline(x, y, w, h, QUAD_CELL_COLOR);
+//            for (QuadTreeContainer<?> child : node.childTrees) {
+//                drawQuadCells(viewRect, child);
+//            }
         }
 
         private void drawHud(Graphics2D g2, int visibleCount) {
