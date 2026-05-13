@@ -56,24 +56,44 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return add(value, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
 
-    public ArrayList<Entry<T>> search(double x, double y, double width, double height){
+    public ArrayList<Entry<T>> searchEntries(double x, double y, double width, double height){
         checkNonNegativity(width, height);
         ArrayList<Entry<T>> result = new ArrayList<>();
-        root.search(x, y, width, height, result);
+        root.searchEntries(x, y, width, height, result);
         return result;
     }
 
-    public ArrayList<Entry<T>> search(Rectangle2D searchArea){
-        return search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
+    public ArrayList<Entry<T>> searchEntries(Rectangle2D searchArea){
+        return searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
 
-    public void search(double x, double y, double width, double height, Collection<Entry<T>> result){
+    public void searchEntries(double x, double y, double width, double height, Collection<Entry<T>> result){
         checkNonNegativity(width, height);
-        root.search(x, y, width, height, result);
+        root.searchEntries(x, y, width, height, result);
     }
 
-    public void search(Rectangle2D searchArea, Collection<Entry<T>> result){
-        search(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+    public void searchEntries(Rectangle2D searchArea, Collection<Entry<T>> result){
+        searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+    }
+
+    public ArrayList<T> searchValues(double x, double y, double width, double height){
+        checkNonNegativity(width, height);
+        ArrayList<T> result = new ArrayList<>();
+        root.searchValues(x, y, width, height, result);
+        return result;
+    }
+
+    public ArrayList<T> searchValues(Rectangle2D searchArea){
+        return searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
+    }
+
+    public void searchValues(double x, double y, double width, double height, Collection<T> result){
+        checkNonNegativity(width, height);
+        root.searchValues(x, y, width, height, result);
+    }
+
+    public void searchValues(Rectangle2D searchArea, Collection<T> result){
+        searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
     /**
@@ -277,7 +297,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             return this;
         }
 
-        void search(double x, double y, double w, double h, Collection<Entry<T>> result){
+        void searchEntries(double x, double y, double w, double h, Collection<Entry<T>> result){
             for(Entry<T> entry : entries){
                 if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
                     result.add(entry);
@@ -292,7 +312,27 @@ public class QuadTreeContainer<T> implements Iterable<T> {
                     if(contains(x, y, w, h, childX, childY, childW, childH))
                         child.copyEntries(result);
                     else if(intersects(x, y, w, h, childX, childY, childW, childH))
-                        child.search(x, y, w, h, result);
+                        child.searchEntries(x, y, w, h, result);
+                }
+            }
+        }
+
+        void searchValues(double x, double y, double w, double h, Collection<T> result){
+            for(Entry<T> entry : entries){
+                if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
+                    result.add(entry.value);
+                }
+            }
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    double childX = originX + (i % 2) * childW;
+                    double childY = originY + (i / 2) * childH;
+
+                    if(contains(x, y, w, h, childX, childY, childW, childH))
+                        child.copyValues(result);
+                    else if(intersects(x, y, w, h, childX, childY, childW, childH))
+                        child.searchValues(x, y, w, h, result);
                 }
             }
         }
@@ -320,11 +360,11 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         }
 
         Entry<T> removeEntry(T value){
-            for(int i = 0, n = entries.size(); i < n; i++){
+            for(int i = 0, lastIndex = entries.size() - 1; i <= lastIndex; i++){
                 Entry<T> entry = entries.get(i);
                 if(Objects.equals(entry.value, value)){
-                    entries.set(i, entries.set(n-1, entry));
-                    return entries.remove(n-1);
+                    entries.set(i, entries.get(lastIndex));
+                    return entries.remove(lastIndex);
                 }
             }
             for(int i = 0; i < 4; i++){

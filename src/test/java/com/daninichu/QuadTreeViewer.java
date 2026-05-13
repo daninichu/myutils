@@ -195,7 +195,7 @@ public class QuadTreeViewer extends JFrame {
             // Gather values
             List<QuadTreeContainer.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
 
-            quadTree.search(rectCursor, visibleEntries);
+            quadTree.searchEntries(rectCursor, visibleEntries);
 
             List<ColoredRect> visibleRects = new ArrayList<>();
             if (quadSearch){
@@ -203,7 +203,7 @@ public class QuadTreeViewer extends JFrame {
                     quadTree.removeAndCollapse(entry.value);
                 }
                 visibleEntries.clear();
-                quadTree.search(viewRect, visibleEntries);
+                quadTree.searchEntries(viewRect, visibleEntries);
             } else{
                 for (QuadTreeContainer.Entry<ColoredRect> entry : visibleEntries) {
                     allRects.remove(entry.value);
