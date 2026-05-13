@@ -44,13 +44,13 @@ public class QuadTreeRemoveBenchmark{
     // -------------------------------------------------------------------------
 
     @Param({
-            "10000",
+            "100000",
 //            "20000",
     })
     public int elementCount;
     @Param({
+//            "1000",
             "1000",
-//            "10000",
     })
     public int removeCount;
 
@@ -58,19 +58,17 @@ public class QuadTreeRemoveBenchmark{
     // World geometry
     // -------------------------------------------------------------------------
 
-    private static final double WORLD = 10000.0;
-    private static final double ELEMENT_SIZE = 2.0;   // each element is 2x2 units
+    private static final double WORLD = 1000000.0;
+    private static final double ELEMENT_SIZE = 0;
     private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
     // -------------------------------------------------------------------------
     // State
     // -------------------------------------------------------------------------
 
-    private final DynamicQuadTree<Integer> DynamicQuadTree = new DynamicQuadTree<>(worldBounds);
-    private final DynamicQuadTree2<Integer> DynamicQuadTree2 = new DynamicQuadTree2<>(worldBounds);
-    private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds);
+    private final DynamicQuadTree2<Integer> DynamicQuadTree2 = new DynamicQuadTree2<>(worldBounds,8);
+    private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds,8);
 
-    private final ArrayList<DynamicQuadTree.Entry<Integer>> toRemove = new ArrayList<>(elementCount);
     private final ArrayList<DynamicQuadTree2.Entry<Integer>> toRemove2 = new ArrayList<>(elementCount);
     private final ArrayList<QuadTreeContainer.Entry<Integer>> toRemoveContainer = new ArrayList<>(elementCount);
 
@@ -80,10 +78,8 @@ public class QuadTreeRemoveBenchmark{
 
     @Setup(Level.Invocation)
     public void setUp2() {
-        DynamicQuadTree.clear();
         DynamicQuadTree2.clear();
         QuadTreeContainer.clear();
-        toRemove.clear();
         toRemove2.clear();
         toRemoveContainer.clear();
 
@@ -94,9 +90,6 @@ public class QuadTreeRemoveBenchmark{
             double x = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
-
-            DynamicQuadTree.Entry<Integer> entry = DynamicQuadTree.add(i, bounds);
-            toRemove.add(entry);
 
             DynamicQuadTree2.Entry<Integer> entry2 = DynamicQuadTree2.add(i, bounds);
             toRemove2.add(entry2);
@@ -110,20 +103,11 @@ public class QuadTreeRemoveBenchmark{
     // Benchmarks
     // -------------------------------------------------------------------------
 
-//    @Benchmark
-    public void DynamicQuadTree(Blackhole bh) {
-        for(int i = 0; i < removeCount; i++){
-            DynamicQuadTree.Entry<Integer> entry = toRemove.get(i);
-            Assertions.assertTrue(DynamicQuadTree.remove(entry.element));
-        }
-        bh.consume(DynamicQuadTree);
-    }
-
     @Benchmark
     public void DynamicQuadTree2(Blackhole bh) {
         for(int i = 0; i < removeCount; i++){
             DynamicQuadTree2.Entry<Integer> entry = toRemove2.get(i);
-            Assertions.assertTrue(DynamicQuadTree2.removeAndCollapse(entry));
+            Assertions.assertTrue(DynamicQuadTree2.remove(entry));
         }
         bh.consume(DynamicQuadTree2);
     }
@@ -132,7 +116,7 @@ public class QuadTreeRemoveBenchmark{
     public void QuadTreeContainer(Blackhole bh) {
         for(int i = 0; i < removeCount; i++){
             QuadTreeContainer.Entry<Integer> entry = toRemoveContainer.get(i);
-            Assertions.assertTrue(QuadTreeContainer.removeAndCollapse(entry));
+            Assertions.assertTrue(QuadTreeContainer.remove(entry));
         }
         bh.consume(QuadTreeContainer);
     }
