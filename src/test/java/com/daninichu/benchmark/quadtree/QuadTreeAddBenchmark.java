@@ -38,7 +38,7 @@ public class QuadTreeAddBenchmark{
     // -------------------------------------------------------------------------
 
     private static final double WORLD = 10000.0;
-    private static final double ELEMENT_SIZE = 1.0;   // each element is 2x2 units
+    private static final double ELEMENT_SIZE = 0;
 
     // -------------------------------------------------------------------------
     // State
@@ -110,7 +110,8 @@ public class QuadTreeAddBenchmark{
     @Benchmark
     public void QuadTreeContainer(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            QuadTreeContainer.add(i, linearStore.get(i));
+            Rectangle2D r = linearStore.get(i);
+            QuadTreeContainer.add(i, r);
         }
         bh.consume(QuadTreeContainer);
     }

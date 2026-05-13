@@ -4,6 +4,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 
 public class QuadTreeContainer<T> implements Iterable<T> {
     private Quadrant<T> root;
@@ -41,7 +42,12 @@ public class QuadTreeContainer<T> implements Iterable<T> {
 
     public Entry<T> add(T value, double x, double y, double width, double height){
         checkNonNegativity(width, height);
-        Entry<T> entry = root.add(value, x, y, width, height);
+
+        Quadrant<T> quadrant = root.findQuadrant(x, y, width, height);
+        Entry<T> entry = new Entry<>(value, x, y, width, height);
+        entry.quadrant = quadrant;
+        quadrant.entries.add(entry);
+
         size++;
         return entry;
     }
@@ -130,17 +136,31 @@ public class QuadTreeContainer<T> implements Iterable<T> {
 
     public void resize(double x, double y, double width, double height){
         checkNonNegativity(width, height);
+
+        ArrayList<Entry<T>> entries = new ArrayList<>(size);
+        root.copyEntries(entries);
+
         boundX = x;
         boundY = y;
         boundW = width;
         boundH = height;
-        clear();
+
+        root = new Quadrant<>(x, y, width, height, 0, root.maxDepth);
+        for(Entry<T> entry : entries){
+            Quadrant<T> quadrant = root.findQuadrant(entry.x, entry.y, entry.width, entry.height);
+            entry.quadrant = quadrant;
+            quadrant.entries.add(entry);
+        }
+    }
+
+    public void resize(Rectangle2D bounds){
+        resize(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
 
     public void clear(){
-        size = 0;
         root.clear();
         root = new Quadrant<>(boundX, boundY, boundW, boundH, 0, root.maxDepth);
+        size = 0;
     }
 
     public int size(){
@@ -211,13 +231,12 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         public final double x, y, width, height;
         private Quadrant<T> quadrant;
 
-        private Entry(T value, double x, double y, double width, double height, Quadrant<T> quadrant){
+        private Entry(T value, double x, double y, double width, double height){
             this.value = value;
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
-            this.quadrant = quadrant;
         }
     }
 
@@ -230,16 +249,16 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         Quadrant<T> parent;
         ArrayList<Entry<T>> entries = new ArrayList<>();
 
-        Quadrant(double x, double y, double width, double height, int depth, int maxDepth){
+        Quadrant(double x, double y, double w, double h, int depth, int maxDepth){
             this.originX = x;
             this.originY = y;
-            this.childW = width / 2;
-            this.childH = height / 2;
+            this.childW = w / 2;
+            this.childH = h / 2;
             this.depth = depth;
             this.maxDepth = maxDepth;
         }
 
-        Entry<T> add(T value, double x, double y, double w, double h){
+        Quadrant<T> findQuadrant(double x, double y, double w, double h){
             if(depth != maxDepth){
                 for(int i = 0; i < 4; i++){
                     double childX = originX + (i % 2) * childW;
@@ -251,13 +270,11 @@ public class QuadTreeContainer<T> implements Iterable<T> {
                             children[i] = child = new Quadrant<>(childX, childY, childW, childH, depth + 1, maxDepth);
                             child.parent = this;
                         }
-                        return child.add(value, x, y, w, h);
+                        return child.findQuadrant(x, y, w, h);
                     }
                 }
             }
-            Entry<T> entry = new Entry<>(value, x, y, w, h, this);
-            entries.add(entry);
-            return entry;
+            return this;
         }
 
         void search(double x, double y, double w, double h, Collection<Entry<T>> result){
@@ -305,7 +322,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         Entry<T> removeEntry(T value){
             for(int i = 0, n = entries.size(); i < n; i++){
                 Entry<T> entry = entries.get(i);
-                if(entry.value.equals(value)){
+                if(Objects.equals(entry.value, value)){
                     entries.set(i, entries.set(n-1, entry));
                     return entries.remove(n-1);
                 }

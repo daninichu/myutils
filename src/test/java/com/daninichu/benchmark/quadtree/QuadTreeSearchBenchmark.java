@@ -62,7 +62,7 @@ public class QuadTreeSearchBenchmark{
     // -------------------------------------------------------------------------
 
     private static final double WORLD = 10000.0;
-    private static final double ELEMENT_SIZE = 2.0;   // each element is 2x2 units
+    private static final double ELEMENT_SIZE = 0;
     private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
     // -------------------------------------------------------------------------
@@ -93,8 +93,8 @@ public class QuadTreeSearchBenchmark{
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
-            QuadTree.add(i, bounds);
-            QuadTree2.add(i, bounds);
+//            QuadTree.add(i, bounds);
+//            QuadTree2.add(i, bounds);
             DynamicQuadTree.add(i, bounds);
             QuadTreeContainer.add(i, bounds);
         }
@@ -133,6 +133,7 @@ public class QuadTreeSearchBenchmark{
 //        ArrayList<Object> result = new ArrayList<>(result2.size());
 //        result2.forEach(e -> result.add(e.element));
         bh.consume(result2);
+//        bh.consume(DynamicQuadTree.search(searchArea));
     }
 
     @Benchmark
@@ -141,6 +142,7 @@ public class QuadTreeSearchBenchmark{
 //        ArrayList<Object> result = new ArrayList<>(result2.size());
 //        result2.forEach(e -> result.add(e.element));
         bh.consume(result3);
+//        bh.consume(QuadTreeContainer.search(searchArea));
     }
 
     // -------------------------------------------------------------------------
