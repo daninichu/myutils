@@ -346,7 +346,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             }
         }
 
-        void searchValues(double x, double y, double w, double h, Collection<T> result){
+        void searchValues(double x, double y, double w, double h, Collection<? super T> result){
             for(Entry<T> entry : entries){
                 if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
                     result.add(entry.value);
@@ -376,7 +376,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             }
         }
 
-        void copyValues(Collection<T> result){
+        void copyValues(Collection<? super T> result){
             for(Entry<T> entry : entries){
                 result.add(entry.value);
             }

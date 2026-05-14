@@ -25,7 +25,7 @@ public class ArrayGrid<E> implements Grid<E> {
         this.data = new Object[width][height];
     }
 
-    public ArrayGrid(ArrayGrid<E> grid) {
+    public ArrayGrid(ArrayGrid<? extends E> grid) {
 		this.data = new Object[grid.width()][];
 		for (int x = 0; x < grid.width(); x++)
             data[x] = Arrays.copyOf(grid.data[x], grid.height());
@@ -116,8 +116,8 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If any point in {@code grid} is out of bounds.
 	 */
 	@Override
-	public void setAll(Grid<E> grid){
-		for(Cell<E> cell : grid.cells())
+	public void setAll(Grid<? extends E> grid){
+		for(Cell<? extends E> cell : grid.cells())
             set(cell.x(), cell.y(), cell.value());
 	}
 

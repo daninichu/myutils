@@ -21,7 +21,7 @@ public class HashGrid<E> implements Grid<E> {
         data = new HashMap<>(initialCapacity, loadFactor);
     }
 
-	public HashGrid(Grid<E> grid) {
+	public HashGrid(Grid<? extends E> grid) {
         data = new HashMap<>();
         setAll(grid);
 	}
@@ -50,11 +50,11 @@ public class HashGrid<E> implements Grid<E> {
 	}
 
     @Override
-    public void setAll(Grid<E> grid){
-        if (grid instanceof HashGrid<E> hashGrid)
+    public void setAll(Grid<? extends E> grid){
+        if (grid instanceof HashGrid<? extends E> hashGrid)
             data.putAll(hashGrid.data);
         else
-            for(Cell<E> cell : grid.cells())
+            for(Cell<? extends E> cell : grid.cells())
                 data.put(new Point(cell.x(), cell.y()), cell.value());
     }
 

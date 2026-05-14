@@ -65,7 +65,7 @@ public interface Grid<E> extends Iterable<E> {
 	 * @param grid
 	 * @throws NullPointerException if {@code grid} is null.
 	 */
-	void setAll(Grid<E> grid);
+	void setAll(Grid<? extends E> grid);
 
 	/**
 	 * Sets the value at the given point to null.
