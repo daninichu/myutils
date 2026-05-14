@@ -81,12 +81,12 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
 
-    public void searchEntries(double x, double y, double width, double height, Collection<Entry<T>> result){
+    public void searchEntries(double x, double y, double width, double height, Collection<? super Entry<T>> result){
         checkNonNegativity(width, height);
         root.searchEntries(x, y, width, height, result);
     }
 
-    public void searchEntries(Rectangle2D searchArea, Collection<Entry<T>> result){
+    public void searchEntries(Rectangle2D searchArea, Collection<? super Entry<T>> result){
         searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
@@ -101,12 +101,12 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
 
-    public void searchValues(double x, double y, double width, double height, Collection<T> result){
+    public void searchValues(double x, double y, double width, double height, Collection<? super T> result){
         checkNonNegativity(width, height);
         root.searchValues(x, y, width, height, result);
     }
 
-    public void searchValues(Rectangle2D searchArea, Collection<T> result){
+    public void searchValues(Rectangle2D searchArea, Collection<? super T> result){
         searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
@@ -326,7 +326,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             return this;
         }
 
-        void searchEntries(double x, double y, double w, double h, Collection<Entry<T>> result){
+        void searchEntries(double x, double y, double w, double h, Collection<? super Entry<T>> result){
             for(Entry<T> entry : entries){
                 if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
                     result.add(entry);
@@ -366,7 +366,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             }
         }
 
-        void copyEntries(Collection<Entry<T>> result){
+        void copyEntries(Collection<? super Entry<T>> result){
             result.addAll(entries);
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];

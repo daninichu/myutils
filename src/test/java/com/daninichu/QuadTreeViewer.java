@@ -69,12 +69,12 @@ public class QuadTreeViewer extends JFrame {
         private int dragStartX, dragStartY;
         private double camXAtDrag, camYAtDrag;
         private boolean dragging = false;
-        private boolean showRectCursor = true;
+        private boolean showRectCursor = false;
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
         private final QuadTreeContainer<ColoredRect> quadTree = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
-        private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(0, 0, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
+        private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
         private boolean showQuadCells = true;
@@ -365,9 +365,11 @@ public class QuadTreeViewer extends JFrame {
                 String.format("cam    (%.0f, %.0f)", camX, camY),
                 String.format("drawn  %d/%d rects", visibleCount, quadTree.size()),
                 String.format("mode   %s", quadSearch ? "quadtree" : "brute force"),
-                String.format("search time   %f", searchTime),
-                String.format("repaint time   %f", drawTime),
-                String.format("total time   %f", totalTime),
+                "",
+                "TIME (seconds)",
+                String.format("search   %f", searchTime),
+                String.format("repaint  %f", drawTime),
+                String.format("total    %f", totalTime),
                 "",
                 "drag   pan",
                 "wheel  zoom",
