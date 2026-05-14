@@ -40,6 +40,17 @@ public class QuadTreeContainer<T> implements Iterable<T> {
             throw new IllegalArgumentException("width or height cannot be negative");
     }
 
+    /**
+     * Adds a value enclosed in a rectangular boundary.
+     * The value is stored in the deepest node that can fully contain the value.
+     * If the value is not inside the bounds of this quadtree, then it is stored in the root.
+     * @param value
+     * @param x
+     * @param y
+     * @param width
+     * @param height
+     * @return An entry which holds the value and its bounds.
+     */
     public Entry<T> add(T value, double x, double y, double width, double height){
         checkNonNegativity(width, height);
 
@@ -162,10 +173,7 @@ public class QuadTreeContainer<T> implements Iterable<T> {
     private void fastRemove(ArrayList<Entry<T>> entries, Entry<T> entry) {
         int lastIndex = entries.size() - 1;
         Entry<T> last = entries.get(lastIndex);
-
-        entries.set(entry.index, last);
-        last.index = entry.index;
-
+        entries.set(last.index = entry.index, last);
         entries.remove(lastIndex);
     }
 
@@ -261,10 +269,15 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         }
     }
 
+    /**
+     * An intermediate class that holds the value inside the quadtree.
+     * This class can be used for fast removal without needing to search the entire tree.
+     * @param <T> The type of values in the quadtree.
+     */
     public static class Entry<T>{
         public final T value;
         public final double x, y, width, height;
-        public Quadrant<T> quadrant;
+        private Quadrant<T> quadrant;
         private int index;
 
         private Entry(T value, double x, double y, double width, double height){

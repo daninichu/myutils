@@ -43,13 +43,13 @@ public class QuadTreeSearchBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 2000000
+    public int elementCount = 200000
 //            /2
             ;
 
     @Param({
-            "0.01",
-//            "0.20",
+//            "0.01",
+            "0.20",
 //            "1",
     })
     public double fraction;
@@ -58,16 +58,17 @@ public class QuadTreeSearchBenchmark{
     // World geometry
     // -------------------------------------------------------------------------
 
-    private static final double WORLD = 10000.0;
+    private static final double WORLD = 1000000;
     private static final double ELEMENT_SIZE = 0;
+    private static final int MAX_DEPTH = 0;
     private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
     // -------------------------------------------------------------------------
     // State
     // -------------------------------------------------------------------------
 
-    private final QuadTree<String> QuadTree = new QuadTree<>(worldBounds);
-    private final QuadTreeContainer<String> QuadTreeContainer = new QuadTreeContainer<>(worldBounds);
+    private final QuadTree<String> QuadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
+    private final QuadTreeContainer<String> QuadTreeContainer = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
 
     private final Collection<String> values = new ArrayList<>(elementCount);
     private final Collection<QuadTreeContainer.Entry<String>> entries = new ArrayList<>(elementCount);
@@ -120,8 +121,8 @@ public class QuadTreeSearchBenchmark{
     @Benchmark
     public void QuadTreeContainer(Blackhole bh) {
         Assertions.assertTrue(entries.isEmpty());
-        QuadTreeContainer.searchEntries(searchArea, entries);
-        for(com.daninichu.util.QuadTreeContainer.Entry<String> i : entries){
+//        QuadTreeContainer.searchEntries(searchArea, entries);
+        for(com.daninichu.util.QuadTreeContainer.Entry<String> i : QuadTreeContainer.entries()){
             bh.consume(i.value);
         }
         bh.consume(entries);
@@ -129,8 +130,8 @@ public class QuadTreeSearchBenchmark{
     @Benchmark
     public void QuadTreeContainerVal(Blackhole bh) {
         Assertions.assertTrue(values.isEmpty());
-        QuadTreeContainer.searchValues(searchArea, values);
-        for(String i : values){
+//        QuadTreeContainer.searchValues(searchArea, values);
+        for(String i : QuadTreeContainer.values()){
             bh.consume(i);
         }
         bh.consume(values);

@@ -44,13 +44,13 @@ public class QuadTreeRemoveBenchmark{
     // -------------------------------------------------------------------------
 
     @Param({
-            "100000",
-//            "20000",
+//            "100000",
+            "200000",
     })
     public int elementCount;
     @Param({
 //            "1000",
-            "1000",
+            "200000",
     })
     public int removeCount;
 
@@ -58,16 +58,18 @@ public class QuadTreeRemoveBenchmark{
     // World geometry
     // -------------------------------------------------------------------------
 
-    private static final double WORLD = 1000000.0;
+    private static final double WORLD = 1000000;
     private static final double ELEMENT_SIZE = 0;
+    private static final int MAX_DEPTH = 8;
     private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
+    int m;
 
     // -------------------------------------------------------------------------
     // State
     // -------------------------------------------------------------------------
 
-    private final DynamicQuadTree2<Integer> DynamicQuadTree2 = new DynamicQuadTree2<>(worldBounds,8);
-    private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds,8);
+    private final DynamicQuadTree2<Integer> DynamicQuadTree2 = new DynamicQuadTree2<>(worldBounds, MAX_DEPTH);
+    private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
 
     private final ArrayList<DynamicQuadTree2.Entry<Integer>> toRemove2 = new ArrayList<>(elementCount);
     private final ArrayList<QuadTreeContainer.Entry<Integer>> toRemoveContainer = new ArrayList<>(elementCount);
@@ -75,6 +77,13 @@ public class QuadTreeRemoveBenchmark{
     // -------------------------------------------------------------------------
     // Setup
     // -------------------------------------------------------------------------
+
+
+//    @Setup(Level.Trial)
+//    public void setUp() {
+//        setUp2();
+//        System.out.println(m);
+//    }
 
     @Setup(Level.Invocation)
     public void setUp2() {
@@ -96,6 +105,7 @@ public class QuadTreeRemoveBenchmark{
 
             QuadTreeContainer.Entry<Integer> entry3 = QuadTreeContainer.add(i, bounds);
             toRemoveContainer.add(entry3);
+//            m = Math.max(entry3.quadrant.entries.size(), m);
         }
     }
 
