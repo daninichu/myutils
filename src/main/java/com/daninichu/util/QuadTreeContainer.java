@@ -44,12 +44,13 @@ public class QuadTreeContainer<T> implements Iterable<T> {
      * Adds a value enclosed in a rectangular boundary.
      * The value is stored in the deepest node that can fully contain the value.
      * If the value is not inside the bounds of this quadtree, then it is stored in the root.
-     * @param value
-     * @param x
-     * @param y
-     * @param width
-     * @param height
+     * @param value The value to be stored in the tree.
+     * @param x The x coordinate of the value.
+     * @param y The y coordinate of the value.
+     * @param width The width of the value.
+     * @param height The height of the value.
      * @return An entry which holds the value and its bounds.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
      */
     public Entry<T> add(T value, double x, double y, double width, double height){
         checkNonNegativity(width, height);
@@ -70,6 +71,15 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return add(value, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
 
+    /**
+     * Finds all entries in the quadtree that intersect with a given search area.
+     * @param x The x coordinate of the search area.
+     * @param y The y coordinate of the search area.
+     * @param width The width of the search area.
+     * @param height The height of the search area.
+     * @return A list of all entries whose bounds intersect with the search area.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
     public ArrayList<Entry<T>> searchEntries(double x, double y, double width, double height){
         checkNonNegativity(width, height);
         ArrayList<Entry<T>> result = new ArrayList<>();
@@ -81,6 +91,19 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
 
+    /**
+     * Finds all entries in the quadtree that intersect with a given search area,
+     * and adds them to a given collection.
+     * <p>
+     * This method uses {@code Collection::addAll} internally,
+     * which might make this faster than {@link #searchValues(double, double, double, double, Collection)},
+     * @param x The x coordinate of the search area.
+     * @param y The y coordinate of the search area.
+     * @param width The width of the search area.
+     * @param height The height of the search area.
+     * @param result The collection to fill with entries.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
     public void searchEntries(double x, double y, double width, double height, Collection<? super Entry<T>> result){
         checkNonNegativity(width, height);
         root.searchEntries(x, y, width, height, result);
@@ -101,6 +124,21 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         return searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
 
+    /**
+     * Finds all values in the quadtree that intersect with a given search area,
+     * and adds them to a given collection.
+     * <p>
+     * The values are retrieved through {@code Entry.value}.
+     * If you just need to access the values and don’t need them in a collection of their type,
+     * then it may be faster to use {@link #searchEntries(double, double, double, double, Collection)},
+     * which uses {@code Collection::addAll} internally.
+     * @param x The x coordinate of the search area.
+     * @param y The y coordinate of the search area.
+     * @param width The width of the search area.
+     * @param height The height of the search area.
+     * @param result The collection to fill with values.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
     public void searchValues(double x, double y, double width, double height, Collection<? super T> result){
         checkNonNegativity(width, height);
         root.searchValues(x, y, width, height, result);
@@ -177,6 +215,15 @@ public class QuadTreeContainer<T> implements Iterable<T> {
         entries.remove(lastIndex);
     }
 
+    /**
+     * Sets a new boundary for this quadtree.
+     * All entries are reinserted into the tree to be stored in the correct nodes.
+     * @param x The x coordinate of the new boundary.
+     * @param y The y coordinate of the new boundary.
+     * @param width The width of the new boundary.
+     * @param height The height of the new boundary.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
     public void resize(double x, double y, double width, double height){
         checkNonNegativity(width, height);
 
@@ -252,15 +299,16 @@ public class QuadTreeContainer<T> implements Iterable<T> {
     private static void collapse(Quadrant<?> quadrant){
         Quadrant<?> parent = quadrant.parent;
         while(parent != null && quadrant.entries.isEmpty()){
+            Quadrant<?>[] children = quadrant.children;
             for(int i = 0; i < 4; i++){
-                if(quadrant.children[i] != null){
+                if(children[i] != null){
                     return;
                 }
             }
-            Quadrant<?>[] parentChildren = parent.children;
+            children = parent.children;
             for(int i = 0; i < 4; i++){
-                if(parentChildren[i] == quadrant){
-                    parentChildren[i] = null;
+                if(children[i] == quadrant){
+                    children[i] = null;
                     quadrant = parent;
                     parent = parent.parent;
                     break;
