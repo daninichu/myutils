@@ -73,7 +73,7 @@ public class QuadTreeViewer extends JFrame {
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
-        private final QuadTreeContainer<ColoredRect> quadTree = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
+        private final QuadTree<ColoredRect> quadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
         private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
@@ -96,7 +96,7 @@ public class QuadTreeViewer extends JFrame {
         private double totalTime = 0;
 
         // ── reflected fields, resolved once at construction ───────────────────────
-        private Field fRoot;       // QuadTreeContainer.root
+        private Field fRoot;       // QuadTree.root
         private Field fOriginX;    // Quadrant.originX
         private Field fOriginY;    // Quadrant.originY
         private Field fChildW;     // Quadrant.childW
@@ -116,13 +116,13 @@ public class QuadTreeViewer extends JFrame {
             pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
             try {
-                // QuadTreeContainer.root  (private field)
-                fRoot = QuadTreeContainer.class.getDeclaredField("root");
+                // QuadTree.root  (private field)
+                fRoot = QuadTree.class.getDeclaredField("root");
                 fRoot.setAccessible(true);
 
                 // Quadrant is a private static nested class — get it by name
                 Class<?> quadrantClass = null;
-                for (Class<?> c : QuadTreeContainer.class.getDeclaredClasses()) {
+                for (Class<?> c : QuadTree.class.getDeclaredClasses()) {
                     if (c.getSimpleName().equals("Quadrant")) {
                         quadrantClass = c;
                         break;
@@ -145,7 +145,7 @@ public class QuadTreeViewer extends JFrame {
 
             } catch (NoSuchFieldException e) {
                 throw new IllegalStateException(
-                        "QuadTreePanel reflection setup failed — did QuadTreeContainer's " +
+                        "QuadTreePanel reflection setup failed — did QuadTree's " +
                                 "internal field names change?", e);
             }
 
@@ -236,19 +236,19 @@ public class QuadTreeViewer extends JFrame {
 
 
             // Gather values
-            List<QuadTreeContainer.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
+            List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
 
             quadTree.searchEntries(rectCursor, visibleEntries);
 
             List<ColoredRect> visibleRects = new ArrayList<>();
             if (quadSearch){
-                for (QuadTreeContainer.Entry<ColoredRect> entry : visibleEntries) {
+                for (QuadTree.Entry<ColoredRect> entry : visibleEntries) {
                     quadTree.removeAndCollapse(entry);
                 }
                 visibleEntries.clear();
                 quadTree.searchEntries(viewRect, visibleEntries);
             } else{
-                for (QuadTreeContainer.Entry<ColoredRect> entry : visibleEntries) {
+                for (QuadTree.Entry<ColoredRect> entry : visibleEntries) {
                     allRects.remove(entry.value);
                 }
                 bruteForce(viewRect, visibleRects);
@@ -269,11 +269,10 @@ public class QuadTreeViewer extends JFrame {
             }
             if(quadSearch){
                 visibleEntries.parallelStream().forEach(e -> {
-                    var r = e.value;
-                    drawRectOutline(r.x, r.y, r.w, r.h, r.color);
+                    drawRectOutline(e.x, e.y, e.width, e.height, e.value.color);
                 });
             } else {
-                visibleRects.parallelStream().forEach(e -> drawRectOutline(e.x, e.y, e.w, e.h, e.color));
+                visibleRects.parallelStream().forEach(r -> drawRectOutline(r.x, r.y, r.w, r.h, r.color));
             }
             drawRectOutline(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
             g2.drawImage(canvas, 0, 0, null);
@@ -367,9 +366,9 @@ public class QuadTreeViewer extends JFrame {
                 String.format("mode   %s", quadSearch ? "quadtree" : "brute force"),
                 "",
                 "TIME (seconds)",
-                String.format("search   %f", searchTime),
-                String.format("repaint  %f", drawTime),
-                String.format("total    %f", totalTime),
+                String.format("search %f", searchTime),
+                String.format("draw   %f", drawTime),
+                String.format("total  %f", totalTime),
                 "",
                 "drag   pan",
                 "wheel  zoom",
@@ -445,7 +444,8 @@ public class QuadTreeViewer extends JFrame {
             double mx = toWorldX(e.getX());
             double my = toWorldY(e.getY());
 
-            double factor = e.getWheelRotation() < 0 ? 1.03 : 1.0 / 1.03;
+            double rotation = e.getWheelRotation();
+            double factor = rotation == 0? 1 : rotation < 0 ? 1.03 : 1.0 / 1.03;
             zoom = Math.max(MIN_ZOOM, Math.min(zoom * factor, MAX_ZOOM));
 
             // Zoom towards cursor
@@ -480,7 +480,7 @@ public class QuadTreeViewer extends JFrame {
 
         private void update(){
             if(MAX_SPEED != 0){
-                for(QuadTreeContainer.Entry<ColoredRect> e : quadTree.entries()){
+                for(QuadTree.Entry<ColoredRect> e : quadTree.entries()){
                     ColoredRect rect = e.value;
                     rect.x += rect.vx;
                     rect.y += rect.vy;

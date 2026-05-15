@@ -4,7 +4,6 @@ import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
 import com.daninichu.util.DynamicQuadTree;
 import com.daninichu.util.QuadTree2;
-import com.daninichu.util.QuadTreeContainer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -47,7 +46,6 @@ public class QuadTreeAddBenchmark{
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
     private QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds);
     private QuadTree2<Integer> QuadTree2 = new QuadTree2<>(worldBounds);
-    private QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds);
     private DynamicQuadTree<Integer> DynamicQuadTree = new DynamicQuadTree<>(worldBounds);
     private List<Rectangle2D> linearStore;
 
@@ -76,7 +74,6 @@ public class QuadTreeAddBenchmark{
         QuadTree.clear();
         QuadTree2.clear();
         DynamicQuadTree.clear();
-        QuadTreeContainer.clear();
     }
 
     // -------------------------------------------------------------------------
@@ -105,15 +102,6 @@ public class QuadTreeAddBenchmark{
             DynamicQuadTree.add(i, linearStore.get(i));
         }
         bh.consume(DynamicQuadTree);
-    }
-
-    @Benchmark
-    public void QuadTreeContainer(Blackhole bh) {
-        for (int i = 0; i < elementCount; i++) {
-            Rectangle2D r = linearStore.get(i);
-            QuadTreeContainer.add(i, r);
-        }
-        bh.consume(QuadTreeContainer);
     }
 
     // -------------------------------------------------------------------------

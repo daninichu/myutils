@@ -2,7 +2,6 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
-import com.daninichu.util.QuadTreeContainer;
 import org.junit.jupiter.api.Assertions;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -68,10 +67,9 @@ public class QuadTreeSearchBenchmark{
     // -------------------------------------------------------------------------
 
     private final QuadTree<String> QuadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
-    private final QuadTreeContainer<String> QuadTreeContainer = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
 
     private final Collection<String> values = new ArrayList<>(elementCount);
-    private final Collection<QuadTreeContainer.Entry<String>> entries = new ArrayList<>(elementCount);
+    private final Collection<com.daninichu.util.QuadTree.Entry<String>> entries = new ArrayList<>(elementCount);
 
     private Rectangle2D searchArea;
 
@@ -90,7 +88,6 @@ public class QuadTreeSearchBenchmark{
 
             String e = i+"";
             QuadTree.add(e, bounds);
-            QuadTreeContainer.add(e, bounds);
         }
 
         double side = WORLD * Math.sqrt(fraction);   // square centred in the world
@@ -108,34 +105,6 @@ public class QuadTreeSearchBenchmark{
     // Benchmarks
     // -------------------------------------------------------------------------
 
-//    @Benchmark
-    public void QuadTree(Blackhole bh) {
-        Assertions.assertTrue(values.isEmpty());
-        QuadTree.search(searchArea, values);
-        for(String i : values){
-            bh.consume(i);
-        }
-        bh.consume(values);
-    }
-
-    @Benchmark
-    public void QuadTreeContainer(Blackhole bh) {
-        Assertions.assertTrue(entries.isEmpty());
-//        QuadTreeContainer.searchEntries(searchArea, entries);
-        for(com.daninichu.util.QuadTreeContainer.Entry<String> i : QuadTreeContainer.entries()){
-            bh.consume(i.value);
-        }
-        bh.consume(entries);
-    }
-    @Benchmark
-    public void QuadTreeContainerVal(Blackhole bh) {
-        Assertions.assertTrue(values.isEmpty());
-//        QuadTreeContainer.searchValues(searchArea, values);
-        for(String i : QuadTreeContainer.values()){
-            bh.consume(i);
-        }
-        bh.consume(values);
-    }
 
     // -------------------------------------------------------------------------
     // IDE entry point (quick smoke-run, not for real measurements)

@@ -1,9 +1,8 @@
 package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
-import com.daninichu.util.DynamicQuadTree;
 import com.daninichu.util.DynamicQuadTree2;
-import com.daninichu.util.QuadTreeContainer;
+import com.daninichu.util.QuadTree;
 import org.junit.jupiter.api.Assertions;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -69,10 +68,10 @@ public class QuadTreeRemoveBenchmark{
     // -------------------------------------------------------------------------
 
     private final DynamicQuadTree2<Integer> DynamicQuadTree2 = new DynamicQuadTree2<>(worldBounds, MAX_DEPTH);
-    private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds, MAX_DEPTH);
+    private final QuadTree<Integer> QuadTreeContainer = new QuadTree<>(worldBounds, MAX_DEPTH);
 
     private final ArrayList<DynamicQuadTree2.Entry<Integer>> toRemove2 = new ArrayList<>(elementCount);
-    private final ArrayList<QuadTreeContainer.Entry<Integer>> toRemoveContainer = new ArrayList<>(elementCount);
+    private final ArrayList<QuadTree.Entry<Integer>> toRemoveContainer = new ArrayList<>(elementCount);
 
     // -------------------------------------------------------------------------
     // Setup
@@ -103,7 +102,7 @@ public class QuadTreeRemoveBenchmark{
             DynamicQuadTree2.Entry<Integer> entry2 = DynamicQuadTree2.add(i, bounds);
             toRemove2.add(entry2);
 
-            QuadTreeContainer.Entry<Integer> entry3 = QuadTreeContainer.add(i, bounds);
+            QuadTree.Entry<Integer> entry3 = QuadTreeContainer.add(i, bounds);
             toRemoveContainer.add(entry3);
 //            m = Math.max(entry3.quadrant.entries.size(), m);
         }
@@ -125,7 +124,7 @@ public class QuadTreeRemoveBenchmark{
     @Benchmark
     public void QuadTreeContainer(Blackhole bh) {
         for(int i = 0; i < removeCount; i++){
-            QuadTreeContainer.Entry<Integer> entry = toRemoveContainer.get(i);
+            QuadTree.Entry<Integer> entry = toRemoveContainer.get(i);
             Assertions.assertTrue(QuadTreeContainer.remove(entry));
         }
         bh.consume(QuadTreeContainer);

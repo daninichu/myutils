@@ -1,8 +1,8 @@
 package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
-import com.daninichu.util.QuadTreeContainer;
-import com.daninichu.util.QuadTreeContainer.Entry;
+import com.daninichu.util.QuadTree;
+import com.daninichu.util.QuadTree.Entry;
 import org.junit.jupiter.api.Assertions;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -59,7 +59,7 @@ public class QuadTreeCollapseBenchmark{
     // State
     // -------------------------------------------------------------------------
 
-    private final QuadTreeContainer<Integer> QuadTreeContainer = new QuadTreeContainer<>(worldBounds, 8);
+    private final QuadTree<Integer> QuadTreeContainer = new QuadTree<>(worldBounds, 8);
 
     private Rectangle2D elementBounds;
 
