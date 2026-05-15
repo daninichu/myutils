@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * Swing viewer for QuadTree.
- *
+ * <p>
  * Controls:
  *   - Click + drag  → pan camera
  *   - Mouse wheel   → zoom
@@ -69,7 +69,7 @@ public class QuadTreeViewer extends JFrame {
         private int dragStartX, dragStartY;
         private double camXAtDrag, camYAtDrag;
         private boolean dragging = false;
-        private boolean showRectCursor = false;
+        private boolean delete = false;
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
@@ -78,6 +78,7 @@ public class QuadTreeViewer extends JFrame {
 
         // Options
         private boolean showQuadCells = true;
+        private boolean showRectCursor = false;
         private boolean quadSearch = true;
         private boolean whiteOnly = false;
 
@@ -96,12 +97,12 @@ public class QuadTreeViewer extends JFrame {
         private double totalTime = 0;
 
         // ── reflected fields, resolved once at construction ───────────────────────
-        private Field fRoot;       // QuadTree.root
-        private Field fOriginX;    // Quadrant.originX
-        private Field fOriginY;    // Quadrant.originY
-        private Field fChildW;     // Quadrant.childW
-        private Field fChildH;     // Quadrant.childH
-        private Field fChildren;   // Quadrant.children
+        private final Field fRoot;       // QuadTree.root
+        private final Field fOriginX;    // Quadrant.originX
+        private final Field fOriginY;    // Quadrant.originY
+        private final Field fChildW;     // Quadrant.childW
+        private final Field fChildH;     // Quadrant.childH
+        private final Field fChildren;   // Quadrant.children
 
         // In constructor / resize:
 
@@ -238,7 +239,9 @@ public class QuadTreeViewer extends JFrame {
             // Gather values
             List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
 
-            quadTree.searchEntries(rectCursor, visibleEntries);
+            if(delete){
+                quadTree.searchEntries(rectCursor, visibleEntries);
+            }
 
             List<ColoredRect> visibleRects = new ArrayList<>();
             if (quadSearch){
@@ -408,6 +411,7 @@ public class QuadTreeViewer extends JFrame {
             camXAtDrag = camX;
             camYAtDrag = camY;
             dragging = true;
+            delete = true;
             setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
             if(showRectCursor){
                 rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
@@ -419,7 +423,9 @@ public class QuadTreeViewer extends JFrame {
         @Override
         public void mouseReleased(MouseEvent e) {
             dragging = false;
+            delete = false;
             setCursor(Cursor.getDefaultCursor());
+            repaint();
         }
 
         @Override
@@ -454,6 +460,15 @@ public class QuadTreeViewer extends JFrame {
             repaint();
         }
 
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            if(showRectCursor){
+                rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
+                rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
+                repaint();
+            }
+        }
+
         // -----------------------------------------------------------------
         // Key events
         // -----------------------------------------------------------------
@@ -474,7 +489,6 @@ public class QuadTreeViewer extends JFrame {
         @Override public void mouseClicked(MouseEvent e) {}
         @Override public void mouseEntered(MouseEvent e) {}
         @Override public void mouseExited(MouseEvent e) {}
-        @Override public void mouseMoved(MouseEvent e) {}
         @Override public void keyReleased(KeyEvent e) {}
         @Override public void keyTyped(KeyEvent e) {}
 

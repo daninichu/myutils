@@ -19,10 +19,27 @@ public class QuadTree<T> implements Iterable<T> {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
 
+    /**
+     * Constructs a new quadtree with the specified bounds and a default max depth of 8;.
+     * @param x The x coordinate of this tree's bounds.
+     * @param y The y coordinate of this tree's bounds.
+     * @param width The width of this tree's bounds.
+     * @param height The height of this tree's bounds.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
     public QuadTree(double x, double y, double width, double height) {
         this(x, y, width, height, 8);
     }
 
+    /**
+     * Constructs a new quadtree with the specified bounds and max depth.
+     * @param x The x coordinate of this tree's bounds.
+     * @param y The y coordinate of this tree's bounds.
+     * @param width The width of this tree's bounds.
+     * @param height The height of this tree's bounds.
+     * @param maxDepth The maximum node depth of this tree.
+     * @throws IllegalArgumentException If {@code width} or {@code height} or {@code maxDepth} are negative.
+     */
     public QuadTree(double x, double y, double width, double height, int maxDepth) {
         checkNonNegativity(width, height);
         if(maxDepth < 0){
@@ -73,6 +90,9 @@ public class QuadTree<T> implements Iterable<T> {
 
     /**
      * Finds all entries in the quadtree that intersect with a given search area.
+     * <p>
+     * This method uses {@code Collection::addAll} internally,
+     * which might make this faster than {@link #searchValues(double, double, double, double)},
      * @param x The x coordinate of the search area.
      * @param y The y coordinate of the search area.
      * @param width The width of the search area.
@@ -113,6 +133,20 @@ public class QuadTree<T> implements Iterable<T> {
         searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
 
+    /**
+     * Finds all values in the quadtree that intersect with a given search area.
+     * <p>
+     * The values are retrieved through {@code Entry.value}.
+     * If you just need to access the values and don’t need them in a collection of their type,
+     * then it might be faster to use {@link #searchEntries(double, double, double, double)},
+     * which uses {@code Collection::addAll} internally.
+     * @param x The x coordinate of the search area.
+     * @param y The y coordinate of the search area.
+     * @param width The width of the search area.
+     * @param height The height of the search area.
+     * @return A list of all value whose bounds intersect with the search area.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
     public ArrayList<T> searchValues(double x, double y, double width, double height){
         checkNonNegativity(width, height);
         ArrayList<T> result = new ArrayList<>();
@@ -193,9 +227,9 @@ public class QuadTree<T> implements Iterable<T> {
      * @return {@code true} if the entry was present and removed from the tree.
      */
     public boolean remove(Entry<T> entry){
-        Quadrant<T> tree = entry.quadrant;
-        if(tree != null){
-            fastRemove(tree.entries, entry);
+        Quadrant<T> quadrant = entry.quadrant;
+        if(quadrant != null){
+            fastRemove(quadrant.entries, entry);
             entry.quadrant = null;
             size--;
             return true;
@@ -211,10 +245,10 @@ public class QuadTree<T> implements Iterable<T> {
      * @return {@code true} if the entry was present and removed from the tree.
      */
     public boolean removeAndCollapse(Entry<T> entry){
-        Quadrant<T> tree = entry.quadrant;
-        if(tree != null){
-            fastRemove(tree.entries, entry);
-            collapse(tree);
+        Quadrant<T> quadrant = entry.quadrant;
+        if(quadrant != null){
+            fastRemove(quadrant.entries, entry);
+            collapse(quadrant);
             entry.quadrant = null;
             size--;
             return true;

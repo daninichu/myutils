@@ -8,12 +8,12 @@ import java.util.Collections;
 public class DynamicQuadTree<T> {
     public static class Entry<T>{
         public final T element;
-        ArrayList<Entry<T>> entries;
-        public final double x, y, width, height;
+        DynamicQuadTree<T> tree;
+        double x, y, width, height;
 
-        Entry(T element, ArrayList<Entry<T>> entries, double x, double y, double width, double height){
+        Entry(T element, DynamicQuadTree<T> tree, double x, double y, double width, double height){
             this.element = element;
-            this.entries = entries;
+            this.tree = tree;
             this.x = x;
             this.y = y;
             this.width = width;
@@ -42,8 +42,6 @@ public class DynamicQuadTree<T> {
 
     public DynamicQuadTree(double x, double y, double width, double height, int maxDepth) {
         this(x, y, width, height, 0, maxDepth);
-        if(width < 0 || height < 0)
-            throw new IllegalArgumentException("width or height cannot be negative");
         if(maxDepth < 0)
             throw new IllegalArgumentException("maxDepth cannot be negative");
     }
@@ -64,12 +62,13 @@ public class DynamicQuadTree<T> {
                     DynamicQuadTree<T> tree = childTrees[i];
                     if(tree == null){
                         childTrees[i] = tree = new DynamicQuadTree<>(childX, childY, childW, childH, depth + 1, maxDepth);
+                        tree.parent = this;
                     }
                     return tree.add(element, x, y, width, height);
                 }
             }
         }
-        Entry<T> entry = new Entry<>(element, entries, x, y, width, height);
+        Entry<T> entry = new Entry<>(element, this, x, y, width, height);
         entries.add(entry);
         return entry;
     }
@@ -122,7 +121,6 @@ public class DynamicQuadTree<T> {
         }
     }
 
-
     public boolean remove(T element){
         for(int i = 0, n = entries.size(); i < n; i++){
             if(entries.get(i).element.equals(element)){
@@ -140,8 +138,57 @@ public class DynamicQuadTree<T> {
         return false;
     }
 
+    public boolean removeAndCollapse(T element){
+        for(int i = 0, n = entries.size(); i < n; i++){
+            if(entries.get(i).element.equals(element)){
+                Collections.swap(entries, i, n-1);
+                entries.remove(n-1);
+                return true;
+            }
+        }
+        for(int i = 0; i < 4; i++){
+            DynamicQuadTree<T> tree = childTrees[i];
+            if(tree != null && tree.removeAndCollapse(element)){
+                if(tree.entries.isEmpty()){
+                    for(int j = 0; j < 4; j++){
+                        if(tree.childTrees[j] != null){
+                            return true;
+                        }
+                    }
+                    childTrees[i] = null;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean remove(Entry<T> entry){
-        return entry.entries.remove(entry);
+        return entry.tree.entries.remove(entry);
+    }
+
+    public boolean removeAndCollapse(Entry<T> entry){
+        DynamicQuadTree<T> tree = entry.tree;
+        if(!tree.entries.remove(entry)){
+            return false;
+        }
+        while(tree != this && tree.entries.isEmpty()){
+            for(int i = 0; i < 4; i++){
+                if(tree.childTrees[i] != null){
+                    return true;
+                }
+            }
+            DynamicQuadTree<T> parent = tree.parent;
+            DynamicQuadTree<T>[] parentChildTrees = parent.childTrees;
+            for(int i = 0; i < 4; i++){
+                if(parentChildTrees[i] == tree){
+                    parentChildTrees[i] = null;
+                    tree = parent;
+                    break;
+                }
+            }
+        }
+        return true;
     }
 
     public void resize(double x, double y, double width, double height){
