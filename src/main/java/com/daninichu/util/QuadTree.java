@@ -321,7 +321,9 @@ public class QuadTree<T> implements Iterable<T> {
         for(Entry<T> entry : entries){
             Quadrant<T> quadrant = root.findQuadrant(entry.x, entry.y, entry.width, entry.height);
             entry.quadrant = quadrant;
-            quadrant.entries.add(entry);
+            entries = quadrant.entries;
+            entry.index = entries.size();
+            entries.add(entry);
         }
     }
 
@@ -345,7 +347,7 @@ public class QuadTree<T> implements Iterable<T> {
         return size;
     }
 
-    /**]
+    /**
      * @return {@code true} if this quadtree contains no values.
      */
     public boolean isEmpty(){

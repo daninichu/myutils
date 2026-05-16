@@ -14,7 +14,7 @@ public interface Grid<E> extends Iterable<E> {
 	record Cell<E>(int x, int y, E value){
 		@Override
 		public String toString(){
-			return "(" + x + "," + y + ")=" + value;
+			return "(" + x + ", " + y + ")=" + value;
 		}
 	}
 	
