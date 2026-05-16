@@ -229,7 +229,8 @@ public class QuadTree<T> implements Iterable<T> {
     public boolean remove(Entry<T> entry){
         Quadrant<T> quadrant = entry.quadrant;
         if(quadrant != null){
-            fastRemove(quadrant.entries, entry);
+            ArrayList<Entry<T>> entries = quadrant.entries;
+            fastRemove(entries, entry.index, entries.size() - 1);
             entry.quadrant = null;
             size--;
             return true;
@@ -247,7 +248,8 @@ public class QuadTree<T> implements Iterable<T> {
     public boolean removeAndCollapse(Entry<T> entry){
         Quadrant<T> quadrant = entry.quadrant;
         if(quadrant != null){
-            fastRemove(quadrant.entries, entry);
+            ArrayList<Entry<T>> entries = quadrant.entries;
+            fastRemove(entries, entry.index, entries.size() - 1);
             collapse(quadrant);
             entry.quadrant = null;
             size--;
@@ -256,11 +258,41 @@ public class QuadTree<T> implements Iterable<T> {
         return false;
     }
 
-    private void fastRemove(ArrayList<Entry<T>> entries, Entry<T> entry) {
-        int lastIndex = entries.size() - 1;
+    private static <T> void fastRemove(ArrayList<Entry<T>> entries, int i, int lastIndex) {
         Entry<T> last = entries.get(lastIndex);
-        entries.set(last.index = entry.index, last);
+        entries.set(last.index = i, last);
         entries.remove(lastIndex);
+    }
+
+    /**
+     * Moves the given entry together with its value inside this quadtree with new bounds.
+     * The entry gets stored in the correct node according to its new bounds.
+     * @param entry The entry to move.
+     * @param x The new x coordinate of the entry.
+     * @param y The new y coordinate of the entry.
+     * @param width The new width of the entry.
+     * @param height The new height of the entry.
+     * @return {@code true} if the given entry is part of this quadtree.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
+    public boolean move(Entry<T> entry, double x, double y, double width, double height){
+        checkNonNegativity(width, height);
+        Quadrant<T> quadrant = entry.quadrant;
+        if(quadrant != null){
+            entry.x = x;
+            entry.y = y;
+            entry.width = width;
+            entry.height = height;
+
+            ArrayList<Entry<T>> entries = quadrant.entries;
+            fastRemove(entries, entry.index, entries.size() - 1);
+
+            entry.quadrant = quadrant = root.findQuadrant(x, y, width, height);
+            entries = quadrant.entries;
+            entry.index = entries.size();
+            return entries.add(entry);
+        }
+        return false;
     }
 
     /**
@@ -381,7 +413,7 @@ public class QuadTree<T> implements Iterable<T> {
      */
     public static class Entry<T>{
         public final T value;
-        public final double x, y, width, height;
+        private double x, y, width, height;
         private Quadrant<T> quadrant;
         private int index;
 
@@ -391,6 +423,22 @@ public class QuadTree<T> implements Iterable<T> {
             this.y = y;
             this.width = width;
             this.height = height;
+        }
+
+        public double getX(){
+            return x;
+        }
+
+        public double getY(){
+            return y;
+        }
+
+        public double getWidth(){
+            return width;
+        }
+
+        public double getHeight(){
+            return height;
         }
     }
 
@@ -497,8 +545,7 @@ public class QuadTree<T> implements Iterable<T> {
             for(int i = 0, lastIndex = entries.size() - 1; i <= lastIndex; i++){
                 Entry<T> entry = entries.get(i);
                 if(Objects.equals(entry.value, value)){
-                    entries.set(i, entries.get(lastIndex));
-                    entries.remove(lastIndex);
+                    fastRemove(entries, i, lastIndex);
                     return entry;
                 }
             }
