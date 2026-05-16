@@ -28,7 +28,7 @@ public class QuadTreeAddBenchmark{
     // Parameters
     // -------------------------------------------------------------------------
 
-    public int elementCount = 100000
+    public int elementCount = 1000000
 //            /2
             ;
 
@@ -46,9 +46,7 @@ public class QuadTreeAddBenchmark{
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
     private QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds);
     private QuadTree2<Integer> QuadTree2 = new QuadTree2<>(worldBounds);
-    private DynamicQuadTree<Integer> DynamicQuadTree = new DynamicQuadTree<>(worldBounds);
     private List<Rectangle2D> linearStore;
-
 
     // -------------------------------------------------------------------------
     // Setup
@@ -73,14 +71,13 @@ public class QuadTreeAddBenchmark{
     public void clear(){
         QuadTree.clear();
         QuadTree2.clear();
-        DynamicQuadTree.clear();
     }
 
     // -------------------------------------------------------------------------
     // Benchmarks
     // -------------------------------------------------------------------------
 
-//    @Benchmark
+    @Benchmark
     public void QuadTree(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             QuadTree.add(i, linearStore.get(i));
@@ -88,20 +85,19 @@ public class QuadTreeAddBenchmark{
         bh.consume(QuadTree);
     }
 
-//    @Benchmark
+    @Benchmark
     public void QuadTree2(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
             QuadTree2.add(i, linearStore.get(i));
         }
         bh.consume(QuadTree2);
     }
-
     @Benchmark
-    public void DynamicQuadTree(Blackhole bh) {
+    public void QuadTre2(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            DynamicQuadTree.add(i, linearStore.get(i));
+            QuadTree2.add(i, linearStore.get(i));
         }
-        bh.consume(DynamicQuadTree);
+        bh.consume(QuadTree2);
     }
 
     // -------------------------------------------------------------------------

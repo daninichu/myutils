@@ -1,7 +1,7 @@
 package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
-import com.daninichu.util.DynamicQuadTree;
+import com.daninichu.util.QuadTree2;
 import com.daninichu.util.QuadTree;
 import org.junit.jupiter.api.Assertions;
 import org.openjdk.jmh.annotations.*;
@@ -49,7 +49,7 @@ public class QuadTreeRemoveBenchmark{
     public int elementCount;
     @Param({
 //            "1000",
-            "200000",
+            "20000",
     })
     public int removeCount;
 
@@ -67,10 +67,10 @@ public class QuadTreeRemoveBenchmark{
     // State
     // -------------------------------------------------------------------------
 
-    private final DynamicQuadTree<Integer> DynamicQuadTree2 = new DynamicQuadTree<>(worldBounds, MAX_DEPTH);
-    private final QuadTree<Integer> QuadTreeContainer = new QuadTree<>(worldBounds, MAX_DEPTH);
+    private final QuadTree2<Integer> QuadTree2 = new QuadTree2<>(worldBounds, MAX_DEPTH);
+    private final QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
 
-    private final ArrayList<DynamicQuadTree.Entry<Integer>> toRemove2 = new ArrayList<>(elementCount);
+    private final ArrayList<QuadTree2.Entry<Integer>> toRemove2 = new ArrayList<>(elementCount);
     private final ArrayList<QuadTree.Entry<Integer>> toRemoveContainer = new ArrayList<>(elementCount);
 
     // -------------------------------------------------------------------------
@@ -86,8 +86,8 @@ public class QuadTreeRemoveBenchmark{
 
     @Setup(Level.Invocation)
     public void setUp2() {
-        DynamicQuadTree2.clear();
-        QuadTreeContainer.clear();
+        QuadTree2.clear();
+        QuadTree.clear();
         toRemove2.clear();
         toRemoveContainer.clear();
 
@@ -99,10 +99,10 @@ public class QuadTreeRemoveBenchmark{
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
-            DynamicQuadTree.Entry<Integer> entry2 = DynamicQuadTree2.add(i, bounds);
+            QuadTree2.Entry<Integer> entry2 = QuadTree2.add(i, bounds);
             toRemove2.add(entry2);
 
-            QuadTree.Entry<Integer> entry3 = QuadTreeContainer.add(i, bounds);
+            QuadTree.Entry<Integer> entry3 = QuadTree.add(i, bounds);
             toRemoveContainer.add(entry3);
 //            m = Math.max(entry3.quadrant.entries.size(), m);
         }
@@ -113,21 +113,21 @@ public class QuadTreeRemoveBenchmark{
     // -------------------------------------------------------------------------
 
     @Benchmark
-    public void DynamicQuadTree2(Blackhole bh) {
+    public void QuadTree2(Blackhole bh) {
         for(int i = 0; i < removeCount; i++){
-            DynamicQuadTree.Entry<Integer> entry = toRemove2.get(i);
-            Assertions.assertTrue(DynamicQuadTree2.remove(entry));
+            QuadTree2.Entry<Integer> entry = toRemove2.get(i);
+            Assertions.assertTrue(QuadTree2.removeAndCollapse(entry));
         }
-        bh.consume(DynamicQuadTree2);
+        bh.consume(QuadTree2);
     }
 
     @Benchmark
-    public void QuadTreeContainer(Blackhole bh) {
+    public void QuadTree(Blackhole bh) {
         for(int i = 0; i < removeCount; i++){
             QuadTree.Entry<Integer> entry = toRemoveContainer.get(i);
-            Assertions.assertTrue(QuadTreeContainer.remove(entry));
+            Assertions.assertTrue(QuadTree.removeAndCollapse(entry));
         }
-        bh.consume(QuadTreeContainer);
+        bh.consume(QuadTree);
     }
 
     // -------------------------------------------------------------------------

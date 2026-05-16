@@ -80,7 +80,6 @@ public class QuadTreeViewer extends JFrame {
         private boolean showQuadCells = false;
         private boolean showRectCursor = false;
         private boolean quadSearch = true;
-        private boolean whiteOnly = false;
 
         private final BufferedImage canvas;
         private final int[] pixels;
@@ -184,7 +183,7 @@ public class QuadTreeViewer extends JFrame {
                 Color color = palette[rng.nextInt(palette.length)];
                 ColoredRect rect = new ColoredRect(x, y, w, h, vx, vy, color.getRGB());
                 allRects.add(rect);
-                quadTree.add(rect, new Rectangle2D.Double(x, y, w, h));
+                quadTree.add(rect, x, y, w, h);
             }
             allRects.sort(Comparator.comparingDouble(rect -> rect.y));
 
@@ -293,7 +292,11 @@ public class QuadTreeViewer extends JFrame {
             drawTime += repaintTimer.seconds();
             totalTime += totalTimer.seconds();
             // HUD
-            drawHud(g2, visibleEntries.size());
+            if(quadSearch){
+                drawHud(g2, visibleEntries.size(), quadTree.size());
+            } else {
+                drawHud(g2, visibleRects.size(), allRects.size());
+            }
         }
 
         private void drawRectCursor(Graphics2D g2){
@@ -311,9 +314,6 @@ public class QuadTreeViewer extends JFrame {
             int sy = toScreenY(y);
             int sw = toScreenLen(w);
             int sh = toScreenLen(h);
-            if(whiteOnly){
-                color = -1;
-            }
 
             int x2 = sx + sw;
             int y2 = sy + sh;
@@ -367,12 +367,12 @@ public class QuadTreeViewer extends JFrame {
             }
         }
 
-        private void drawHud(Graphics2D g2, int visibleCount) {
+        private void drawHud(Graphics2D g2, int visibleCount, int allCount) {
             g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
             String[] lines = {
                 String.format("zoom   %.2fx", zoom),
                 String.format("cam    (%.0f, %.0f)", camX, camY),
-                String.format("drawn  %d/%d rects", visibleCount, quadTree.size()),
+                String.format("drawn  %d/%d rects", visibleCount, allCount),
                 String.format("mode   %s", quadSearch ? "quadtree" : "brute force"),
                 "",
                 "TIME (seconds)",
@@ -384,7 +384,6 @@ public class QuadTreeViewer extends JFrame {
                 "drag   pan",
                 "wheel  zoom",
                 "R      regenerate",
-                "W      show rect colors (%s)".formatted(!whiteOnly? "ON" : "OFF"),
                 "Q      show quad cells (%s)".formatted(showQuadCells? "ON" : "OFF"),
                 "B-SPACE   rect cursor (%s)".formatted(showRectCursor? "ON" : "OFF"),
             };
@@ -485,7 +484,6 @@ public class QuadTreeViewer extends JFrame {
         public void keyPressed(KeyEvent e) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_R -> regenerate();
-                case KeyEvent.VK_W -> whiteOnly = !whiteOnly;
                 case KeyEvent.VK_Q -> showQuadCells = !showQuadCells;
                 case KeyEvent.VK_SPACE -> quadSearch = !quadSearch;
                 case KeyEvent.VK_BACK_SPACE -> showRectCursor = !showRectCursor;

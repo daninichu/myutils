@@ -74,6 +74,7 @@ public class QuadTree<T> implements Iterable<T> {
 
         Quadrant<T> quadrant = root.findQuadrant(x, y, width, height);
         Entry<T> entry = new Entry<>(value, x, y, width, height);
+        entry.owner = this;
         entry.quadrant = quadrant;
 
         ArrayList<Entry<T>> entries = quadrant.entries;
@@ -227,10 +228,10 @@ public class QuadTree<T> implements Iterable<T> {
      * @return {@code true} if the entry was present and removed from the tree.
      */
     public boolean remove(Entry<T> entry){
-        Quadrant<T> quadrant = entry.quadrant;
-        if(quadrant != null){
-            ArrayList<Entry<T>> entries = quadrant.entries;
+        if(entry.owner == this){
+            ArrayList<Entry<T>> entries = entry.quadrant.entries;
             fastRemove(entries, entry.index, entries.size() - 1);
+            entry.owner = null;
             entry.quadrant = null;
             size--;
             return true;
@@ -246,11 +247,12 @@ public class QuadTree<T> implements Iterable<T> {
      * @return {@code true} if the entry was present and removed from the tree.
      */
     public boolean removeAndCollapse(Entry<T> entry){
-        Quadrant<T> quadrant = entry.quadrant;
-        if(quadrant != null){
+        if(entry.owner == this){
+            Quadrant<T> quadrant = entry.quadrant;
             ArrayList<Entry<T>> entries = quadrant.entries;
             fastRemove(entries, entry.index, entries.size() - 1);
             collapse(quadrant);
+            entry.owner = null;
             entry.quadrant = null;
             size--;
             return true;
@@ -277,8 +279,8 @@ public class QuadTree<T> implements Iterable<T> {
      */
     public boolean move(Entry<T> entry, double x, double y, double width, double height){
         checkNonNegativity(width, height);
-        Quadrant<T> quadrant = entry.quadrant;
-        if(quadrant != null){
+        if(entry.owner == this){
+            Quadrant<T> quadrant = entry.quadrant;
             entry.x = x;
             entry.y = y;
             entry.width = width;
@@ -398,11 +400,11 @@ public class QuadTree<T> implements Iterable<T> {
             for(int i = 0; i < 4; i++){
                 if(children[i] == quadrant){
                     children[i] = null;
-                    quadrant = parent;
-                    parent = parent.parent;
                     break;
                 }
             }
+            quadrant = parent;
+            parent = parent.parent;
         }
     }
 
@@ -414,6 +416,7 @@ public class QuadTree<T> implements Iterable<T> {
     public static class Entry<T>{
         public final T value;
         private double x, y, width, height;
+        private QuadTree<T> owner;
         private Quadrant<T> quadrant;
         private int index;
 
@@ -563,6 +566,7 @@ public class QuadTree<T> implements Iterable<T> {
 
         void clear(){
             for(Entry<T> entry : entries){
+                entry.owner = null;
                 entry.quadrant = null;
             }
             for(int i = 0; i < 4; i++){
