@@ -319,11 +319,10 @@ public class QuadTree<T> implements Iterable<T> {
 
         root = new Quadrant<>(x, y, width, height, 0, root.maxDepth);
         for(Entry<T> entry : entries){
-            Quadrant<T> quadrant = root.findQuadrant(entry.x, entry.y, entry.width, entry.height);
-            entry.quadrant = quadrant;
-            entries = quadrant.entries;
-            entry.index = entries.size();
-            entries.add(entry);
+            Quadrant<T> quadrant = entry.quadrant = root.findQuadrant(entry.x, entry.y, entry.width, entry.height);
+            ArrayList<Entry<T>> qEntries = quadrant.entries;
+            entry.index = qEntries.size();
+            qEntries.add(entry);
         }
     }
 
