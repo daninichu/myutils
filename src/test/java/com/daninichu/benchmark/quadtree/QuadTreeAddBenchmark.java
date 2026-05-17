@@ -1,6 +1,7 @@
 package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
+import com.daninichu.util.IterativeQuadTree;
 import com.daninichu.util.QuadTree;
 import com.daninichu.util.DynamicQuadTree;
 import com.daninichu.util.QuadTree2;
@@ -45,7 +46,7 @@ public class QuadTreeAddBenchmark{
 
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
     private QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds);
-    private QuadTree2<Integer> QuadTree2 = new QuadTree2<>(worldBounds);
+    private IterativeQuadTree<Integer> IterativeQuadTree = new IterativeQuadTree<>(worldBounds);
     private List<Rectangle2D> linearStore;
 
     // -------------------------------------------------------------------------
@@ -69,8 +70,8 @@ public class QuadTreeAddBenchmark{
 
     @Setup(Level.Invocation)
     public void clear(){
-        QuadTree.clear();
-        QuadTree2.clear();
+        QuadTree = new QuadTree<>(worldBounds);
+        IterativeQuadTree = new IterativeQuadTree<>(worldBounds);
     }
 
     // -------------------------------------------------------------------------
@@ -86,18 +87,18 @@ public class QuadTreeAddBenchmark{
     }
 
     @Benchmark
-    public void QuadTree2(Blackhole bh) {
+    public void IterativeQuadTree(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            QuadTree2.add(i, linearStore.get(i));
+            IterativeQuadTree.add(i, linearStore.get(i));
         }
-        bh.consume(QuadTree2);
+        bh.consume(IterativeQuadTree);
     }
-    @Benchmark
+//    @Benchmark
     public void QuadTre2(Blackhole bh) {
         for (int i = 0; i < elementCount; i++) {
-            QuadTree2.add(i, linearStore.get(i));
+            IterativeQuadTree.add(i, linearStore.get(i));
         }
-        bh.consume(QuadTree2);
+        bh.consume(IterativeQuadTree);
     }
 
     // -------------------------------------------------------------------------
