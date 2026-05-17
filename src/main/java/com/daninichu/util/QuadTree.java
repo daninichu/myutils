@@ -1,10 +1,7 @@
 package com.daninichu.util;
 
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 
 public class QuadTree<T> implements Iterable<T> {
     private Quadrant<T> root;
@@ -317,7 +314,7 @@ public class QuadTree<T> implements Iterable<T> {
         boundW = width;
         boundH = height;
 
-        root = new Quadrant<>(x, y, width, height, 0, root.maxDepth);
+        Quadrant<T> root = this.root = new Quadrant<>(x, y, width, height, 0, this.root.maxDepth);
         for(Entry<T> entry : entries){
             Quadrant<T> quadrant = entry.quadrant = root.findQuadrant(entry.x, entry.y, entry.width, entry.height);
             ArrayList<Entry<T>> qEntries = quadrant.entries;
@@ -370,8 +367,48 @@ public class QuadTree<T> implements Iterable<T> {
     }
 
     @Override
-    public Iterator<T> iterator(){
-        return values().iterator();
+    public Iterator<T> iterator() {
+        return new Iterator<>() {
+            final ArrayDeque<Quadrant<T>> stack;
+            Iterator<Entry<T>> iterator;
+
+            {
+                stack = new ArrayDeque<>(1 + 3 * root.maxDepth);
+                visitQuadrant(root);
+            }
+
+            private void visitQuadrant(Quadrant<T> q){
+                Quadrant<T>[] children = q.children;
+                for (int i = 3; i >= 0; i--) {
+                    Quadrant<T> child = children[i];
+                    if (child != null)
+                        stack.addLast(child);
+                }
+                iterator = q.entries.iterator();
+            }
+
+            @Override
+            public boolean hasNext() {
+                while (true) {
+                    if (iterator.hasNext()) {
+                        return true;
+                    }
+                    Quadrant<T> next = stack.pollLast();
+                    if (next == null) {
+                        return false;
+                    }
+                    visitQuadrant(next);
+                }
+            }
+
+            @Override
+            public T next() {
+                if(hasNext()){
+                    return iterator.next().value;
+                }
+                throw new NoSuchElementException();
+            }
+        };
     }
 
     private static boolean intersects(
