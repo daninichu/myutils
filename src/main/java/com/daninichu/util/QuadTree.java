@@ -142,7 +142,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @param y The y coordinate of the search area.
      * @param width The width of the search area.
      * @param height The height of the search area.
-     * @return A list of all value whose bounds intersect with the search area.
+     * @return A list of all values whose bounds intersect with the search area.
      * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
      */
     public ArrayList<T> searchValues(double x, double y, double width, double height){
@@ -294,6 +294,10 @@ public class QuadTree<T> implements Iterable<T> {
         return false;
     }
 
+    public boolean move(Entry<T> entry, Rectangle2D bounds){
+        return move(entry, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+    }
+
     /**
      * Sets a new boundary for this quadtree.
      * All entries are reinserted into the tree to be stored in the correct nodes.
@@ -350,16 +354,25 @@ public class QuadTree<T> implements Iterable<T> {
         return size == 0;
     }
 
+    /**
+     * @return The rectangular bounds of this quadtree.
+     */
     public Rectangle2D.Double getBounds() {
         return new Rectangle2D.Double(boundX, boundY, boundW, boundH);
     }
 
+    /**
+     * @return A list of all entries in this quadtree.
+     */
     public ArrayList<Entry<T>> entries(){
         ArrayList<Entry<T>> entries = new ArrayList<>(size);
         root.copyEntries(entries);
         return entries;
     }
 
+    /**
+     * @return A list of all values in this quadtree.
+     */
     public ArrayList<T> values(){
         ArrayList<T> values = new ArrayList<>(size);
         root.copyValues(values);
