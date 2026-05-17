@@ -17,7 +17,7 @@ public class QuadTree<T> implements Iterable<T> {
     }
 
     /**
-     * Constructs a new quadtree with the specified bounds and a default max depth of 8;.
+     * Constructs a new quadtree with the specified bounds and a default max depth of 8.
      * @param x The x coordinate of this tree's bounds.
      * @param y The y coordinate of this tree's bounds.
      * @param width The width of this tree's bounds.
