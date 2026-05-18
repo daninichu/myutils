@@ -227,6 +227,7 @@ public class QuadTree<T> implements Iterable<T> {
     public boolean remove(T value){
         Entry<T> entry = root.removeEntry(value);
         if(entry != null){
+            entry.owner = null;
             entry.quadrant = null;
             size--;
             return true;
@@ -246,6 +247,7 @@ public class QuadTree<T> implements Iterable<T> {
         Entry<T> entry = root.removeEntry(value);
         if(entry != null){
             collapse(entry.quadrant);
+            entry.owner = null;
             entry.quadrant = null;
             size--;
             return true;
@@ -555,11 +557,11 @@ public class QuadTree<T> implements Iterable<T> {
         ArrayList<Entry<T>> entries = new ArrayList<>();
         double x, y, childW, childH;
 
-        Quadrant(double x, double y, double childX, double childY){
+        Quadrant(double x, double y, double childW, double childH){
             this.x = x;
             this.y = y;
-            this.childW = childX;
-            this.childH = childY;
+            this.childW = childW;
+            this.childH = childH;
         }
 
         void searchEntries(double x, double y, double w, double h, Collection<? super Entry<T>> result){
