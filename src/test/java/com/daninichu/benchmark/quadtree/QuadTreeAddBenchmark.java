@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(iterations = 5, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 5, time = 1900, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeAddBenchmark{
 

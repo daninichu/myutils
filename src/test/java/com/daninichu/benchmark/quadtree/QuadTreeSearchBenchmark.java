@@ -18,13 +18,13 @@ import java.util.concurrent.TimeUnit;
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-@Warmup(        iterations = 2,     time = 1500,    timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(   iterations = 5,     time = 1500,    timeUnit = TimeUnit.MILLISECONDS)
+@Warmup(        iterations = 2,     time = 1900,    timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(   iterations = 5,     time = 1900,    timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeSearchBenchmark{
 
     @Param({
-            "1000000",
+            "800000",
     })
     public int elementCount;
 
@@ -38,15 +38,15 @@ public class QuadTreeSearchBenchmark{
 
     private static final double WORLD = 1000000;
     private static final double ELEMENT_SIZE = 0;
-    private static final int MAX_DEPTH = 0;
+    private static final int MAX_DEPTH = 8;
     private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
 
     private final QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
     private final IterativeQuadTree<Integer> IterativeQuadTree = new IterativeQuadTree<>(worldBounds, MAX_DEPTH);
 
-    private final Collection<QuadTree.Entry<Integer>> entriesQuadTree = new ArrayList<>(elementCount);
-    private final Collection<? super IterativeQuadTree.Entry<Integer>> entriesIterativeQuadTree = new ArrayList<>(elementCount);
+    private final Collection<Object> entriesQuadTree = new ArrayList<>(elementCount);
+//    private final Collection<? super IterativeQuadTree.Entry<Integer>> entriesIterativeQuadTree = new ArrayList<>(elementCount);
 
     private Rectangle2D searchArea;
 
@@ -72,7 +72,7 @@ public class QuadTreeSearchBenchmark{
     @Setup(Level.Invocation)
     public void clear(){
         entriesQuadTree.clear();
-        entriesIterativeQuadTree.clear();
+//        entriesIterativeQuadTree.clear();
     }
 
     @Benchmark
@@ -81,10 +81,10 @@ public class QuadTreeSearchBenchmark{
         bh.consume(entriesQuadTree);
     }
 
-    @Benchmark
+//    @Benchmark
     public void IterativeQuadTree(Blackhole bh){
-        this.IterativeQuadTree.searchEntries(searchArea, entriesIterativeQuadTree);
-        bh.consume(entriesIterativeQuadTree);
+        this.IterativeQuadTree.searchEntries(searchArea, entriesQuadTree);
+        bh.consume(entriesQuadTree);
     }
 
     public static void main(String[] args) throws Exception{

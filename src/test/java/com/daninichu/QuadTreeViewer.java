@@ -13,15 +13,6 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.List;
 
-/**
- * Swing viewer for IterativeQuadTree.
- * <p>
- * Controls:
- *   - Click + drag  → pan camera
- *   - Mouse wheel   → zoom
- *   - R             → regenerate random rectangles
- *   - Q             → toggle QuadTree cell outlines
- */
 public class QuadTreeViewer extends JFrame {
 
     public static void main(String[] args) {
@@ -51,12 +42,13 @@ public class QuadTreeViewer extends JFrame {
         private static final int MAX_DEPTH = 9;
 
         // Rectangles
+        private double viewBorderW = 100;
+        private double viewBorderH = 100;
         private static final int N_RECTANGLES = 1000000;
         private static final double MIN_RECTANGLE_SIZE = 10;
         private static final double MAX_RECTANGLE_SIZE = 50;
         private static final double MAX_SPEED = 0;
         private static final double RECT_CURSOR_SIZE = 1000;
-        private static final double VIEW_RECT_BORDER = 600;
         private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD_W, WORLD_H);
 
         // Camera state (world-space offset of the top-left corner of the viewport)
@@ -74,13 +66,19 @@ public class QuadTreeViewer extends JFrame {
 
         // Data
         private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
-        private IterativeQuadTree<ColoredRect> quadTree;
+        private List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>(N_RECTANGLES);
+        private List<QuadTree.Entry<ColoredRect>> selectedEntries = new ArrayList<>(N_RECTANGLES);
+        private List<ColoredRect> visibleRects = new ArrayList<>(N_RECTANGLES);
+        private List<ColoredRect> selectedRects = new ArrayList<>(N_RECTANGLES);
+
+        private QuadTree<ColoredRect> quadTree;
         private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
         private boolean showQuadCells = false;
         private boolean showRectCursor = false;
-        private boolean quadSearch = true;
+        private boolean quadTreeMode = true;
+        private boolean selectionMode = false;
 
         private final BufferedImage canvas;
         private final int[] pixels;
@@ -88,8 +86,9 @@ public class QuadTreeViewer extends JFrame {
         private static final int height = 840;
 
         // Colors
-        private static final int QUAD_CELL_COLOR = new Color(100, 100, 150).getRGB();
+        private static final int QUAD_CELL_COLOR = new Color(90, 90, 120).getRGB();
         private static final int BORDER_COLOR = new Color(100, 100, 150).getRGB();
+        private static final int FADED_RECT_COLOR = new Color(55, 55, 88).getRGB();
 
         // Times
         private double updateTime = 0;
@@ -98,9 +97,9 @@ public class QuadTreeViewer extends JFrame {
         private double totalTime = 0;
 
         // ── reflected fields, resolved once at construction ───────────────────────
-        private Field fRoot;       // IterativeQuadTree.root
-        private Field fOriginX;    // Quadrant.originX
-        private Field fOriginY;    // Quadrant.originY
+        private Field fRoot;       // QuadTree.root
+        private Field fX;    // Quadrant.originX
+        private Field fY;    // Quadrant.originY
         private Field fChildW;     // Quadrant.childW
         private Field fChildH;     // Quadrant.childH
         private Field fChildren;   // Quadrant.children
@@ -117,39 +116,39 @@ public class QuadTreeViewer extends JFrame {
             canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
-//            try {
-//                // IterativeQuadTree.root  (private field)
-//                fRoot = IterativeQuadTree.class.getDeclaredField("root");
-//                fRoot.setAccessible(true);
-//
-//                // Quadrant is a private static nested class — get it by name
-//                Class<?> quadrantClass = null;
-//                for (Class<?> c : IterativeQuadTree.class.getDeclaredClasses()) {
-//                    if (c.getSimpleName().equals("Quadrant")) {
-//                        quadrantClass = c;
-//                        break;
-//                    }
-//                }
-//                if (quadrantClass == null)
-//                    throw new IllegalStateException("Could not find Quadrant class");
-//
-//                fOriginX  = quadrantClass.getDeclaredField("originX");
-//                fOriginY  = quadrantClass.getDeclaredField("originY");
-//                fChildW   = quadrantClass.getDeclaredField("childW");
-//                fChildH   = quadrantClass.getDeclaredField("childH");
-//                fChildren = quadrantClass.getDeclaredField("children");
-//
-//                fOriginX .setAccessible(true);
-//                fOriginY .setAccessible(true);
-//                fChildW  .setAccessible(true);
-//                fChildH  .setAccessible(true);
-//                fChildren.setAccessible(true);
-//
-//            } catch (NoSuchFieldException e) {
-//                throw new IllegalStateException(
-//                        "IterativeQuadTreePanel reflection setup failed — did IterativeQuadTree's " +
-//                                "internal field names change?", e);
-//            }
+            try {
+                // QuadTree.root  (private field)
+                fRoot = QuadTree.class.getDeclaredField("root");
+                fRoot.setAccessible(true);
+
+                // Quadrant is a private static nested class — get it by name
+                Class<?> quadrantClass = null;
+                for (Class<?> c : QuadTree.class.getDeclaredClasses()) {
+                    if (c.getSimpleName().equals("Quadrant")) {
+                        quadrantClass = c;
+                        break;
+                    }
+                }
+                if (quadrantClass == null)
+                    throw new IllegalStateException("Could not find Quadrant class");
+
+                fX = quadrantClass.getDeclaredField("x");
+                fY = quadrantClass.getDeclaredField("y");
+                fChildW   = quadrantClass.getDeclaredField("childW");
+                fChildH   = quadrantClass.getDeclaredField("childH");
+                fChildren = quadrantClass.getDeclaredField("children");
+
+                fX.setAccessible(true);
+                fY.setAccessible(true);
+                fChildW  .setAccessible(true);
+                fChildH  .setAccessible(true);
+                fChildren.setAccessible(true);
+
+            } catch (NoSuchFieldException e) {
+                throw new IllegalStateException(
+                        "QuadTreePanel reflection setup failed — did QuadTree's " +
+                                "internal field names change?", e);
+            }
 
             if(MAX_SPEED != 0){
                 new GameLoop(60, this::repaint).start();
@@ -162,9 +161,9 @@ public class QuadTreeViewer extends JFrame {
 
         private void regenerate() {
             allRects.clear();
-            quadTree = new IterativeQuadTree<>(worldBounds, MAX_DEPTH);
+            quadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
 
-            Random rng = new Random(0);
+            Random rng = new Random();
             Color[] palette = {
                 new Color(255, 80,  60),   // red-orange
                 new Color(255, 180, 40),   // amber
@@ -235,45 +234,45 @@ public class QuadTreeViewer extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             // Viewport in world space
-            double vpW = getWidth() / zoom;
-            double vpH = getHeight() / zoom;
             Rectangle2D viewRect = new Rectangle2D.Double(
-                    camX + VIEW_RECT_BORDER / 2,
-                    camY + VIEW_RECT_BORDER / 2,
-                    vpW - VIEW_RECT_BORDER,
-                    vpH - VIEW_RECT_BORDER
+                    camX,
+                    camY,
+                    getWidth() / zoom,
+                    getHeight() / zoom
             );
-
-
-            Timer searchTimer = new Timer();
-
+            Rectangle2D selectionRect = viewRect;
+            if(selectionMode){
+                selectionRect = new Rectangle2D.Double(
+                        camX + viewBorderW / zoom / 2,
+                        camY + viewBorderH / zoom / 2,
+                        (getWidth() - viewBorderW) / zoom,
+                        (getHeight() - viewBorderH) / zoom
+                );
+            }
 
             // Gather values
-            List<IterativeQuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>();
+            totalTimer.reset();
 
             if(showRectCursor && delete){
-                quadTree.searchEntries(rectCursor, visibleEntries);
+                quadTree.searchEntries(rectCursor).forEach(entry -> quadTree.removeAndCollapse(entry));
             }
 
-            List<ColoredRect> visibleRects = new ArrayList<>();
-            if (quadSearch){
-                for (IterativeQuadTree.Entry<ColoredRect> entry : visibleEntries) {
-                    quadTree.removeAndCollapse(entry);
-                }
+            if (quadTreeMode){
                 visibleEntries.clear();
-                quadTree.searchEntries(viewRect, visibleEntries);
+                selectedEntries.clear();
+                searchQuadTree(viewRect, selectionRect);
             } else{
-                for (IterativeQuadTree.Entry<ColoredRect> entry : visibleEntries) {
-                    allRects.remove(entry.value);
-                }
-                bruteForce(viewRect, visibleRects);
+                visibleRects.clear();
+                selectedRects.clear();
+                searchBruteForce(viewRect, selectionRect);
             }
 
-            searchTime += searchTimer.seconds();
-
-            Timer repaintTimer = new Timer();
+            searchTime = totalTimer.seconds();
+            totalTime += searchTime;
 
             // Drawing
+            totalTimer.reset();
+
             Arrays.fill(pixels, getBackground().getRGB());
             if (showQuadCells) {
                 try{
@@ -282,41 +281,68 @@ public class QuadTreeViewer extends JFrame {
                     throw new RuntimeException(e);
                 }
             }
-            if(quadSearch){
-                visibleEntries.parallelStream().forEach(e -> {
-                    drawRectOutline(e.getX(), e.getY(), e.getWidth(), e.getHeight(), e.value.color);
-                });
+            if(quadTreeMode){
+                if(selectionMode){
+                    visibleEntries.parallelStream().forEach(
+                            e -> drawRect(e.getX(), e.getY(), e.getWidth(), e.getHeight(), FADED_RECT_COLOR)
+                    );
+                }
+                selectedEntries.parallelStream().forEach(
+                        e -> drawRect(e.getX(), e.getY(), e.getWidth(), e.getHeight(), e.value.color)
+                );
             } else {
-                visibleRects.parallelStream().forEach(r -> drawRectOutline(r.x, r.y, r.w, r.h, r.color));
+                if(selectionMode){
+                    visibleRects.parallelStream().forEach(r -> drawRect(r.x, r.y, r.w, r.h, FADED_RECT_COLOR));
+                }
+                selectedRects.parallelStream().forEach(r -> drawRect(r.x, r.y, r.w, r.h, r.color));
             }
-            drawRectOutline(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
-            drawRectOutline(viewRect.getX(), viewRect.getY(), viewRect.getWidth(), viewRect.getHeight(), -1);
+            drawRect(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
+            if(selectionMode){
+                drawRect(selectionRect.getX(), selectionRect.getY(), selectionRect.getWidth(), selectionRect.getHeight(), -1);
+            }
             g2.drawImage(canvas, 0, 0, null);
 
             if(showRectCursor){
-                g2DrawRect(g2, rectCursor, new Color(255, 255, 255, 40));
+                g2.setColor(new Color(255, 255, 255, 40));
+                g2.fillRect(
+                        toScreenX(rectCursor.getX()),
+                        toScreenY(rectCursor.getY()),
+                        toScreenLen(rectCursor.getWidth()),
+                        toScreenLen(rectCursor.getHeight())
+                );
             }
-            drawTime += repaintTimer.seconds();
-            totalTime += totalTimer.seconds();
+
+            drawTime = totalTimer.seconds();
+            totalTime += drawTime;
+
             // HUD
-            if(quadSearch){
+
+            if(quadTreeMode){
                 drawHud(g2, visibleEntries.size(), quadTree.size());
             } else {
                 drawHud(g2, visibleRects.size(), allRects.size());
             }
         }
 
-        private void g2DrawRect(Graphics2D g2, Rectangle2D r, Color color) {
-            g2.setColor(color);
-            g2.fillRect(
-                    toScreenX(r.getX()),
-                    toScreenY(r.getY()),
-                    toScreenLen(r.getWidth()),
-                    toScreenLen(r.getHeight())
-            );
+        private void searchQuadTree(Rectangle2D viewRect, Rectangle2D selectionRect) {
+            if(selectionMode){
+                quadTree.searchEntries(viewRect, visibleEntries);
+            }
+            quadTree.searchEntries(selectionRect, selectedEntries);
         }
 
-        private void drawRectOutline(double x, double y, double w, double h, int color) {
+        private void searchBruteForce(Rectangle2D viewRect, Rectangle2D selectionRect) {
+            for(ColoredRect rect : allRects) {
+                if(selectionMode && viewRect.intersects(rect.x, rect.y, rect.w, rect.h)){
+                    visibleRects.add(rect);
+                }
+                if(selectionRect.intersects(rect.x, rect.y, rect.w, rect.h)) {
+                    selectedRects.add(rect);
+                }
+            }
+        }
+
+        private void drawRect(double x, double y, double w, double h, int color) {
             int sx = toScreenX(x);
             int sy = toScreenY(y);
             int sw = toScreenLen(w);
@@ -343,21 +369,13 @@ public class QuadTreeViewer extends JFrame {
             }
         }
 
-        private void bruteForce(Rectangle2D viewRect, List<ColoredRect> visible){
-            for(ColoredRect rect : allRects) {
-                if(viewRect.intersects(rect.x, rect.y, rect.w, rect.h)) {
-                    visible.add(rect);
-                }
-            }
-        }
-
         private void drawQuadCells(Rectangle2D viewRect, Object node) throws IllegalAccessException{
             if (node == null) {
                 return;
             }
             Rectangle2D b = new Rectangle2D.Double(
-                    (double) fOriginX.get(node),
-                    (double) fOriginY.get(node),
+                    (double) fX.get(node),
+                    (double) fY.get(node),
                     (double) fChildW.get(node) * 2,
                     (double) fChildH.get(node) * 2
             );
@@ -368,7 +386,7 @@ public class QuadTreeViewer extends JFrame {
             double y = b.getY();
             double w = b.getWidth();
             double h = b.getHeight();
-            drawRectOutline(x, y, w, h, QUAD_CELL_COLOR);
+            drawRect(x, y, w, h, QUAD_CELL_COLOR);
             for (Object child : (Object[]) fChildren.get(node)) {
                 drawQuadCells(viewRect, child);
             }
@@ -380,7 +398,7 @@ public class QuadTreeViewer extends JFrame {
                 String.format("zoom   %.2fx", zoom),
                 String.format("cam    (%.0f, %.0f)", camX, camY),
                 String.format("drawn  %d/%d rects", visibleCount, allCount),
-                String.format("mode   %s", quadSearch ? "quadtree" : "brute force"),
+                String.format("mode   %s", quadTreeMode? "quadtree" : "brute force"),
                 "",
                 "TIME (seconds)",
                 String.format("update %f", updateTime),
@@ -391,6 +409,7 @@ public class QuadTreeViewer extends JFrame {
                 "drag   pan",
                 "wheel  zoom",
                 "R      regenerate",
+                "W      show selection",
                 "Q      show quad cells (%s)".formatted(showQuadCells? "ON" : "OFF"),
                 "B-SPACE   rect cursor (%s)".formatted(showRectCursor? "ON" : "OFF"),
             };
@@ -489,11 +508,17 @@ public class QuadTreeViewer extends JFrame {
 
         @Override
         public void keyPressed(KeyEvent e) {
+            int d = 4;
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_R -> regenerate();
+                case KeyEvent.VK_W -> selectionMode = !selectionMode;
                 case KeyEvent.VK_Q -> showQuadCells = !showQuadCells;
-                case KeyEvent.VK_SPACE -> quadSearch = !quadSearch;
+                case KeyEvent.VK_SPACE -> quadTreeMode = !quadTreeMode;
                 case KeyEvent.VK_BACK_SPACE -> showRectCursor = !showRectCursor;
+                case KeyEvent.VK_RIGHT -> viewBorderW = Math.max(0, viewBorderW - d);
+                case KeyEvent.VK_LEFT -> viewBorderW = Math.min(viewBorderW + d, width / 2);
+                case KeyEvent.VK_UP -> viewBorderH = Math.max(0, viewBorderH - d);
+                case KeyEvent.VK_DOWN -> viewBorderH = Math.min(viewBorderH + d, height / 2);
             }
             repaint();
         }
@@ -506,28 +531,28 @@ public class QuadTreeViewer extends JFrame {
         @Override public void keyTyped(KeyEvent e) {}
 
         private void update(){
-//            for(IterativeQuadTree.Entry<ColoredRect> e : quadTree.entries()){
-//                ColoredRect rect = e.value;
-//                rect.x += rect.vx;
-//                rect.y += rect.vy;
-//                if(rect.x < worldBounds.getX()){
-//                    rect.x = worldBounds.getX();
-//                    rect.vx = -rect.vx;
-//                } else if(rect.x + rect.w > worldBounds.getMaxX()){
-//                    rect.x = worldBounds.getMaxX() - rect.w;
-//                    rect.vx = -rect.vx;
-//                }
-//                if(rect.y < worldBounds.getY()){
-//                    rect.y = worldBounds.getY();
-//                    rect.vy = -rect.vy;
-//                } else if(rect.y + rect.h > worldBounds.getMaxY()){
-//                    rect.y = worldBounds.getMaxY() - rect.h;
-//                    rect.vy = -rect.vy;
-//                }
-////                quadTree.remove(e);
-////                quadTree.add(rect, rect.x, rect.y, rect.w, rect.h);
-//                quadTree.move(e, rect.x, rect.y, rect.w, rect.h);
-//            }
+            for(QuadTree.Entry<ColoredRect> e : quadTree.entries()){
+                ColoredRect rect = e.value;
+                rect.x += rect.vx;
+                rect.y += rect.vy;
+                if(rect.x < worldBounds.getX()){
+                    rect.x = worldBounds.getX();
+                    rect.vx = -rect.vx;
+                } else if(rect.x + rect.w > worldBounds.getMaxX()){
+                    rect.x = worldBounds.getMaxX() - rect.w;
+                    rect.vx = -rect.vx;
+                }
+                if(rect.y < worldBounds.getY()){
+                    rect.y = worldBounds.getY();
+                    rect.vy = -rect.vy;
+                } else if(rect.y + rect.h > worldBounds.getMaxY()){
+                    rect.y = worldBounds.getMaxY() - rect.h;
+                    rect.vy = -rect.vy;
+                }
+//                quadTree.remove(e);
+//                quadTree.add(rect, rect.x, rect.y, rect.w, rect.h);
+                quadTree.move(e, rect.x, rect.y, rect.w, rect.h);
+            }
         }
     }
 

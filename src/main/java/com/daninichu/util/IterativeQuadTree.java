@@ -6,8 +6,8 @@ import java.util.*;
 public class IterativeQuadTree<T> {
     private Quadrant<T> root;
     private int size;
-    private double boundX, boundY, boundW, boundH;
-    private int maxDepth;
+    private double x, y, width, height;
+    private final int maxDepth;
 
     public IterativeQuadTree(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
@@ -43,10 +43,10 @@ public class IterativeQuadTree<T> {
         if(maxDepth < 0){
             throw new IllegalArgumentException("maxDepth cannot be negative");
         }
-        boundX = x;
-        boundY = y;
-        boundW = width;
-        boundH = height;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
         this.maxDepth = maxDepth;
         root = new Quadrant<>(x, y, width, height);
     }
@@ -56,31 +56,17 @@ public class IterativeQuadTree<T> {
             throw new IllegalArgumentException("width or height cannot be negative");
     }
 
-    /**
-     * Adds a value enclosed in a rectangular boundary.
-     * The value is stored in the deepest node that can fully contain the value.
-     * If the value is not inside the bounds of this quadtree, then it is stored in the root.
-     * @param value The value to be stored in the tree.
-     * @param x The x coordinate of the value.
-     * @param y The y coordinate of the value.
-     * @param width The width of the value.
-     * @param height The height of the value.
-     * @return An entry which holds the value and its bounds.
-     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
-     */
-    public Entry<T> add(T value, double x, double y, double width, double height){
-        checkNonNegativity(width, height);
-
+    private Quadrant<T> findQuadrant(double x, double y, double width, double height){
         Quadrant<T> quadrant = root;
         int depth = 0;
         int maxDepth = this.maxDepth;
-        double childW = quadrant.childW ;
-        double childH = quadrant.childH ;
+        double childW = quadrant.childW;
+        double childH = quadrant.childH;
 
         goDeeper:
         while(depth != maxDepth){
-            double baseX = quadrant.originX;
-            double baseY = quadrant.originY;
+            double baseX = quadrant.x;
+            double baseY = quadrant.y;
             Quadrant<T>[] children = quadrant.children;
 
             for(int i = 0; i < 4; i++){
@@ -102,6 +88,25 @@ public class IterativeQuadTree<T> {
             }
             break;
         }
+        return quadrant;
+    }
+
+    /**
+     * Adds a value enclosed in a rectangular boundary.
+     * The value is stored in the deepest node that can fully contain the value.
+     * If the value is not inside the bounds of this quadtree, then it is stored in the root.
+     * @param value The value to be stored in the tree.
+     * @param x The x coordinate of the value.
+     * @param y The y coordinate of the value.
+     * @param width The width of the value.
+     * @param height The height of the value.
+     * @return An entry which holds the value and its bounds.
+     * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
+     */
+    public Entry<T> add(T value, double x, double y, double width, double height){
+        checkNonNegativity(width, height);
+
+        Quadrant<T> quadrant = findQuadrant(x, y, width, height);
         Entry<T> entry = new Entry<>(value, x, y, width, height);
         entry.owner = this;
         entry.quadrant = quadrant;
@@ -156,55 +161,7 @@ public class IterativeQuadTree<T> {
 //     */
     public void searchEntries(double x, double y, double width, double height, Collection<? super Entry<T>> result){
         checkNonNegativity(width, height);
-//        root.searchEntries(x, y, width, height, result);
-
-        ArrayDeque<Quadrant<T>> stack = new ArrayDeque<>(1 + 3 * maxDepth);
-        stack.addLast(root);
-
-        while(!stack.isEmpty()){
-            Quadrant<T> quadrant = stack.pollLast();
-            for(Entry<T> entry : quadrant.entries){
-                if(intersects(x, y, width, height, entry.x, entry.y, entry.width, entry.height)){
-                    result.add(entry);
-                }
-            }
-
-            double baseX = quadrant.originX;
-            double baseY = quadrant.originY;
-            double childW = quadrant.childW ;
-            double childH = quadrant.childH ;
-            Quadrant<T>[] children = quadrant.children;
-
-            for(int i = 0; i < 4; i++){
-                Quadrant<T> child = children[i];
-                if(child != null){
-                    double childX = baseX + (i % 2) * childW;
-                    double childY = baseY + (i / 2) * childH;
-
-                    if(contains(x, y, width, height, childX, childY, childW, childH))
-                        copyEntries(child, result);
-                    else if(intersects(x, y, width, height, childX, childY, childW, childH))
-                        stack.addLast(child);
-                }
-            }
-        }
-    }
-
-    private void copyEntries(Quadrant<T> start, Collection<? super Entry<T>> result){
-        ArrayDeque<Quadrant<T>> stack = new ArrayDeque<>();
-        stack.addLast(start);
-        while(!stack.isEmpty()){
-            Quadrant<T> quadrant = stack.pollLast();
-            result.addAll(quadrant.entries);
-
-            Quadrant<T>[] children = quadrant.children;
-            for(int i = 0; i < 4; i++){
-                Quadrant<T> child = children[i];
-                if(child != null){
-                    stack.addLast(child);
-                }
-            }
-        }
+        root.searchEntries(x, y, width, height, result);
     }
 
     public void searchEntries(Rectangle2D searchArea, Collection<? super Entry<T>> result){
@@ -393,10 +350,10 @@ public class IterativeQuadTree<T> {
 //        ArrayList<Entry<T>> entries = new ArrayList<>(size);
 //        root.copyEntries(entries);
 //
-//        boundX = x;
-//        boundY = y;
-//        boundW = width;
-//        boundH = height;
+//        x = x;
+//        y = y;
+//        width = width;
+//        height = height;
 //
 //        Quadrant<T> root = this.root = new Quadrant<>(x, y, width, height, 0, this.root.maxDepth);
 //        for(Entry<T> entry : entries){
@@ -416,7 +373,7 @@ public class IterativeQuadTree<T> {
 //     */
 //    public void clear(){
 //        root.clear();
-//        root = new Quadrant<>(boundX, boundY, boundW, boundH, 0, root.maxDepth);
+//        root = new Quadrant<>(x, y, width, height, 0, root.maxDepth);
 //        size = 0;
 //    }
 
@@ -438,7 +395,7 @@ public class IterativeQuadTree<T> {
      * @return The rectangular bounds of this quadtree.
      */
     public Rectangle2D.Double getBounds() {
-        return new Rectangle2D.Double(boundX, boundY, boundW, boundH);
+        return new Rectangle2D.Double(x, y, width, height);
     }
 
 //    /**
@@ -577,10 +534,9 @@ public class IterativeQuadTree<T> {
     }
 
     private static class Quadrant<T>{
-        double originX, originY;
+        double x, y;
 //        double w, h;
         double childW, childH;
-//        int depth, maxDepth;
 
         @SuppressWarnings("unchecked")
         Quadrant<T>[] children = new Quadrant[4];
@@ -588,21 +544,19 @@ public class IterativeQuadTree<T> {
         ArrayList<Entry<T>> entries = new ArrayList<>();
 
         Quadrant(double x, double y, double w, double h){
-            this.originX = x;
-            this.originY = y;
+            this.x = x;
+            this.y = y;
 //            this.w = w;
 //            this.h = h;
             this.childW = w / 2;
             this.childH = h / 2;
-//            this.depth = depth;
-//            this.maxDepth = maxDepth;
         }
 
 //        Quadrant<T> findQuadrant(double x, double y, double w, double h){
 //            if(depth != maxDepth){
 //                for(int i = 0; i < 4; i++){
-//                    double childX = originX + (i % 2) * childW;
-//                    double childY = originY + (i / 2) * childH;
+//                    double childX = baseX + (i % 2) * childW;
+//                    double childY = baseY + (i / 2) * childH;
 //
 //                    if(contains(childX, childY, childW, childH, x, y, w, h)){
 //                        Quadrant<T> child = children[i];
@@ -619,15 +573,19 @@ public class IterativeQuadTree<T> {
 
         void searchEntries(double x, double y, double w, double h, Collection<? super Entry<T>> result){
             for(Entry<T> entry : entries){
-                if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
+                if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height))
                     result.add(entry);
-                }
             }
+            Quadrant<T>[] children = this.children;
+            double baseX = this.x;
+            double baseY = this.y;
+            double childW = this.childW;
+            double childH = this.childH;
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null){
-                    double childX = originX + (i % 2) * childW;
-                    double childY = originY + (i / 2) * childH;
+                    double childX = baseX + (i % 2) * childW;
+                    double childY = baseY + (i / 2) * childH;
 
                     if(contains(x, y, w, h, childX, childY, childW, childH))
                         child.copyEntries(result);
@@ -646,8 +604,8 @@ public class IterativeQuadTree<T> {
 //            for(int i = 0; i < 4; i++){
 //                Quadrant<T> child = children[i];
 //                if(child != null){
-//                    double childX = originX + (i % 2) * childW;
-//                    double childY = originY + (i / 2) * childH;
+//                    double childX = baseX + (i % 2) * childW;
+//                    double childY = baseY + (i / 2) * childH;
 //
 //                    if(contains(x, y, w, h, childX, childY, childW, childH))
 //                        child.copyValues(result);
@@ -661,9 +619,8 @@ public class IterativeQuadTree<T> {
             result.addAll(entries);
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
-                if(child != null){
+                if(child != null)
                     child.copyEntries(result);
-                }
             }
         }
 //
