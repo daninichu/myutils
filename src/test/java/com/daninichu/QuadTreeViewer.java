@@ -316,9 +316,9 @@ public class QuadTreeViewer extends JFrame {
             // HUD
 
             if(quadTreeMode){
-                drawHud(g2, visibleEntries.size(), quadTree.size());
+                drawHud(g2, selectedEntries.size(), quadTree.size());
             } else {
-                drawHud(g2, visibleRects.size(), allRects.size());
+                drawHud(g2, selectedRects.size(), allRects.size());
             }
         }
 
