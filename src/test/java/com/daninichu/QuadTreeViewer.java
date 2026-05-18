@@ -226,7 +226,7 @@ public class QuadTreeViewer extends JFrame {
             Timer totalTimer = new Timer();
             if(MAX_SPEED != 0){
                 update();
-                updateTime = totalTimer.seconds();
+                totalTime += updateTime = totalTimer.seconds();
             }
 
             super.paintComponent(g);
@@ -267,8 +267,7 @@ public class QuadTreeViewer extends JFrame {
                 searchBruteForce(viewRect, selectionRect);
             }
 
-            searchTime = totalTimer.seconds();
-            totalTime += searchTime;
+            totalTime += searchTime = totalTimer.seconds();
 
             // Drawing
             totalTimer.reset();
@@ -312,8 +311,7 @@ public class QuadTreeViewer extends JFrame {
                 );
             }
 
-            drawTime = totalTimer.seconds();
-            totalTime += drawTime;
+            totalTime += drawTime = totalTimer.seconds();
 
             // HUD
 
@@ -549,8 +547,6 @@ public class QuadTreeViewer extends JFrame {
                     rect.y = worldBounds.getMaxY() - rect.h;
                     rect.vy = -rect.vy;
                 }
-//                quadTree.remove(e);
-//                quadTree.add(rect, rect.x, rect.y, rect.w, rect.h);
                 quadTree.move(e, rect.x, rect.y, rect.w, rect.h);
             }
         }
