@@ -74,13 +74,13 @@ public class IterativeQuadTree<T> {
         Quadrant<T> quadrant = root;
         int depth = 0;
         int maxDepth = this.maxDepth;
-        double childW = quadrant.w / 2;
-        double childH = quadrant.h / 2;
+        double childW = quadrant.childW ;
+        double childH = quadrant.childH ;
 
         goDeeper:
         while(depth != maxDepth){
-            double baseX = quadrant.x;
-            double baseY = quadrant.y;
+            double baseX = quadrant.originX;
+            double baseY = quadrant.originY;
             Quadrant<T>[] children = quadrant.children;
 
             for(int i = 0; i < 4; i++){
@@ -156,6 +156,7 @@ public class IterativeQuadTree<T> {
 //     */
     public void searchEntries(double x, double y, double width, double height, Collection<? super Entry<T>> result){
         checkNonNegativity(width, height);
+//        root.searchEntries(x, y, width, height, result);
 
         ArrayDeque<Quadrant<T>> stack = new ArrayDeque<>(1 + 3 * maxDepth);
         stack.addLast(root);
@@ -168,10 +169,10 @@ public class IterativeQuadTree<T> {
                 }
             }
 
-            double baseX = quadrant.x;
-            double baseY = quadrant.y;
-            double childW = quadrant.w / 2;
-            double childH = quadrant.h / 2;
+            double baseX = quadrant.originX;
+            double baseY = quadrant.originY;
+            double childW = quadrant.childW ;
+            double childH = quadrant.childH ;
             Quadrant<T>[] children = quadrant.children;
 
             for(int i = 0; i < 4; i++){
@@ -576,10 +577,9 @@ public class IterativeQuadTree<T> {
     }
 
     private static class Quadrant<T>{
-        double x, y;
-        double w, h;
-
-//        double childW, childH;
+        double originX, originY;
+//        double w, h;
+        double childW, childH;
 //        int depth, maxDepth;
 
         @SuppressWarnings("unchecked")
@@ -588,22 +588,17 @@ public class IterativeQuadTree<T> {
         ArrayList<Entry<T>> entries = new ArrayList<>();
 
         Quadrant(double x, double y, double w, double h){
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-//            this.childW = w / 2;
-//            this.childH = h / 2;
+            this.originX = x;
+            this.originY = y;
+//            this.w = w;
+//            this.h = h;
+            this.childW = w / 2;
+            this.childH = h / 2;
 //            this.depth = depth;
 //            this.maxDepth = maxDepth;
         }
 
-        public Quadrant(double x, double y){
-            this.x = x;
-            this.y = y;
-        }
-
-        //        Quadrant<T> findQuadrant(double x, double y, double w, double h){
+//        Quadrant<T> findQuadrant(double x, double y, double w, double h){
 //            if(depth != maxDepth){
 //                for(int i = 0; i < 4; i++){
 //                    double childX = originX + (i % 2) * childW;
@@ -622,25 +617,25 @@ public class IterativeQuadTree<T> {
 //            return this;
 //        }
 
-//        void searchEntries(double x, double y, double w, double h, Collection<? super Entry<T>> result){
-//            for(Entry<T> entry : entries){
-//                if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
-//                    result.add(entry);
-//                }
-//            }
-//            for(int i = 0; i < 4; i++){
-//                Quadrant<T> child = children[i];
-//                if(child != null){
-//                    double childX = originX + (i % 2) * childW;
-//                    double childY = originY + (i / 2) * childH;
-//
-//                    if(contains(x, y, w, h, childX, childY, childW, childH))
-//                        child.copyEntries(result);
-//                    else if(intersects(x, y, w, h, childX, childY, childW, childH))
-//                        child.searchEntries(x, y, w, h, result);
-//                }
-//            }
-//        }
+        void searchEntries(double x, double y, double w, double h, Collection<? super Entry<T>> result){
+            for(Entry<T> entry : entries){
+                if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height)){
+                    result.add(entry);
+                }
+            }
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    double childX = originX + (i % 2) * childW;
+                    double childY = originY + (i / 2) * childH;
+
+                    if(contains(x, y, w, h, childX, childY, childW, childH))
+                        child.copyEntries(result);
+                    else if(intersects(x, y, w, h, childX, childY, childW, childH))
+                        child.searchEntries(x, y, w, h, result);
+                }
+            }
+        }
 //
 //        void searchValues(double x, double y, double w, double h, Collection<? super T> result){
 //            for(Entry<T> entry : entries){
@@ -662,15 +657,15 @@ public class IterativeQuadTree<T> {
 //            }
 //        }
 //
-//        void copyEntries(Collection<? super Entry<T>> result){
-//            result.addAll(entries);
-//            for(int i = 0; i < 4; i++){
-//                Quadrant<T> child = children[i];
-//                if(child != null){
-//                    child.copyEntries(result);
-//                }
-//            }
-//        }
+        void copyEntries(Collection<? super Entry<T>> result){
+            result.addAll(entries);
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    child.copyEntries(result);
+                }
+            }
+        }
 //
 //        void copyValues(Collection<? super T> result){
 //            for(Entry<T> entry : entries){

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Warmup(        iterations = 2,     time = 1500,    timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(   iterations = 5,     time = 2000,    timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(   iterations = 5,     time = 1500,    timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeSearchBenchmark{
 
@@ -38,7 +38,7 @@ public class QuadTreeSearchBenchmark{
 
     private static final double WORLD = 1000000;
     private static final double ELEMENT_SIZE = 0;
-    private static final int MAX_DEPTH = 8;
+    private static final int MAX_DEPTH = 0;
     private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
 
