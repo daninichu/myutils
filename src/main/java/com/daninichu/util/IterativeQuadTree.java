@@ -48,7 +48,7 @@ public class IterativeQuadTree<T> {
         this.width = width;
         this.height = height;
         this.maxDepth = maxDepth;
-        root = new Quadrant<>(x, y, width, height);
+        root = new Quadrant<>(x, y, width / 2, height / 2);
     }
 
     private static void checkNonNegativity(double width, double height){
@@ -75,13 +75,13 @@ public class IterativeQuadTree<T> {
 
                 if(contains(childX, childY, childW, childH, x, y, width, height)){
                     depth++;
+                    childW /= 2;
+                    childH /= 2;
                     Quadrant<T> child = children[i];
                     if(child == null){
                         children[i] = child = new Quadrant<>(childX, childY, childW, childH);
                         child.parent = quadrant;
                     }
-                    childW /= 2;
-                    childH /= 2;
                     quadrant = child;
                     continue goDeeper;
                 }
@@ -535,7 +535,6 @@ public class IterativeQuadTree<T> {
 
     private static class Quadrant<T>{
         double x, y;
-//        double w, h;
         double childW, childH;
 
         @SuppressWarnings("unchecked")
@@ -543,13 +542,11 @@ public class IterativeQuadTree<T> {
         Quadrant<T> parent;
         ArrayList<Entry<T>> entries = new ArrayList<>();
 
-        Quadrant(double x, double y, double w, double h){
+        Quadrant(double x, double y, double childW, double childH){
             this.x = x;
             this.y = y;
-//            this.w = w;
-//            this.h = h;
-            this.childW = w / 2;
-            this.childH = h / 2;
+            this.childW = childW;
+            this.childH = childH;
         }
 
 //        Quadrant<T> findQuadrant(double x, double y, double w, double h){
@@ -576,11 +573,12 @@ public class IterativeQuadTree<T> {
                 if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height))
                     result.add(entry);
             }
-            Quadrant<T>[] children = this.children;
             double baseX = this.x;
             double baseY = this.y;
             double childW = this.childW;
             double childH = this.childH;
+            Quadrant<T>[] children = this.children;
+
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null){
