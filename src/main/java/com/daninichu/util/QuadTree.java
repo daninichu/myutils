@@ -3,6 +3,7 @@ package com.daninichu.util;
 import java.awt.geom.Rectangle2D;
 import java.util.*;
 
+@SuppressWarnings("unchecked")
 public class QuadTree<T> implements Iterable<T> {
     private Quadrant<T> root;
     private int size;
@@ -436,21 +437,21 @@ public class QuadTree<T> implements Iterable<T> {
     @Override
     public Iterator<T> iterator() {
         return new Iterator<>() {
-            final ArrayDeque<Quadrant<T>> stack;
+            final Quadrant<T>[] stack = new Quadrant[1 + 3 * maxDepth];
+            int end;
             Iterator<Entry<T>> iterator;
 
             {
-                stack = new ArrayDeque<>(1 + 3 * maxDepth);
                 visitQuadrant(root);
             }
 
             private void visitQuadrant(Quadrant<T> q){
-                ArrayDeque<Quadrant<T>> stack = this.stack;
+                Quadrant<T>[] stack = this.stack;
                 Quadrant<T>[] children = q.children;
                 for (int i = 3; i >= 0; i--) {
                     Quadrant<T> child = children[i];
                     if (child != null)
-                        stack.addLast(child);
+                        stack[end++] =  child;
                 }
                 iterator = q.entries.iterator();
             }
@@ -461,11 +462,10 @@ public class QuadTree<T> implements Iterable<T> {
                     if (iterator.hasNext()) {
                         return true;
                     }
-                    Quadrant<T> next = stack.pollLast();
-                    if (next == null) {
+                    if (end == 0) {
                         return false;
                     }
-                    visitQuadrant(next);
+                    visitQuadrant(stack[--end]);
                 }
             }
 
@@ -551,7 +551,6 @@ public class QuadTree<T> implements Iterable<T> {
     }
 
     private static class Quadrant<T>{
-        @SuppressWarnings("unchecked")
         Quadrant<T>[] children = new Quadrant[4];
         Quadrant<T> parent;
         ArrayList<Entry<T>> entries = new ArrayList<>();
