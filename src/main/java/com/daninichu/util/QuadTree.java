@@ -316,15 +316,15 @@ public class QuadTree<T> implements Iterable<T> {
         checkNonNegativity(width, height);
         if(entry.owner == this){
             Quadrant<T> quadrant = entry.quadrant;
+            ArrayList<Entry<T>> entries = quadrant.entries;
+            fastRemove(entries, entry.index, entries.size() - 1);
+
+            entry.quadrant = quadrant = findQuadrant(x, y, width, height);
             entry.x = x;
             entry.y = y;
             entry.width = width;
             entry.height = height;
 
-            ArrayList<Entry<T>> entries = quadrant.entries;
-            fastRemove(entries, entry.index, entries.size() - 1);
-
-            entry.quadrant = quadrant = findQuadrant(x, y, width, height);
             entries = quadrant.entries;
             entry.index = entries.size();
             return entries.add(entry);
@@ -359,9 +359,9 @@ public class QuadTree<T> implements Iterable<T> {
         root = new Quadrant<>(x, y, width / 2, height / 2);
         for(Entry<T> entry : entries){
             Quadrant<T> quadrant = entry.quadrant = findQuadrant(entry.x, entry.y, entry.width, entry.height);
-            ArrayList<Entry<T>> qEntries = quadrant.entries;
-            entry.index = qEntries.size();
-            qEntries.add(entry);
+            entries = quadrant.entries;
+            entry.index = entries.size();
+            entries.add(entry);
         }
     }
 
@@ -616,6 +616,7 @@ public class QuadTree<T> implements Iterable<T> {
 
         void copyEntries(Collection<? super Entry<T>> result){
             result.addAll(entries);
+            Quadrant<T>[] children = this.children;
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null)
@@ -627,6 +628,7 @@ public class QuadTree<T> implements Iterable<T> {
             for(Entry<T> entry : entries){
                 result.add(entry.value);
             }
+            Quadrant<T>[] children = this.children;
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null)
@@ -660,6 +662,7 @@ public class QuadTree<T> implements Iterable<T> {
                 entry.owner = null;
                 entry.quadrant = null;
             }
+            Quadrant<T>[] children = this.children;
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null)
