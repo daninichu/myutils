@@ -529,7 +529,7 @@ public class QuadTreeViewer extends JFrame {
         @Override public void keyTyped(KeyEvent e) {}
 
         private void update(){
-            for(QuadTree.Entry<ColoredRect> e : quadTree.entries()){
+            for(QuadTree.Entry<ColoredRect> e : quadTree.entryList()){
                 ColoredRect rect = e.value;
                 rect.x += rect.vx;
                 rect.y += rect.vy;

@@ -1,7 +1,11 @@
 package com.daninichu.util;
 
 import java.awt.geom.Rectangle2D;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
 @SuppressWarnings("unchecked")
 public class QuadTree<T> implements Iterable<T> {
@@ -416,69 +420,6 @@ public class QuadTree<T> implements Iterable<T> {
         return new Rectangle2D.Double(x, y, width, height);
     }
 
-    /**
-     * @return A list of all entries in this quadtree.
-     */
-    public ArrayList<Entry<T>> entries(){
-        ArrayList<Entry<T>> entries = new ArrayList<>(size);
-        root.copyEntries(entries);
-        return entries;
-    }
-
-    /**
-     * @return A list of all values in this quadtree.
-     */
-    public ArrayList<T> values(){
-        ArrayList<T> values = new ArrayList<>(size);
-        root.copyValues(values);
-        return values;
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-        return new Iterator<>() {
-            final Quadrant<T>[] stack = new Quadrant[1 + 3 * maxDepth];
-            int end;
-            Iterator<Entry<T>> iterator;
-
-            {
-                visitQuadrant(root);
-            }
-
-            private void visitQuadrant(Quadrant<T> q){
-                Quadrant<T>[] stack = this.stack;
-                Quadrant<T>[] children = q.children;
-                for (int i = 3; i >= 0; i--) {
-                    Quadrant<T> child = children[i];
-                    if (child != null)
-                        stack[end++] =  child;
-                }
-                iterator = q.entries.iterator();
-            }
-
-            @Override
-            public boolean hasNext() {
-                while (true) {
-                    if (iterator.hasNext()) {
-                        return true;
-                    }
-                    if (end == 0) {
-                        return false;
-                    }
-                    visitQuadrant(stack[--end]);
-                }
-            }
-
-            @Override
-            public T next() {
-                if(hasNext()){
-                    return iterator.next().value;
-                }
-                throw new NoSuchElementException();
-            }
-        };
-    }
-
     private static boolean intersects(
             double x1, double y1, double w1, double h1,
             double x2, double y2, double w2, double h2
@@ -666,6 +607,81 @@ public class QuadTree<T> implements Iterable<T> {
                 Quadrant<T> child = children[i];
                 if(child != null)
                     child.clear();
+            }
+        }
+    }
+
+    /**
+     * @return A list of all entries in this quadtree.
+     */
+    public ArrayList<Entry<T>> entryList(){
+        ArrayList<Entry<T>> entries = new ArrayList<>(size);
+        root.copyEntries(entries);
+        return entries;
+    }
+
+    /**
+     * @return A list of all values in this quadtree.
+     */
+    public ArrayList<T> valueList(){
+        ArrayList<T> values = new ArrayList<>(size);
+        root.copyValues(values);
+        return values;
+    }
+
+    public Iterable<Entry<T>> entries(){
+        return () -> new QuadTreeIterator<Entry<T>>(){
+            @Override
+            public Entry<T> next() {
+                if(hasNext()){
+                    return iterator.next();
+                }
+                throw new NoSuchElementException();
+            }
+        };
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new QuadTreeIterator<T>(){
+            @Override
+            public T next() {
+                if(hasNext()){
+                    return iterator.next().value;
+                }
+                throw new NoSuchElementException();
+            }
+        };
+    }
+
+    private abstract class QuadTreeIterator<E> implements Iterator<E>{
+        final Quadrant<T>[] stack = new Quadrant[1 + 3 * maxDepth];
+        int stackEnd;
+        Iterator<Entry<T>> iterator;
+
+        {
+            visitQuadrant(root);
+        }
+
+        private void visitQuadrant(Quadrant<T> q){
+            Quadrant<T>[] stack = this.stack;
+            Quadrant<T>[] children = q.children;
+            for (int i = 3; i >= 0; i--) {
+                Quadrant<T> child = children[i];
+                if (child != null)
+                    stack[stackEnd++] =  child;
+            }
+            iterator = q.entries.iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (true) {
+                if (iterator.hasNext())
+                    return true;
+                if (stackEnd == 0)
+                    return false;
+                visitQuadrant(stack[--stackEnd]);
             }
         }
     }

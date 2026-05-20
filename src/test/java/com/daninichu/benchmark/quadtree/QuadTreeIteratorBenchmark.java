@@ -1,57 +1,65 @@
 package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
-import com.daninichu.util.IterativeQuadTree;
 import com.daninichu.util.QuadTree;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode({
         Mode.AverageTime,
-//        Mode.SampleTime,
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Warmup(        iterations = 2,     time = 1000,    timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(   iterations = 5,     time = 1000,    timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(   iterations = 3,     time = 1000,    timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeIteratorBenchmark{
 
     @Param({
             "1000000",
+            "2000000",
+            "3000000",
     })
-    public int elementCount;
+    int n;
 
-    private static final double WORLD = 1000000;
-    private static final double ELEMENT_SIZE = 0;
-    private static final int MAX_DEPTH = 8;
-    private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
+    @Param({
+            "8",
+    })
+    int maxDepth;
 
-    private final QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
+    double WORLD = 100000;
+    double ELEMENT_SIZE = 0;
+    Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
+
+    QuadTree<Integer> QuadTree;
 
     @Setup(Level.Trial)
     public void setUp() {
+        this.QuadTree = new QuadTree<>(worldBounds, maxDepth);
+
         Random rng = new Random(42);
 
-        for (int i = 0; i < elementCount; i++) {
+        for (int i = 0; i < n; i++) {
             double x = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
-            Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
-            Integer e = i;
-            this.QuadTree.add(e, bounds);
+            this.QuadTree.add(i, x, y, ELEMENT_SIZE, ELEMENT_SIZE);
         }
     }
 
     @Benchmark
-    public void QuadTree(Blackhole bh){
+    public void iterator(Blackhole bh){
         for(Integer i : this.QuadTree){
+            bh.consume(i);
+        }
+    }
+    @Benchmark
+    public void iterator2(Blackhole bh){
+        for(var i : this.QuadTree.entries()){
             bh.consume(i);
         }
     }

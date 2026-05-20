@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-@Warmup(        iterations = 2,     time = 1900,    timeUnit = TimeUnit.MILLISECONDS)
+@Warmup(        iterations = 2,     time = 1000,    timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(   iterations = 5,     time = 1900,    timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeSearchBenchmark{
@@ -30,8 +30,8 @@ public class QuadTreeSearchBenchmark{
 
     @Param({
 //            "0.01",
-//            "0.20",
-            "1",
+            "0.20",
+//            "1",
     })
     public double fraction;
 
@@ -81,7 +81,7 @@ public class QuadTreeSearchBenchmark{
         bh.consume(entriesQuadTree);
     }
 
-//    @Benchmark
+    @Benchmark
     public void IterativeQuadTree(Blackhole bh){
         this.IterativeQuadTree.searchEntries(searchArea, entriesQuadTree);
         bh.consume(entriesQuadTree);
