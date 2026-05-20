@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 @SuppressWarnings("unchecked")
 public class QuadTree<T> implements Iterable<T> {
@@ -230,7 +229,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @return {@code true} if the value was found and removed from the tree.
      */
     public boolean remove(T value){
-        Entry<T> entry = root.removeEntry(value);
+        Entry<T> entry = value == null? root.removeNull() : root.removeNonNull(value);
         if(entry != null){
             entry.owner = null;
             entry.quadrant = null;
@@ -249,7 +248,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @return {@code true} if the value was found and removed from the tree.
      */
     public boolean removeAndCollapse(T value){
-        Entry<T> entry = root.removeEntry(value);
+        Entry<T> entry = value == null? root.removeNull() : root.removeNonNull(value);
         if(entry != null){
             collapse(entry.quadrant);
             entry.owner = null;
@@ -576,11 +575,11 @@ public class QuadTree<T> implements Iterable<T> {
             }
         }
 
-        Entry<T> removeEntry(T value){
+        Entry<T> removeNull(){
             ArrayList<Entry<T>> entries = this.entries;
             for(int i = 0, lastIndex = entries.size() - 1; i <= lastIndex; i++){
                 Entry<T> entry = entries.get(i);
-                if(Objects.equals(entry.value, value)){
+                if(entry.value == null){
                     fastRemove(entries, i, lastIndex);
                     return entry;
                 }
@@ -589,7 +588,28 @@ public class QuadTree<T> implements Iterable<T> {
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null){
-                    Entry<T> entry = child.removeEntry(value);
+                    Entry<T> entry = child.removeNull();
+                    if(entry != null)
+                        return entry;
+                }
+            }
+            return null;
+        }
+
+        Entry<T> removeNonNull(T value){
+            ArrayList<Entry<T>> entries = this.entries;
+            for(int i = 0, lastIndex = entries.size() - 1; i <= lastIndex; i++){
+                Entry<T> entry = entries.get(i);
+                if(value.equals(entry.value)){
+                    fastRemove(entries, i, lastIndex);
+                    return entry;
+                }
+            }
+            Quadrant<T>[] children = this.children;
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child != null){
+                    Entry<T> entry = child.removeNonNull(value);
                     if(entry != null)
                         return entry;
                 }
