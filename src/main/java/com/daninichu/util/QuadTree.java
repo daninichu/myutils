@@ -13,10 +13,21 @@ public class QuadTree<T> implements Iterable<T> {
     private double x, y, width, height;
     private final int maxDepth;
 
+    /**
+     * Constructs a new quadtree with the specified bounds and a default max depth of 8.
+     * @param bounds The bounds of this tree.
+     * @throws IllegalArgumentException If the width or height of {@code bounds} are negative.
+     */
     public QuadTree(Rectangle2D bounds) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
     }
 
+    /**
+     * Constructs a new quadtree with the specified bounds and max depth.
+     * @param bounds The bounds of this tree.
+     * @param maxDepth The maximum node depth of this tree.
+     * @throws IllegalArgumentException If the width or height of {@code bounds} or {@code maxDepth} are negative.
+     */
     public QuadTree(Rectangle2D bounds, int maxDepth) {
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
@@ -122,6 +133,15 @@ public class QuadTree<T> implements Iterable<T> {
         return entry;
     }
 
+    /**
+     * Adds a value enclosed in a rectangular boundary.
+     * The value is stored in the deepest node that can fully contain the value.
+     * If the value is not inside the bounds of this quadtree, then it is stored in the root.
+     * @param value The value to be stored in the tree.
+     * @param bounds The bounds of the value.
+     * @return An entry which holds the value and its bounds.
+     * @throws IllegalArgumentException If the width or height of {@code bounds} are negative.
+     */
     public Entry<T> add(T value, Rectangle2D bounds){
         return add(value, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
@@ -145,6 +165,15 @@ public class QuadTree<T> implements Iterable<T> {
         return result;
     }
 
+    /**
+     * Finds all entries in the quadtree that intersect with a given search area.
+     * <p>
+     * This method uses {@code Collection::addAll} internally,
+     * which might make this faster than {@link #searchValues(double, double, double, double)},
+     * @param searchArea The search area.
+     * @return A list of all entries whose bounds intersect with the search area.
+     * @throws IllegalArgumentException If the width or height of {@code searchArea} are negative.
+     */
     public ArrayList<Entry<T>> searchEntries(Rectangle2D searchArea){
         return searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
@@ -167,6 +196,16 @@ public class QuadTree<T> implements Iterable<T> {
         root.searchEntries(x, y, width, height, result);
     }
 
+    /**
+     * Finds all entries in the quadtree that intersect with a given search area,
+     * and adds them to a given collection.
+     * <p>
+     * This method uses {@code Collection::addAll} internally,
+     * which might make this faster than {@link #searchValues(double, double, double, double, Collection)},
+     * @param searchArea The search area.
+     * @param result The collection to fill with entries.
+     * @throws IllegalArgumentException If the width or height of {@code searchArea} are negative.
+     */
     public void searchEntries(Rectangle2D searchArea, Collection<? super Entry<T>> result){
         searchEntries(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
@@ -192,6 +231,17 @@ public class QuadTree<T> implements Iterable<T> {
         return result;
     }
 
+    /**
+     * Finds all values in the quadtree that intersect with a given search area.
+     * <p>
+     * The values are retrieved through {@code Entry.value}.
+     * If you just need to access the values and don’t need them in a collection of their type,
+     * then it might be faster to use {@link #searchEntries(double, double, double, double)},
+     * which uses {@code Collection::addAll} internally.
+     * @param searchArea The search area.
+     * @return A list of all values whose bounds intersect with the search area.
+     * @throws IllegalArgumentException If the width or height of {@code searchArea} are negative.
+     */
     public ArrayList<T> searchValues(Rectangle2D searchArea){
         return searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight());
     }
@@ -216,6 +266,18 @@ public class QuadTree<T> implements Iterable<T> {
         root.searchValues(x, y, width, height, result);
     }
 
+    /**
+     * Finds all values in the quadtree that intersect with a given search area,
+     * and adds them to a given collection.
+     * <p>
+     * The values are retrieved through {@code Entry.value}.
+     * If you just need to access the values and don’t need them in a collection of their type,
+     * then it might be faster to use {@link #searchEntries(Rectangle2D, Collection)},
+     * which uses {@code Collection::addAll} internally.
+     * @param searchArea The search area.
+     * @param result The collection to fill with values.
+     * @throws IllegalArgumentException If the width or height of {@code searchArea} are negative.
+     */
     public void searchValues(Rectangle2D searchArea, Collection<? super T> result){
         searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
     }
@@ -336,6 +398,14 @@ public class QuadTree<T> implements Iterable<T> {
         return false;
     }
 
+    /**
+     * Moves the given entry together with its value inside this quadtree with new bounds.
+     * The entry gets stored in the correct node according to its new bounds.
+     * @param entry The entry to move.
+     * @param bounds The new bounds of the entry.
+     * @return {@code true} if the given entry is part of this quadtree.
+     * @throws IllegalArgumentException If the width or height of {@code bounds} are negative.
+     */
     public boolean move(Entry<T> entry, Rectangle2D bounds){
         return move(entry, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
@@ -369,6 +439,12 @@ public class QuadTree<T> implements Iterable<T> {
         }
     }
 
+    /**
+     * Sets a new boundary for this quadtree.
+     * All entries are reinserted into the tree to be stored in the correct nodes.
+     * @param bounds The new boundary.
+     * @throws IllegalArgumentException If the width or height of {@code bounds} are negative.
+     */
     public void resize(Rectangle2D bounds){
         resize(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
@@ -396,18 +472,30 @@ public class QuadTree<T> implements Iterable<T> {
         return size == 0;
     }
 
+    /**
+     * @return The x coordinate of the bounds of this quadtree.
+     */
     public double getX(){
         return x;
     }
 
+    /**
+     * @return The y coordinate of the bounds of this quadtree.
+     */
     public double getY(){
         return y;
     }
 
+    /**
+     * @return The width of the bounds of this quadtree.
+     */
     public double getWidth(){
         return width;
     }
 
+    /**
+     * @return The height of the bounds of this quadtree.
+     */
     public double getHeight(){
         return height;
     }
@@ -473,20 +561,38 @@ public class QuadTree<T> implements Iterable<T> {
             this.height = height;
         }
 
+        /**
+         * @return The x coordinate of this entry.
+         */
         public double getX(){
             return x;
         }
 
+        /**
+         * @return The y coordinate of this entry.
+         */
         public double getY(){
             return y;
         }
 
+        /**
+         * @return The width of this entry.
+         */
         public double getWidth(){
             return width;
         }
 
+        /**
+         * @return The height of this entry.
+         */
         public double getHeight(){
             return height;
+        }
+
+        @Override
+        public String toString(){
+            return "Entry[value=" + (value == this? "(this Entry)" : value == owner? "(this QuadTree)" : value)
+                    + ", x=" + x + ", y=" + y + ", w=" + width + ", h=" + height + "]";
         }
     }
 
@@ -528,6 +634,16 @@ public class QuadTree<T> implements Iterable<T> {
             }
         }
 
+        void copyEntries(Collection<? super Entry<T>> result){
+            result.addAll(entries);
+            Quadrant<T>[] children = this.children;
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child != null)
+                    child.copyEntries(result);
+            }
+        }
+
         void searchValues(double x, double y, double w, double h, Collection<? super T> result){
             for(Entry<T> entry : entries){
                 if(intersects(x, y, w, h, entry.x, entry.y, entry.width, entry.height))
@@ -550,16 +666,6 @@ public class QuadTree<T> implements Iterable<T> {
                     else if(intersects(x, y, w, h, childX, childY, childW, childH))
                         child.searchValues(x, y, w, h, result);
                 }
-            }
-        }
-
-        void copyEntries(Collection<? super Entry<T>> result){
-            result.addAll(entries);
-            Quadrant<T>[] children = this.children;
-            for(int i = 0; i < 4; i++){
-                Quadrant<T> child = children[i];
-                if(child != null)
-                    child.copyEntries(result);
             }
         }
 
@@ -629,6 +735,11 @@ public class QuadTree<T> implements Iterable<T> {
                     child.clear();
             }
         }
+
+        @Override
+        public String toString(){
+            return "Quadrant{x=" + x + ", y=" + y + ", " + entries + '}';
+        }
     }
 
     /**
@@ -649,6 +760,9 @@ public class QuadTree<T> implements Iterable<T> {
         return values;
     }
 
+    /**
+     * @return An iterable object over all entries in this quadtree.
+     */
     public Iterable<Entry<T>> entries(){
         return () -> new QuadTreeIterator<Entry<T>>(){
             @Override
@@ -675,15 +789,15 @@ public class QuadTree<T> implements Iterable<T> {
     }
 
     private abstract class QuadTreeIterator<E> implements Iterator<E>{
-        final Quadrant<T>[] stack = new Quadrant[1 + 3 * maxDepth];
-        int stackEnd;
         Iterator<Entry<T>> iterator;
+        Quadrant<T>[] stack = new Quadrant[1 + 3 * maxDepth];
+        int stackEnd;
 
         {
             visitQuadrant(root);
         }
 
-        private void visitQuadrant(Quadrant<T> q){
+        void visitQuadrant(Quadrant<T> q){
             Quadrant<T>[] stack = this.stack;
             Quadrant<T>[] children = q.children;
             for (int i = 3; i >= 0; i--) {
@@ -704,5 +818,22 @@ public class QuadTree<T> implements Iterable<T> {
                 visitQuadrant(stack[--stackEnd]);
             }
         }
+    }
+
+    private void appendQuadrant(StringBuilder sb, Quadrant<T> q, int depth) {
+        sb.repeat("  ", depth).append(q).append("\n");
+        Quadrant<T>[] children = q.children;
+        for(int i = 0; i < 4; i++){
+            Quadrant<T> child = children[i];
+            if(child != null)
+                appendQuadrant(sb, child, depth + 1);
+        }
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        appendQuadrant(sb, root, 0);
+        return sb.toString();
     }
 }

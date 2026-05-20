@@ -2,7 +2,6 @@ package com.daninichu.benchmark.quadtree;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.QuadTree;
-import org.junit.jupiter.api.Assertions;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -22,10 +21,10 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class QuadTreeRemoveBenchmark{
     @Param({
-            "100000",
+            "2000000",
 //            "200000",
     })
-    public int elementCount;
+    public int n;
     @Param({
             "1000",
 //            "200",
@@ -34,34 +33,61 @@ public class QuadTreeRemoveBenchmark{
 
     double WORLD = 100000;
     double ELEMENT_SIZE = 0;
+    double maxSpeed = 20;
     int MAX_DEPTH = 8;
     Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
 
     QuadTree<Integer> QuadTree;
-    ArrayList<QuadTree.Entry<Integer>> toRemoveQuadTree = new ArrayList<>(elementCount);
+    ArrayList<QuadTree.Entry<Integer>> entries;
 
     @Setup(Level.Invocation)
     public void setup() {
-        toRemoveQuadTree.clear();
+        entries = new ArrayList<>(n);
         this.QuadTree  = new QuadTree<>(worldBounds, MAX_DEPTH);
 
         Random rng = new Random(42);
 
-        for (int i = 0; i < elementCount; i++) {
+        for (int i = 0; i < n; i++) {
             double x = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
 
             QuadTree.Entry<Integer> entry = QuadTree.add(i, bounds);
-            toRemoveQuadTree.add(entry);
+            entries.add(entry);
         }
     }
 
     @Benchmark
     public void QuadTree(Blackhole bh) {
-        for(int i = 0; i < removeCount; i++){
-            QuadTree.Entry<Integer> entry = toRemoveQuadTree.get(i);
-            Assertions.assertTrue(this.QuadTree.removeAndCollapse(entry.value));
+        Random rng = new Random(42);
+        for(QuadTree.Entry<Integer> entry : entries) {
+            double x = entry.getX() + (rng.nextDouble() - 0.5) * maxSpeed;
+            double y = entry.getY() + (rng.nextDouble() - 0.5) * maxSpeed;
+            double w = entry.getWidth();
+            double h = entry.getHeight();
+//            x = Math.min(x, WORLD - w);
+//            x = Math.max(x, 0);
+//            y = Math.min(y, WORLD - h);
+//            y = Math.max(y, 0);
+            this.QuadTree.remove(entry);
+            this.QuadTree.add(entry.value, x, y, w, h);
+        }
+        bh.consume(this.QuadTree);
+    }
+
+    @Benchmark
+    public void move(Blackhole bh) {
+        Random rng = new Random(42);
+        for(QuadTree.Entry<Integer> entry : entries) {
+            double x = entry.getX() + (rng.nextDouble() - 0.5) * maxSpeed;
+            double y = entry.getY() + (rng.nextDouble() - 0.5) * maxSpeed;
+            double w = entry.getWidth();
+            double h = entry.getHeight();
+//            x = Math.min(x, WORLD - w);
+//            x = Math.max(x, 0);
+//            y = Math.min(y, WORLD - h);
+//            y = Math.max(y, 0);
+            this.QuadTree.move(entry, x, y, w, h);
         }
         bh.consume(this.QuadTree);
     }
