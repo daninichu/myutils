@@ -11,20 +11,10 @@
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
-        <lwjgl.version>3.3.3</lwjgl.version>
-    </properties>
+        <gdx.version>1.13.5</gdx.version>
+        <libgdx.version>1.13.1</libgdx.version>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.lwjgl</groupId>
-                <artifactId>lwjgl-bom</artifactId>
-                <version>${lwjgl.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    </properties>
 
     <dependencies>
         <!-- JUnit-->
@@ -47,43 +37,32 @@
             <version>1.37</version>
         </dependency>
 
-        <!-- Core -->
         <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl</artifactId>
+            <!--libGDX graphics library – https://libgdx.com/ -->
+            <groupId>com.badlogicgames.gdx</groupId>
+            <artifactId>gdx</artifactId>
+            <version>${libgdx.version}</version>
+        </dependency>
+        <dependency>
+            <!-- Platform-specific libraries -->
+            <groupId>com.badlogicgames.gdx</groupId>
+            <artifactId>gdx-platform</artifactId>
+            <version>${libgdx.version}</version>
+            <classifier>natives-desktop</classifier>
+        </dependency>
+        <dependency>
+            <!-- libgdx OpenGL backend-->
+            <groupId>com.badlogicgames.gdx</groupId>
+            <artifactId>gdx-backend-lwjgl3</artifactId>
+            <version>${libgdx.version}</version>
+        </dependency>
+        <dependency>
+            <!-- run libgdx without graphics (for testing)-->
+            <groupId>com.badlogicgames.gdx</groupId>
+            <artifactId>gdx-backend-headless</artifactId>
+            <version>${libgdx.version}</version>
+            <scope>test</scope>
         </dependency>
 
-        <!-- GLFW (windowing) -->
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-glfw</artifactId>
-        </dependency>
-
-        <!-- OpenGL -->
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-opengl</artifactId>
-        </dependency>
-
-        <!-- Native libraries (choose ONE platform) -->
-        <!-- macOS (Apple Silicon + Intel universal) -->
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl</artifactId>
-            <classifier>natives-macos-arm64</classifier>
-<!--            <scope>runtime</scope>-->
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-glfw</artifactId>
-            <classifier>natives-macos-arm64</classifier>
-<!--            <scope>runtime</scope>-->
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-opengl</artifactId>
-            <classifier>natives-macos-arm64</classifier>
-<!--            <scope>runtime</scope>-->
-        </dependency>
     </dependencies>
 </project>
