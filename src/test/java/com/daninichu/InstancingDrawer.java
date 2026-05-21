@@ -5,6 +5,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Vector3;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.utils.BufferUtils;
 import com.daninichu.util.Timer;
 
 import java.awt.geom.Rectangle2D;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -61,6 +63,9 @@ public class InstancingDrawer{
 
         // Data
         private final ArrayList<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
+        private float[] rxy;
+        private float[] rw, rh, rvx, rvy;
+        private float[] rcr, rcg, rcb, rca; // pre-unpacked, static
 
         // GL objects
         private ShaderProgram shader;
@@ -68,7 +73,6 @@ public class InstancingDrawer{
         private int vao;
 
         // CPU-side buffers
-        private float[] xyRaw = new float[N_RECTANGLES * XY_FLOATS];
         private FloatBuffer xyData;     // x, y          — updated every frame
         private FloatBuffer staticData; // w, h, r, g, b, a — uploaded once
 
@@ -208,24 +212,33 @@ public class InstancingDrawer{
         // ── Data ─────────────────────────────────────────────────────────────
 
         private void regenerate() {
-            allRects.clear();
+            rxy = new float[N_RECTANGLES * 2];
+            rw  = new float[N_RECTANGLES]; rh  = new float[N_RECTANGLES];
+            rvx = new float[N_RECTANGLES]; rvy = new float[N_RECTANGLES];
+            rcr = new float[N_RECTANGLES];
+            rcg = new float[N_RECTANGLES];
+            rcb = new float[N_RECTANGLES];
+            rca = new float[N_RECTANGLES];
 
+            allRects.clear();
+            staticData.clear();
             Random rng = new Random();
             for (int i = 0; i < N_RECTANGLES; i++) {
-                float w  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                float h  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                float x  = rng.nextFloat() * (WORLD_W - w);
-                float y  = rng.nextFloat() * (WORLD_H - h);
-                float vx = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                float vy = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                allRects.add(new ColoredRect(x, y, w, h, vx, vy,
-                        palette[rng.nextInt(palette.length)]));
-            }
+                rw[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                rh[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                rxy[i*2]  = rng.nextFloat() * (WORLD_W - rw[i]);
+                rxy[i*2+1]  = rng.nextFloat() * (WORLD_H - rh[i]);
+                rvx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                rvy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                Color c = palette[rng.nextInt(palette.length)];
+                rcr[i] = c.r;
+                rcg[i] = c.g;
+                rcb[i] = c.b;
+                rca[i] = c.a;
 
-            staticData.clear();
-            for (ColoredRect r : allRects) {
-                staticData.put(r.w).put(r.h)
-                        .put(r.cr).put(r.cg).put(r.cb).put(r.ca);
+                allRects.add(new ColoredRect(i));
+                staticData.put(rw[i]).put(rh[i])
+                        .put(rcr[i]).put(rcg[i]).put(rcb[i]).put(rca[i]);
             }
             staticData.flip();
 
@@ -238,28 +251,28 @@ public class InstancingDrawer{
 
         @Override
         public void render() {
-//            update();
             int count = allRects.size();
+//            update(count);
             draw(count);
         }
 
-        private void update(){
-            for(ColoredRect rect : allRects){
-                rect.x += rect.vx;
-                rect.y += rect.vy;
-                if(rect.x < 0){
-                    rect.x = 0;
-                    rect.vx = -rect.vx;
-                } else if(rect.x + rect.w > WORLD_W){
-                    rect.x = WORLD_W - rect.w;
-                    rect.vx = -rect.vx;
+        private void update(int count) {
+            for(int i = 0; i < count; i++){
+                rxy[i*2] += rvx[i];
+                rxy[i*2+1] += rvy[i];
+                if(rxy[i*2] < 0){
+                    rxy[i*2] = 0;
+                    rvx[i] = -rvx[i];
+                } else if(rxy[i*2] + rw[i] > WORLD_W){
+                    rxy[i*2] = WORLD_W - rw[i];
+                    rvx[i] = -rvx[i];
                 }
-                if(rect.y < 0){
-                    rect.y = 0;
-                    rect.vy = -rect.vy;
-                } else if(rect.y + rect.h > WORLD_H){
-                    rect.y = WORLD_H - rect.h;
-                    rect.vy = -rect.vy;
+                if(rxy[i*2+1] < 0){
+                    rxy[i*2+1] = 0;
+                    rvy[i] = -rvy[i];
+                } else if(rxy[i*2+1] + rh[i] > WORLD_H){
+                    rxy[i*2+1] = WORLD_H - rh[i];
+                    rvy[i] = -rvy[i];
                 }
             }
         }
@@ -273,29 +286,9 @@ public class InstancingDrawer{
 
             // ── Upload instance data ──────────────────────────────────────
 
-            int cores = Runtime.getRuntime().availableProcessors();
-            int chunk = count / cores;
-
-            IntStream.range(0, cores).parallel().forEach(t -> {
-                int from = t * chunk;
-                int to   = (t == cores - 1) ? count : from + chunk;
-                for (int i = from; i < to; i++) {
-                    ColoredRect r = allRects.get(i);
-                    xyRaw[i * XY_FLOATS]     = r.x;
-                    xyRaw[i * XY_FLOATS + 1] = r.y;
-                }
-            });
-
             xyData.clear();
-            xyData.put(xyRaw, 0, count * XY_FLOATS);
+            xyData.put(rxy, 0, count * XY_FLOATS);
             xyData.flip();
-
-//            xyData.clear();
-//            for (ColoredRect r : allRects) {
-//                xyData.put(r.x).put(r.y);
-//            }
-//            xyData.flip();
-
 
             double fillTime = timer.seconds();
             totalTime += fillTime;
@@ -325,23 +318,44 @@ public class InstancingDrawer{
             System.out.println();
         }
 
-        private void removeRect(int index) {
-            int last = allRects.size() - 1;
-            allRects.set(index, allRects.get(last));
+        private void removeRect(int listIndex) {
+            int last     = allRects.size() - 1;
+            ColoredRect toRemove = allRects.get(listIndex);
+            ColoredRect lastRect = allRects.get(last);
+
+            int slot     = toRemove.index;
+            int slotLast = lastRect.index;
+
+            // Swap array data into the removed slot
+            rxy[slot*2]  = rxy[slotLast*2];
+            rxy[slot*2+1]  = rxy[slotLast*2+1];
+            rw[slot]  = rw[slotLast];
+            rh[slot]  = rh[slotLast];
+            rvx[slot] = rvx[slotLast];
+            rvy[slot] = rvy[slotLast];
+
+            rcr[slot] = rcr[slotLast];
+            rcg[slot] = rcg[slotLast];
+            rcb[slot] = rcb[slotLast];
+            rca[slot] = rca[slotLast];
+
+            lastRect.index = slot;
+
+            allRects.set(listIndex, lastRect);
             allRects.remove(last);
 
-            uploadStaticAt(index, allRects.get(index));
+            uploadStaticAt(slot);
         }
 
-        private void uploadStaticAt(int index, ColoredRect r) {
+        private void uploadStaticAt(int i) {
             staticData.clear();
-            staticData.put(r.w).put(r.h)
-                    .put(r.cr).put(r.cg).put(r.cb).put(r.ca);
+            staticData.put(rw[i]).put(rh[i])
+                    .put(rcr[i]).put(rcg[i]).put(rcb[i]).put(rca[i]);
             staticData.flip();
 
             Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, staticVBO);
             Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER,
-                    index * STATIC_FLOATS * Float.BYTES,
+                    i * STATIC_FLOATS * Float.BYTES,
                     STATIC_FLOATS * Float.BYTES,
                     staticData);
         }
@@ -393,23 +407,15 @@ public class InstancingDrawer{
         }
     }
 
-    // ── ColoredRect ──────────────────────────────────────────────────────────
+    static final class ColoredRect implements Comparable<ColoredRect> {
+        int index;
 
-    static final class ColoredRect {
-        float x, y, w, h, vx, vy;
-        float cr, cg, cb, ca;
+        ColoredRect(int index) {
+            this.index = index;
+        }
 
-        ColoredRect(float x, float y, float w, float h, float vx, float vy, Color color) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-            this.vx = vx;
-            this.vy = vy;
-            cr = color.r;
-            cg = color.g;
-            cb = color.b;
-            ca = color.a;
+        public int compareTo(ColoredRect o){
+            return index - o.index;
         }
     }
 }
