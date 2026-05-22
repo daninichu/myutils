@@ -170,9 +170,9 @@ public class InstancingDrawer{
                     FLOATS_PER_INSTANCE * Float.BYTES, 0);
             Gdx.gl30.glVertexAttribDivisor(1, 1);
 
-            // attrib 2 — a_color (r,g,b,a) instanced
+            // attrib 2 — a_color (r,g,b) instanced
             Gdx.gl.glEnableVertexAttribArray(2);
-            Gdx.gl.glVertexAttribPointer(2, 4, GL20.GL_FLOAT, false,
+            Gdx.gl.glVertexAttribPointer(2, 3, GL20.GL_FLOAT, false,
                     FLOATS_PER_INSTANCE * Float.BYTES, 4 * Float.BYTES);
             Gdx.gl30.glVertexAttribDivisor(2, 1);
 
