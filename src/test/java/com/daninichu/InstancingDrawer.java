@@ -52,6 +52,7 @@ public class InstancingDrawer{
 
         // Camera
         private OrthographicCamera camera;
+        private static final float ZOOM_SPEED = 1.05f;
         private static final float MIN_ZOOM = 0.005f;
         private static final float MAX_ZOOM = Math.max(WORLD_W / 750f, WORLD_H / 750f);
         private int dragStartX, dragStartY;
@@ -97,7 +98,7 @@ public class InstancingDrawer{
 
         @Override
         public void create() {
-            camera = new OrthographicCamera(SCREEN_W, SCREEN_H);
+            camera = new OrthographicCamera();
             camera.setToOrtho(true, SCREEN_W, SCREEN_H);
 
             ShaderProgram.pedantic = false;
@@ -304,28 +305,17 @@ public class InstancingDrawer{
                 }
 
                 public boolean scrolled(float amountX, float amountY) {
-                    Vector3 before = camera.unproject(
-                            new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
-                    camera.zoom *= amountY > 0 ? 1.05f : 1f / 1.05f;
-                    camera.zoom  = Math.min(Math.max(MIN_ZOOM, camera.zoom), MAX_ZOOM);
-                    Vector3 after = camera.unproject(
-                            new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+                    Vector3 before = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+                    float factor = amountY > 0? ZOOM_SPEED : 1f / ZOOM_SPEED;
+                    camera.zoom = Math.min(Math.max(MIN_ZOOM, camera.zoom * factor), MAX_ZOOM);
+                    camera.update();
+
+                    Vector3 after = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
                     camera.position.add(before.x - after.x, before.y - after.y, 0);
                     camera.update();
                     return true;
                 }
             });
-        }
-
-        @Override
-        public void dispose() {
-            IntBuffer bufs = BufferUtils.newIntBuffer(2);
-            bufs.put(0, unitVBO).put(1, instanceVBO);
-            Gdx.gl.glDeleteBuffers(2, bufs);
-
-            IntBuffer vaoId = BufferUtils.newIntBuffer(1);
-            vaoId.put(0, vao);
-            Gdx.gl30.glDeleteVertexArrays(1, vaoId);
         }
     }
 
