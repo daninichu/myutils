@@ -61,6 +61,18 @@ public class InstancingDrawer{
         // Data
         private final ArrayList<ColoredRect> allRects = new ArrayList<>(N_RECTS);
         private final ArrayList<ColoredRect> selectedRects = new ArrayList<>(N_RECTS);
+        private float[] rx, ry;
+        private float[] rw, rh, rvx, rvy;
+        private float[] rcr, rcg, rcb;
+        {
+            rx = new float[N_RECTS];
+            ry = new float[N_RECTS];
+            rw  = new float[N_RECTS]; rh  = new float[N_RECTS];
+            rvx = new float[N_RECTS]; rvy = new float[N_RECTS];
+            rcr = new float[N_RECTS];
+            rcg = new float[N_RECTS];
+            rcb = new float[N_RECTS];
+        }
 
         // GL objects
         private ShaderProgram shader;
@@ -184,14 +196,18 @@ public class InstancingDrawer{
             allRects.clear();
             Random rng = new Random();
             for (int i = 0; i < N_RECTS; i++) {
-                float w  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                float h  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                float x  = rng.nextFloat() * (WORLD_W - w);
-                float y  = rng.nextFloat() * (WORLD_H - h);
-                float vx = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                float vy = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                rw[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                rh[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                rx[i]  = rng.nextFloat() * (WORLD_W - rw[i]);
+                ry[i]  = rng.nextFloat() * (WORLD_H - rh[i]);
+                rvx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                rvy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                 float[] rgb = PALETTE[rng.nextInt(PALETTE.length)];
-                allRects.add(new ColoredRect(x, y, w, h, vx, vy, rgb[0], rgb[1], rgb[2]));
+                rcr[i] = rgb[0];
+                rcg[i] = rgb[1];
+                rcb[i] = rgb[2];
+
+                allRects.add(new ColoredRect(i));
             }
         }
 
@@ -215,9 +231,9 @@ public class InstancingDrawer{
 
             selectedRects.clear();
             for (ColoredRect r : allRects) {
-                if(r.x < camRight && r.x + r.w > camLeft && r.y < camTop && r.y + r.h > camBottom){
                     selectedRects.add(r);
-                }
+//                if(r.x < camRight && r.x + r.w > camLeft && r.y < camTop && r.y + r.h > camBottom){
+//                }
             }
             searchTime = timer.seconds();
             timer.reset();
@@ -235,26 +251,26 @@ public class InstancingDrawer{
 
         private void update() {
             for(ColoredRect r : allRects) {
-                float maxX;
-                float maxY;
-                float x = r.x + r.vx;
-                float y = r.y + r.vy;
-                if(x < 0){
-                    x = 0;
-                    r.vx = -r.vx;
-                } else if(x > (maxX = WORLD_W - r.w)){
-                    x = maxX;
-                    r.vx = -r.vx;
-                }
-                if(y < 0){
-                    y = 0;
-                    r.vy = -r.vy;
-                } else if(y > (maxY = WORLD_H - r.h)){
-                    y = maxY;
-                    r.vy = -r.vy;
-                }
-                r.x = x;
-                r.y = y;
+//                float maxX;
+//                float maxY;
+//                float x = r.x + r.vx;
+//                float y = r.y + r.vy;
+//                if(x < 0){
+//                    x = 0;
+//                    r.vx = -r.vx;
+//                } else if(x > (maxX = WORLD_W - r.w)){
+//                    x = maxX;
+//                    r.vx = -r.vx;
+//                }
+//                if(y < 0){
+//                    y = 0;
+//                    r.vy = -r.vy;
+//                } else if(y > (maxY = WORLD_H - r.h)){
+//                    y = maxY;
+//                    r.vy = -r.vy;
+//                }
+//                r.x = x;
+//                r.y = y;
             }
         }
 
@@ -272,14 +288,15 @@ public class InstancingDrawer{
                 int to   = core == cores - 1 ? count : (core + 1) * chunk;
                 for (int i = from; i < to; i++) {
                     ColoredRect r = selectedRects.get(i);
+                    int index = r.index;
                     int j = i * FLOATS_PER_INSTANCE;
-                    instanceRaw[j] = r.x;
-                    instanceRaw[j+1] = r.y;
-                    instanceRaw[j+2] = r.w;
-                    instanceRaw[j+3] = r.h;
-                    instanceRaw[j+4] = r.cr;
-                    instanceRaw[j+5] = r.cg;
-                    instanceRaw[j+6] = r.cb;
+                    instanceRaw[j] = rx[index];
+                    instanceRaw[j+1] = ry[index];
+                    instanceRaw[j+2] = rw[index];
+                    instanceRaw[j+3] = rh[index];
+                    instanceRaw[j+4] = rcr[index];
+                    instanceRaw[j+5] = rcg[index];
+                    instanceRaw[j+6] = rcb[index];
                 }
             });
 
@@ -299,6 +316,32 @@ public class InstancingDrawer{
             Gdx.gl30.glBindVertexArray(vao);
             Gdx.gl30.glDrawArraysInstanced(GL20.GL_LINES, 0, 8, count);
             Gdx.gl30.glBindVertexArray(0);
+        }
+
+        private void removeRect(int listIndex) {
+            int last     = allRects.size() - 1;
+            ColoredRect toRemove = allRects.get(listIndex);
+            ColoredRect lastRect = allRects.get(last);
+
+            int slot     = toRemove.index;
+            int slotLast = lastRect.index;
+
+            // Swap array data into the removed slot
+            rx[slot]  = rx[slotLast];
+            ry[slot]  = ry[slotLast];
+            rw[slot]  = rw[slotLast];
+            rh[slot]  = rh[slotLast];
+            rvx[slot] = rvx[slotLast];
+            rvy[slot] = rvy[slotLast];
+
+            rcr[slot] = rcr[slotLast];
+            rcg[slot] = rcg[slotLast];
+            rcb[slot] = rcb[slotLast];
+
+            lastRect.index = slot;
+
+            allRects.set(listIndex, lastRect);
+            allRects.remove(last);
         }
 
         private void setupInput() {
@@ -336,20 +379,15 @@ public class InstancingDrawer{
         }
     }
 
-    static final class ColoredRect {
-        float x, y, w, h, vx, vy;
-        float cr, cg, cb;
+    static final class ColoredRect implements Comparable<ColoredRect> {
+        int index;
 
-        ColoredRect(float x, float y, float w, float h, float vx, float vy, float cr, float cg, float cb) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-            this.vx = vx;
-            this.vy = vy;
-            this.cr = cr;
-            this.cg = cg;
-            this.cb = cb;
+        ColoredRect(int index) {
+            this.index = index;
+        }
+
+        public int compareTo(ColoredRect o){
+            return index - o.index;
         }
     }
 }
