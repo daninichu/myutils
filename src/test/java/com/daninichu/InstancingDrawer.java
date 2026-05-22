@@ -39,16 +39,15 @@ public class InstancingDrawer{
         private static final int MAX_RECT_SIZE = 50;
         private static final int MAX_SPEED = 5;
 
-        private static final Rectangle2D.Float WORLD_BOUNDS =
-                new Rectangle2D.Float(0, 0, WORLD_W, WORLD_H);
+        private static final Rectangle2D.Float WORLD_BOUNDS = new Rectangle2D.Float(0, 0, WORLD_W, WORLD_H);
 
-        private static final Color[] PALETTE = {
-                new Color(255/255f, 100/255f,  80/255f, 1f),
-                new Color(255/255f, 180/255f,  60/255f, 1f),
-                new Color( 60/255f, 210/255f, 160/255f, 1f),
-                new Color( 80/255f, 160/255f, 255/255f, 1f),
-                new Color(200/255f, 100/255f, 255/255f, 1f),
-                new Color(255/255f, 120/255f, 180/255f, 1f),
+        private static final float[][] PALETTE = {
+                {   255/255f,   100/255f,    80/255f}, // red
+                {   255/255f,   180/255f,    60/255f}, // orange
+                {    60/255f,   210/255f,   160/255f}, // green
+                {    80/255f,   160/255f,   255/255f}, // blue
+                {   200/255f,   100/255f,   255/255f}, // violet
+                {   255/255f,   120/255f,   180/255f}, // pink
         };
 
         // Camera
@@ -67,8 +66,8 @@ public class InstancingDrawer{
         private int instanceVBO;   // per-instance data, updated every frame
         private int vao;
 
-        // CPU-side instance buffer: 8 floats × N rects (x,y,w,h,r,g,b,a)
-        private static final int FLOATS_PER_INSTANCE = 8;
+        // CPU-side instance buffer: 7 floats × N rects (x,y,w,h,r,g,b)
+        private static final int FLOATS_PER_INSTANCE = 7;
         private FloatBuffer instanceData;
 
         // ── Shaders ──────────────────────────────────────────────────────────
@@ -76,8 +75,8 @@ public class InstancingDrawer{
         private static final String VERT = """
                 #version 330 core
                 layout(location = 0) in vec2 a_unitPos;   // unit rect corner
-                layout(location = 1) in vec4 a_rect;      // x, y, w, h  (instanced)
-                layout(location = 2) in vec4 a_color;     // r, g, b, a  (instanced)
+                layout(location = 1) in vec4 a_rect;      // x, y, w, h
+                layout(location = 2) in vec3 a_color;     // r, g, b,
                 
                 uniform mat4 u_proj;
                 out vec4 v_color;
@@ -85,7 +84,7 @@ public class InstancingDrawer{
                 void main() {
                     vec2 world = a_unitPos * a_rect.zw + a_rect.xy;
                     gl_Position = u_proj * vec4(world, 0.0, 1.0);
-                    v_color = a_color;
+                    v_color = vec4(a_color, 1.0);
                 }
                 """;
 
@@ -95,8 +94,6 @@ public class InstancingDrawer{
                 out vec4 fragColor;
                 void main() { fragColor = v_color; }
                 """;
-
-        // ── Init ─────────────────────────────────────────────────────────────
 
         @Override
         public void create() {
@@ -191,7 +188,8 @@ public class InstancingDrawer{
                 float y  = rng.nextFloat() * (WORLD_H - h);
                 float vx = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                 float vy = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                allRects.add(new ColoredRect(x, y, w, h, vx, vy, PALETTE[rng.nextInt(PALETTE.length)]));
+                float[] rgb = PALETTE[rng.nextInt(PALETTE.length)];
+                allRects.add(new ColoredRect(x, y, w, h, vx, vy, rgb[0], rgb[1], rgb[2]));
             }
         }
 
@@ -215,20 +213,22 @@ public class InstancingDrawer{
 
         private void update() {
             for(ColoredRect r : allRects) {
+                float maxX;
+                float maxY;
                 float x = r.x + r.vx;
                 float y = r.y + r.vy;
                 if(x < 0){
                     x = 0;
                     r.vx = -r.vx;
-                } else if(x + r.w > WORLD_W){
-                    x = WORLD_W - r.w;
+                } else if(x > (maxX = WORLD_W - r.w)){
+                    x = maxX;
                     r.vx = -r.vx;
                 }
                 if(y < 0){
                     y = 0;
                     r.vy = -r.vy;
-                } else if(y + r.h > WORLD_H){
-                    y = WORLD_H - r.h;
+                } else if(y > (maxY = WORLD_H - r.h)){
+                    y = maxY;
                     r.vy = -r.vy;
                 }
                 r.x = x;
@@ -247,7 +247,7 @@ public class InstancingDrawer{
             instanceData.clear();
             for (ColoredRect r : selectedRects) {
                 instanceData.put(r.x).put(r.y).put(r.w).put(r.h);
-                instanceData.put(r.cr).put(r.cg).put(r.cb).put(r.ca);
+                instanceData.put(r.cr).put(r.cg).put(r.cb);
             }
             instanceData.flip();
 
@@ -331,19 +331,18 @@ public class InstancingDrawer{
 
     static final class ColoredRect {
         float x, y, w, h, vx, vy;
-        float cr, cg, cb, ca;
+        float cr, cg, cb;
 
-        ColoredRect(float x, float y, float w, float h, float vx, float vy, Color color) {
+        ColoredRect(float x, float y, float w, float h, float vx, float vy, float cr, float cg, float cb) {
             this.x = x;
             this.y = y;
             this.w = w;
             this.h = h;
             this.vx = vx;
             this.vy = vy;
-            cr = color.r;
-            cg = color.g;
-            cb = color.b;
-            ca = color.a;
+            this.cr = cr;
+            this.cg = cg;
+            this.cb = cb;
         }
     }
 }
