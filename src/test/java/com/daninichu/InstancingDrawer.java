@@ -17,19 +17,19 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Random;
 
+import static com.badlogic.gdx.graphics.GL20.GL_ARRAY_BUFFER;
+
 public class InstancingDrawer{
     public static void main(String[] args) {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-        config.setWindowedMode(ViewPanel.SCREEN_WIDTH, ViewPanel.SCREEN_HEIGHT);
-        config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3); // add this
+        config.setWindowedMode(ViewPanel.SCREEN_W, ViewPanel.SCREEN_H);
+        config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3);
         new Lwjgl3Application(new ViewPanel(), config);
     }
 
-    // -------------------------------------------------------------------------
-
     static final class ViewPanel extends ApplicationAdapter {
-        private static final int SCREEN_WIDTH = 1120;
-        private static final int SCREEN_HEIGHT = 840;
+        private static final int SCREEN_W = 1120;
+        private static final int SCREEN_H = 840;
 
         private static final int WORLD_W = 150000;
         private static final int WORLD_H = 150000;
@@ -43,7 +43,7 @@ public class InstancingDrawer{
                 new Rectangle2D.Float(0, 0, WORLD_W, WORLD_H);
 
         private static final Color[] PALETTE = {
-                new Color(255/255f,  100/255f,  80/255f, 1f),
+                new Color(255/255f, 100/255f,  80/255f, 1f),
                 new Color(255/255f, 180/255f,  60/255f, 1f),
                 new Color( 60/255f, 210/255f, 160/255f, 1f),
                 new Color( 80/255f, 160/255f, 255/255f, 1f),
@@ -59,6 +59,7 @@ public class InstancingDrawer{
 
         // Data
         private final ArrayList<ColoredRect> allRects = new ArrayList<>(N_RECTS);
+        private final ArrayList<ColoredRect> selectedRects = new ArrayList<>(N_RECTS);
 
         // GL objects
         private ShaderProgram shader;
@@ -99,8 +100,8 @@ public class InstancingDrawer{
 
         @Override
         public void create() {
-            camera = new OrthographicCamera(SCREEN_WIDTH, SCREEN_HEIGHT);
-            camera.setToOrtho(true, SCREEN_WIDTH, SCREEN_HEIGHT);
+            camera = new OrthographicCamera(SCREEN_W, SCREEN_H);
+            camera.setToOrtho(true, SCREEN_W, SCREEN_H);
 
             ShaderProgram.pedantic = false;
             shader = new ShaderProgram(VERT, FRAG);
@@ -131,21 +132,21 @@ public class InstancingDrawer{
             FloatBuffer buf = BufferUtils.newFloatBuffer(unit.length);
             buf.put(unit).flip();
 
-            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, unitVBO);
-            Gdx.gl.glBufferData(GL20.GL_ARRAY_BUFFER,
+            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, unitVBO);
+            Gdx.gl.glBufferData(GL_ARRAY_BUFFER,
                     unit.length * Float.BYTES, buf, GL20.GL_STATIC_DRAW);
         }
 
         private void buildInstanceVBO() {
             IntBuffer id = BufferUtils.newIntBuffer(1);
             Gdx.gl.glGenBuffers(1, id);
-            instanceVBO = id.get(0);               // ← was accidentally creating a VAO here
+            instanceVBO = id.get(0);
 
             instanceData = BufferUtils.newFloatBuffer(N_RECTS * FLOATS_PER_INSTANCE);
 
-            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, instanceVBO);
+            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
             Gdx.gl.glBufferData(
-                    GL20.GL_ARRAY_BUFFER,
+                    GL_ARRAY_BUFFER,
                     N_RECTS * FLOATS_PER_INSTANCE * Float.BYTES,
                     null,
                     GL20.GL_STREAM_DRAW);
@@ -153,19 +154,19 @@ public class InstancingDrawer{
 
         private void buildVAO() {
             IntBuffer id = BufferUtils.newIntBuffer(1);
-            Gdx.gl30.glGenVertexArrays(1, id);     // ← was using int[] overload
+            Gdx.gl30.glGenVertexArrays(1, id);
             vao = id.get(0);
 
             Gdx.gl30.glBindVertexArray(vao);
 
             // attrib 0 — unit rect verts (non-instanced)
-            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, unitVBO);
+            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, unitVBO);
             Gdx.gl.glEnableVertexAttribArray(0);
             Gdx.gl.glVertexAttribPointer(0, 2, GL20.GL_FLOAT, false, 2 * Float.BYTES, 0);
             Gdx.gl30.glVertexAttribDivisor(0, 0);
 
             // attrib 1 — a_rect (x,y,w,h) instanced
-            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, instanceVBO);  // ← must bind BEFORE defining attribs
+            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
             Gdx.gl.glEnableVertexAttribArray(1);
             Gdx.gl.glVertexAttribPointer(1, 4, GL20.GL_FLOAT, false,
                     FLOATS_PER_INSTANCE * Float.BYTES, 0);
@@ -179,7 +180,6 @@ public class InstancingDrawer{
 
             Gdx.gl30.glBindVertexArray(0);
         }
-        // ── Data ─────────────────────────────────────────────────────────────
 
         private void regenerate() {
             allRects.clear();
@@ -195,15 +195,25 @@ public class InstancingDrawer{
             }
         }
 
-        // ── Render ───────────────────────────────────────────────────────────
-
         @Override
         public void render() {
 //            update();
-            draw();
+
+            float camLeft   = camera.position.x - (camera.viewportWidth  * camera.zoom) / 2f;
+            float camRight  = camera.position.x + (camera.viewportWidth  * camera.zoom) / 2f;
+            float camBottom = camera.position.y - (camera.viewportHeight * camera.zoom) / 2f;
+            float camTop    = camera.position.y + (camera.viewportHeight * camera.zoom) / 2f;
+
+            selectedRects.clear();
+            for (ColoredRect r : allRects) {
+                if(r.x < camRight && r.x + r.w > camLeft && r.y < camTop && r.y + r.h > camBottom){
+                    selectedRects.add(r);
+                }
+            }
+            draw(selectedRects);
         }
 
-        private void update(int count) {
+        private void update() {
             for(ColoredRect r : allRects) {
                 float x = r.x + r.vx;
                 float y = r.y + r.vy;
@@ -226,7 +236,7 @@ public class InstancingDrawer{
             }
         }
 
-        private void draw() {
+        private void draw(ArrayList<ColoredRect> selectedRects) {
             double totalTime = 0;
             Timer timer = new Timer();
 
@@ -235,7 +245,7 @@ public class InstancingDrawer{
 
             // ── Upload instance data ──────────────────────────────────────
             instanceData.clear();
-            for (ColoredRect r : allRects) {
+            for (ColoredRect r : selectedRects) {
                 instanceData.put(r.x).put(r.y).put(r.w).put(r.h);
                 instanceData.put(r.cr).put(r.cg).put(r.cb).put(r.ca);
             }
@@ -246,9 +256,9 @@ public class InstancingDrawer{
             System.out.printf("fill:   %.9fs\n", fillTime);
             timer.reset();
 
-            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, instanceVBO);
-            Gdx.gl.glBufferSubData(GL20.GL_ARRAY_BUFFER, 0,
-                    allRects.size() * FLOATS_PER_INSTANCE * Float.BYTES,
+            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+            Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
+                    selectedRects.size() * FLOATS_PER_INSTANCE * Float.BYTES,
                     instanceData);
 
             double uploadTime = timer.seconds();
@@ -265,7 +275,7 @@ public class InstancingDrawer{
                     GL20.GL_LINES,
                     0,
                     8,                  // 8 verts in the unit rect
-                    allRects.size()     // one instance per rect
+                    selectedRects.size()     // one instance per rect
             );
             Gdx.gl30.glBindVertexArray(0);
 
@@ -275,8 +285,6 @@ public class InstancingDrawer{
             System.out.printf("total:  %.9fs\n", totalTime);
             System.out.println();
         }
-
-        // ── Input ─────────────────────────────────────────────────────────────
 
         private void setupInput() {
             Gdx.input.setInputProcessor(new InputAdapter() {
