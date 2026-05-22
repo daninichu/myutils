@@ -131,8 +131,7 @@ public class InstancingDrawer{
             buf.put(unit).flip();
 
             Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, unitVBO);
-            Gdx.gl.glBufferData(GL_ARRAY_BUFFER,
-                    unit.length * Float.BYTES, buf, GL20.GL_STATIC_DRAW);
+            Gdx.gl.glBufferData(GL_ARRAY_BUFFER, unit.length * Float.BYTES, buf, GL20.GL_STATIC_DRAW);
         }
 
         private void buildInstanceVBO() {
@@ -245,6 +244,8 @@ public class InstancingDrawer{
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
             // ── Upload instance data ──────────────────────────────────────
+
+            int count = selectedRects.size();
             instanceData.clear();
             for (ColoredRect r : selectedRects) {
                 instanceData.put(r.x).put(r.y).put(r.w).put(r.h);
@@ -259,7 +260,7 @@ public class InstancingDrawer{
 
             Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
             Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-                    selectedRects.size() * FLOATS_PER_INSTANCE * Float.BYTES,
+                    count * FLOATS_PER_INSTANCE * Float.BYTES,
                     instanceData);
 
             double uploadTime = timer.seconds();
@@ -272,12 +273,7 @@ public class InstancingDrawer{
             shader.setUniformMatrix("u_proj", camera.combined);
 
             Gdx.gl30.glBindVertexArray(vao);
-            Gdx.gl30.glDrawArraysInstanced(
-                    GL20.GL_LINES,
-                    0,
-                    8,                  // 8 verts in the unit rect
-                    selectedRects.size()     // one instance per rect
-            );
+            Gdx.gl30.glDrawArraysInstanced(GL20.GL_LINES, 0, 8, count);
             Gdx.gl30.glBindVertexArray(0);
 
             double drawTime = timer.seconds();
@@ -305,12 +301,15 @@ public class InstancingDrawer{
                 }
 
                 public boolean scrolled(float amountX, float amountY) {
-                    Vector3 before = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+                    int mouseX = Gdx.input.getX();
+                    int mouseY = Gdx.input.getY();
+
+                    Vector3 before = camera.unproject(new Vector3(mouseX, mouseY, 0));
                     float factor = amountY > 0? ZOOM_SPEED : 1f / ZOOM_SPEED;
                     camera.zoom = Math.min(Math.max(MIN_ZOOM, camera.zoom * factor), MAX_ZOOM);
                     camera.update();
 
-                    Vector3 after = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+                    Vector3 after = camera.unproject(new Vector3(mouseX, mouseY, 0));
                     camera.position.add(before.x - after.x, before.y - after.y, 0);
                     camera.update();
                     return true;
