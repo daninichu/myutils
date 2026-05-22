@@ -5,7 +5,6 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Vector3;
@@ -13,19 +12,15 @@ import com.badlogic.gdx.utils.BufferUtils;
 import com.daninichu.util.Timer;
 
 import java.awt.geom.Rectangle2D;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.stream.IntStream;
-
-import static com.badlogic.gdx.graphics.GL20.GL_ARRAY_BUFFER;
 
 public class InstancingDrawer{
     public static void main(String[] args) {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-        config.setWindowedMode(ViewPanel.width, ViewPanel.height);
+        config.setWindowedMode(ViewPanel.SCREEN_WIDTH, ViewPanel.SCREEN_HEIGHT);
         config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3); // add this
         new Lwjgl3Application(new ViewPanel(), config);
     }
@@ -33,20 +28,21 @@ public class InstancingDrawer{
     // -------------------------------------------------------------------------
 
     static final class ViewPanel extends ApplicationAdapter {
+        private static final int SCREEN_WIDTH = 1120;
+        private static final int SCREEN_HEIGHT = 840;
 
-        private static final int   WORLD_W            = 150_000;
-        private static final int   WORLD_H            = 150_000;
-        private static final int   N_RECTANGLES       = 6000000;
-        private static final float MIN_RECT_SIZE = 10f;
-        private static final float MAX_RECT_SIZE = 50f;
-        private static final float MAX_SPEED          = 5f;
-        static  final        int   width              = 1120;
-        static  final        int   height             = 840;
+        private static final int WORLD_W = 150000;
+        private static final int WORLD_H = 150000;
 
-        private static final Rectangle2D.Float worldBounds =
+        private static final int N_RECTS = 6000000;
+        private static final int MIN_RECT_SIZE = 10;
+        private static final int MAX_RECT_SIZE = 50;
+        private static final int MAX_SPEED = 5;
+
+        private static final Rectangle2D.Float WORLD_BOUNDS =
                 new Rectangle2D.Float(0, 0, WORLD_W, WORLD_H);
 
-        private static final Color[] palette = {
+        private static final Color[] PALETTE = {
                 new Color(255/255f,  100/255f,  80/255f, 1f),
                 new Color(255/255f, 180/255f,  60/255f, 1f),
                 new Color( 60/255f, 210/255f, 160/255f, 1f),
@@ -62,44 +58,41 @@ public class InstancingDrawer{
         private int dragStartX, dragStartY;
 
         // Data
-        private final ArrayList<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
-        private float[] rxy;
-        private float[] rw, rh, rvx, rvy;
-        private float[] rcr, rcg, rcb, rca; // pre-unpacked, static
+        private final ArrayList<ColoredRect> allRects = new ArrayList<>(N_RECTS);
+        private float[]
+                rx = new float[N_RECTS], ry = new float[N_RECTS],
+                rw = new float[N_RECTS], rh = new float[N_RECTS],
+                rvx = new float[N_RECTS], rvy = new float[N_RECTS],
+                rcr = new float[N_RECTS],
+                rcg = new float[N_RECTS],
+                rcb = new float[N_RECTS],
+                rca = new float[N_RECTS];
 
         // GL objects
         private ShaderProgram shader;
         private int unitVBO;       // static 8-vertex unit rect outline
+        private int instanceVBO;   // per-instance data, updated every frame
         private int vao;
 
-        // CPU-side buffers
-        private FloatBuffer xyData;     // x, y          — updated every frame
-        private FloatBuffer staticData; // w, h, r, g, b, a — uploaded once
-
-        private int xyVBO;
-        private int staticVBO;
-
-        private static final int XY_FLOATS     = 2;
-        private static final int STATIC_FLOATS = 6;
-
+        // CPU-side instance buffer: 8 floats × N rects (x,y,w,h,r,g,b,a)
+        private static final int FLOATS_PER_INSTANCE = 8;
+        private FloatBuffer instanceData;
 
         // ── Shaders ──────────────────────────────────────────────────────────
 
         private static final String VERT = """
-                // VERT
                 #version 330 core
-                layout(location = 0) in vec2 a_unitPos;
-                layout(location = 1) in vec2 a_xy;          // instanced — updated every frame
-                layout(location = 2) in vec4 a_wh;          // instanced — static (w, h, r, g)
-                layout(location = 3) in vec2 a_ba;          // instanced — static (b, a)
+                layout(location = 0) in vec2 a_unitPos;   // unit rect corner
+                layout(location = 1) in vec4 a_rect;      // x, y, w, h  (instanced)
+                layout(location = 2) in vec4 a_color;     // r, g, b, a  (instanced)
                 
                 uniform mat4 u_proj;
                 out vec4 v_color;
                 
                 void main() {
-                    vec2 world  = a_unitPos * a_wh.xy + a_xy;
+                    vec2 world = a_unitPos * a_rect.zw + a_rect.xy;
                     gl_Position = u_proj * vec4(world, 0.0, 1.0);
-                    v_color     = vec4(a_wh.zw, a_ba);
+                    v_color = a_color;
                 }
                 """;
 
@@ -114,8 +107,8 @@ public class InstancingDrawer{
 
         @Override
         public void create() {
-            camera = new OrthographicCamera(width, height);
-            camera.setToOrtho(true, width, height);
+            camera = new OrthographicCamera(SCREEN_WIDTH, SCREEN_HEIGHT);
+            camera.setToOrtho(true, SCREEN_WIDTH, SCREEN_HEIGHT);
 
             ShaderProgram.pedantic = false;
             shader = new ShaderProgram(VERT, FRAG);
@@ -123,7 +116,7 @@ public class InstancingDrawer{
                 throw new RuntimeException("Shader error:\n" + shader.getLog());
 
             buildUnitRectVBO();
-            buildInstanceVBOs();
+            buildInstanceVBO();
             buildVAO();
 
             regenerate();
@@ -146,138 +139,108 @@ public class InstancingDrawer{
             FloatBuffer buf = BufferUtils.newFloatBuffer(unit.length);
             buf.put(unit).flip();
 
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, unitVBO);
-            Gdx.gl.glBufferData(GL_ARRAY_BUFFER,
+            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, unitVBO);
+            Gdx.gl.glBufferData(GL20.GL_ARRAY_BUFFER,
                     unit.length * Float.BYTES, buf, GL20.GL_STATIC_DRAW);
         }
 
-        private void buildInstanceVBOs() {
+        private void buildInstanceVBO() {
             IntBuffer id = BufferUtils.newIntBuffer(1);
-
-            // ── xy VBO ───────────────────────────────────────────────────────────
-            xyData = BufferUtils.newFloatBuffer(N_RECTANGLES * XY_FLOATS);
-
             Gdx.gl.glGenBuffers(1, id);
-            xyVBO = id.get(0);
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, xyVBO);
-            Gdx.gl.glBufferData(GL_ARRAY_BUFFER,
-                    N_RECTANGLES * XY_FLOATS * Float.BYTES,
-                    null, GL20.GL_STREAM_DRAW);
+            instanceVBO = id.get(0);               // ← was accidentally creating a VAO here
 
-            // ── static VBO ───────────────────────────────────────────────────────
-            staticData = BufferUtils.newFloatBuffer(N_RECTANGLES * STATIC_FLOATS);
+            instanceData = BufferUtils.newFloatBuffer(N_RECTS * FLOATS_PER_INSTANCE);
 
-            Gdx.gl.glGenBuffers(1, id);
-            staticVBO = id.get(0);
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, staticVBO);
-            Gdx.gl.glBufferData(GL_ARRAY_BUFFER,
-                    N_RECTANGLES * STATIC_FLOATS * Float.BYTES,
-                    null, GL20.GL_STATIC_DRAW);
+            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, instanceVBO);
+            Gdx.gl.glBufferData(
+                    GL20.GL_ARRAY_BUFFER,
+                    N_RECTS * FLOATS_PER_INSTANCE * Float.BYTES,
+                    null,
+                    GL20.GL_STREAM_DRAW);
         }
 
         private void buildVAO() {
             IntBuffer id = BufferUtils.newIntBuffer(1);
-            Gdx.gl30.glGenVertexArrays(1, id);
+            Gdx.gl30.glGenVertexArrays(1, id);     // ← was using int[] overload
             vao = id.get(0);
+
             Gdx.gl30.glBindVertexArray(vao);
 
             // attrib 0 — unit rect verts (non-instanced)
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, unitVBO);
+            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, unitVBO);
             Gdx.gl.glEnableVertexAttribArray(0);
             Gdx.gl.glVertexAttribPointer(0, 2, GL20.GL_FLOAT, false, 2 * Float.BYTES, 0);
             Gdx.gl30.glVertexAttribDivisor(0, 0);
 
-            // attrib 1 — a_xy (instanced, updated every frame)
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, xyVBO);
+            // attrib 1 — a_rect (x,y,w,h) instanced
+            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, instanceVBO);  // ← must bind BEFORE defining attribs
             Gdx.gl.glEnableVertexAttribArray(1);
-            Gdx.gl.glVertexAttribPointer(1, 2, GL20.GL_FLOAT, false, XY_FLOATS * Float.BYTES, 0);
+            Gdx.gl.glVertexAttribPointer(1, 4, GL20.GL_FLOAT, false,
+                    FLOATS_PER_INSTANCE * Float.BYTES, 0);
             Gdx.gl30.glVertexAttribDivisor(1, 1);
 
-            // attrib 2 — a_wh (w, h, r, g) from staticVBO
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, staticVBO);
+            // attrib 2 — a_color (r,g,b,a) instanced
             Gdx.gl.glEnableVertexAttribArray(2);
             Gdx.gl.glVertexAttribPointer(2, 4, GL20.GL_FLOAT, false,
-                    STATIC_FLOATS * Float.BYTES, 0);
+                    FLOATS_PER_INSTANCE * Float.BYTES, 4 * Float.BYTES);
             Gdx.gl30.glVertexAttribDivisor(2, 1);
-
-            // attrib 3 — a_ba (b, a) from staticVBO, offset past w,h,r,g
-            Gdx.gl.glEnableVertexAttribArray(3);
-            Gdx.gl.glVertexAttribPointer(3, 2, GL20.GL_FLOAT, false,
-                    STATIC_FLOATS * Float.BYTES, 4 * Float.BYTES);
-            Gdx.gl30.glVertexAttribDivisor(3, 1);
 
             Gdx.gl30.glBindVertexArray(0);
         }
-
         // ── Data ─────────────────────────────────────────────────────────────
 
         private void regenerate() {
-            rxy = new float[N_RECTANGLES * 2];
-            rw  = new float[N_RECTANGLES]; rh  = new float[N_RECTANGLES];
-            rvx = new float[N_RECTANGLES]; rvy = new float[N_RECTANGLES];
-            rcr = new float[N_RECTANGLES];
-            rcg = new float[N_RECTANGLES];
-            rcb = new float[N_RECTANGLES];
-            rca = new float[N_RECTANGLES];
-
             allRects.clear();
-            staticData.clear();
             Random rng = new Random();
-            for (int i = 0; i < N_RECTANGLES; i++) {
+            for (int i = 0; i < N_RECTS; i++) {
                 rw[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
                 rh[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                rxy[i*2]  = rng.nextFloat() * (WORLD_W - rw[i]);
-                rxy[i*2+1]  = rng.nextFloat() * (WORLD_H - rh[i]);
+                rx[i]  = rng.nextFloat() * (WORLD_W - rw[i]);
+                ry[i]  = rng.nextFloat() * (WORLD_H - rh[i]);
                 rvx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                 rvy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                Color c = palette[rng.nextInt(palette.length)];
+                Color c = PALETTE[rng.nextInt(PALETTE.length)];
                 rcr[i] = c.r;
                 rcg[i] = c.g;
                 rcb[i] = c.b;
                 rca[i] = c.a;
 
                 allRects.add(new ColoredRect(i));
-                staticData.put(rw[i]).put(rh[i])
-                        .put(rcr[i]).put(rcg[i]).put(rcb[i]).put(rca[i]);
             }
-            staticData.flip();
-
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, staticVBO);
-            Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-                    N_RECTANGLES * STATIC_FLOATS * Float.BYTES, staticData);
         }
 
         // ── Render ───────────────────────────────────────────────────────────
 
         @Override
         public void render() {
-            int count = allRects.size();
-//            update(count);
-            draw(count);
+//            update();
+            draw();
         }
 
         private void update(int count) {
             for(int i = 0; i < count; i++){
-                rxy[i*2] += rvx[i];
-                rxy[i*2+1] += rvy[i];
-                if(rxy[i*2] < 0){
-                    rxy[i*2] = 0;
+                float x = rx[i] + rvx[i];
+                float y = ry[i] + rvy[i];
+                if(x < 0){
+                    x = 0;
                     rvx[i] = -rvx[i];
-                } else if(rxy[i*2] + rw[i] > WORLD_W){
-                    rxy[i*2] = WORLD_W - rw[i];
+                } else if(x + rw[i] > WORLD_W){
+                    x = WORLD_W - rw[i];
                     rvx[i] = -rvx[i];
                 }
-                if(rxy[i*2+1] < 0){
-                    rxy[i*2+1] = 0;
+                if(y < 0){
+                    y = 0;
                     rvy[i] = -rvy[i];
-                } else if(rxy[i*2+1] + rh[i] > WORLD_H){
-                    rxy[i*2+1] = WORLD_H - rh[i];
+                } else if(y + rh[i] > WORLD_H){
+                    y = WORLD_H - rh[i];
                     rvy[i] = -rvy[i];
                 }
+                rx[i] = x;
+                ry[i] = y;
             }
         }
 
-        private void draw(int count) {
+        private void draw() {
             double totalTime = 0;
             Timer timer = new Timer();
 
@@ -285,18 +248,23 @@ public class InstancingDrawer{
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
             // ── Upload instance data ──────────────────────────────────────
-
-            xyData.clear();
-            xyData.put(rxy, 0, count * XY_FLOATS);
-            xyData.flip();
+            instanceData.clear();
+            for (ColoredRect r : allRects) {
+                int i = r.index;
+                instanceData.put(rx[i]).put(ry[i]).put(rw[i]).put(rh[i]);
+                instanceData.put(rcr[i]).put(rcg[i]).put(rcb[i]).put(rca[i]);
+            }
+            instanceData.flip();
 
             double fillTime = timer.seconds();
             totalTime += fillTime;
             System.out.printf("fill:   %.9fs\n", fillTime);
             timer.reset();
 
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, xyVBO);
-            Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER, 0, count * XY_FLOATS * Float.BYTES, xyData);
+            Gdx.gl.glBindBuffer(GL20.GL_ARRAY_BUFFER, instanceVBO);
+            Gdx.gl.glBufferSubData(GL20.GL_ARRAY_BUFFER, 0,
+                    allRects.size() * FLOATS_PER_INSTANCE * Float.BYTES,
+                    instanceData);
 
             double uploadTime = timer.seconds();
             totalTime += uploadTime;
@@ -308,7 +276,12 @@ public class InstancingDrawer{
             shader.setUniformMatrix("u_proj", camera.combined);
 
             Gdx.gl30.glBindVertexArray(vao);
-            Gdx.gl30.glDrawArraysInstanced(GL20.GL_LINES, 0, 8, count);
+            Gdx.gl30.glDrawArraysInstanced(
+                    GL20.GL_LINES,
+                    0,
+                    8,                  // 8 verts in the unit rect
+                    allRects.size()     // one instance per rect
+            );
             Gdx.gl30.glBindVertexArray(0);
 
             double drawTime = timer.seconds();
@@ -316,48 +289,6 @@ public class InstancingDrawer{
             System.out.printf("draw:   %.9fs\n", drawTime);
             System.out.printf("total:  %.9fs\n", totalTime);
             System.out.println();
-        }
-
-        private void removeRect(int listIndex) {
-            int last     = allRects.size() - 1;
-            ColoredRect toRemove = allRects.get(listIndex);
-            ColoredRect lastRect = allRects.get(last);
-
-            int slot     = toRemove.index;
-            int slotLast = lastRect.index;
-
-            // Swap array data into the removed slot
-            rxy[slot*2]  = rxy[slotLast*2];
-            rxy[slot*2+1]  = rxy[slotLast*2+1];
-            rw[slot]  = rw[slotLast];
-            rh[slot]  = rh[slotLast];
-            rvx[slot] = rvx[slotLast];
-            rvy[slot] = rvy[slotLast];
-
-            rcr[slot] = rcr[slotLast];
-            rcg[slot] = rcg[slotLast];
-            rcb[slot] = rcb[slotLast];
-            rca[slot] = rca[slotLast];
-
-            lastRect.index = slot;
-
-            allRects.set(listIndex, lastRect);
-            allRects.remove(last);
-
-            uploadStaticAt(slot);
-        }
-
-        private void uploadStaticAt(int i) {
-            staticData.clear();
-            staticData.put(rw[i]).put(rh[i])
-                    .put(rcr[i]).put(rcg[i]).put(rcb[i]).put(rca[i]);
-            staticData.flip();
-
-            Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, staticVBO);
-            Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER,
-                    i * STATIC_FLOATS * Float.BYTES,
-                    STATIC_FLOATS * Float.BYTES,
-                    staticData);
         }
 
         // ── Input ─────────────────────────────────────────────────────────────
@@ -395,11 +326,9 @@ public class InstancingDrawer{
 
         @Override
         public void dispose() {
-            shader.dispose();
-
-            IntBuffer bufs = BufferUtils.newIntBuffer(3);
-            bufs.put(0, unitVBO).put(1, xyVBO).put(2, staticVBO);
-            Gdx.gl.glDeleteBuffers(3, bufs);
+            IntBuffer bufs = BufferUtils.newIntBuffer(2);
+            bufs.put(0, unitVBO).put(1, instanceVBO);
+            Gdx.gl.glDeleteBuffers(2, bufs);
 
             IntBuffer vaoId = BufferUtils.newIntBuffer(1);
             vaoId.put(0, vao);
