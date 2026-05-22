@@ -59,14 +59,6 @@ public class InstancingDrawer{
 
         // Data
         private final ArrayList<ColoredRect> allRects = new ArrayList<>(N_RECTS);
-        private float[]
-                rx = new float[N_RECTS], ry = new float[N_RECTS],
-                rw = new float[N_RECTS], rh = new float[N_RECTS],
-                rvx = new float[N_RECTS], rvy = new float[N_RECTS],
-                rcr = new float[N_RECTS],
-                rcg = new float[N_RECTS],
-                rcb = new float[N_RECTS],
-                rca = new float[N_RECTS];
 
         // GL objects
         private ShaderProgram shader;
@@ -193,19 +185,13 @@ public class InstancingDrawer{
             allRects.clear();
             Random rng = new Random();
             for (int i = 0; i < N_RECTS; i++) {
-                rw[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                rh[i]  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-                rx[i]  = rng.nextFloat() * (WORLD_W - rw[i]);
-                ry[i]  = rng.nextFloat() * (WORLD_H - rh[i]);
-                rvx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                rvy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                Color c = PALETTE[rng.nextInt(PALETTE.length)];
-                rcr[i] = c.r;
-                rcg[i] = c.g;
-                rcb[i] = c.b;
-                rca[i] = c.a;
-
-                allRects.add(new ColoredRect(i));
+                float w  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                float h  = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                float x  = rng.nextFloat() * (WORLD_W - w);
+                float y  = rng.nextFloat() * (WORLD_H - h);
+                float vx = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                float vy = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                allRects.add(new ColoredRect(x, y, w, h, vx, vy, PALETTE[rng.nextInt(PALETTE.length)]));
             }
         }
 
@@ -218,25 +204,25 @@ public class InstancingDrawer{
         }
 
         private void update(int count) {
-            for(int i = 0; i < count; i++){
-                float x = rx[i] + rvx[i];
-                float y = ry[i] + rvy[i];
+            for(ColoredRect r : allRects) {
+                float x = r.x + r.vx;
+                float y = r.y + r.vy;
                 if(x < 0){
                     x = 0;
-                    rvx[i] = -rvx[i];
-                } else if(x + rw[i] > WORLD_W){
-                    x = WORLD_W - rw[i];
-                    rvx[i] = -rvx[i];
+                    r.vx = -r.vx;
+                } else if(x + r.w > WORLD_W){
+                    x = WORLD_W - r.w;
+                    r.vx = -r.vx;
                 }
                 if(y < 0){
                     y = 0;
-                    rvy[i] = -rvy[i];
-                } else if(y + rh[i] > WORLD_H){
-                    y = WORLD_H - rh[i];
-                    rvy[i] = -rvy[i];
+                    r.vy = -r.vy;
+                } else if(y + r.h > WORLD_H){
+                    y = WORLD_H - r.h;
+                    r.vy = -r.vy;
                 }
-                rx[i] = x;
-                ry[i] = y;
+                r.x = x;
+                r.y = y;
             }
         }
 
@@ -250,9 +236,8 @@ public class InstancingDrawer{
             // ── Upload instance data ──────────────────────────────────────
             instanceData.clear();
             for (ColoredRect r : allRects) {
-                int i = r.index;
-                instanceData.put(rx[i]).put(ry[i]).put(rw[i]).put(rh[i]);
-                instanceData.put(rcr[i]).put(rcg[i]).put(rcb[i]).put(rca[i]);
+                instanceData.put(r.x).put(r.y).put(r.w).put(r.h);
+                instanceData.put(r.cr).put(r.cg).put(r.cb).put(r.ca);
             }
             instanceData.flip();
 
@@ -336,15 +321,21 @@ public class InstancingDrawer{
         }
     }
 
-    static final class ColoredRect implements Comparable<ColoredRect> {
-        int index;
+    static final class ColoredRect {
+        float x, y, w, h, vx, vy;
+        float cr, cg, cb, ca;
 
-        ColoredRect(int index) {
-            this.index = index;
-        }
-
-        public int compareTo(ColoredRect o){
-            return index - o.index;
+        ColoredRect(float x, float y, float w, float h, float vx, float vy, Color color) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.vx = vx;
+            this.vy = vy;
+            cr = color.r;
+            cg = color.g;
+            cb = color.b;
+            ca = color.a;
         }
     }
 }
