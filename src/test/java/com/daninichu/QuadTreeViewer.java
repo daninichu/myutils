@@ -37,42 +37,42 @@ public class QuadTreeViewer extends JFrame {
             MouseMotionListener, MouseWheelListener, KeyListener {
 
         // World dimensions
-        private static final double WORLD_W = 150000;
-        private static final double WORLD_H = 150000;
+        private static final int WORLD_W = 150000;
+        private static final int WORLD_H = 150000;
         private static final int MAX_DEPTH = 9;
 
         // Rectangles
-        private double viewBorderW = 100;
-        private double viewBorderH = 100;
-        private static final int N_RECTANGLES = 1000000;
-        private static final double MIN_RECTANGLE_SIZE = 10;
-        private static final double MAX_RECTANGLE_SIZE = 50;
-        private static final double MAX_SPEED = 0;
-        private static final double RECT_CURSOR_SIZE = 1000;
-        private static final Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD_W, WORLD_H);
+        private float viewBorderW = 100;
+        private float viewBorderH = 100;
+        private static final int N_RECTS = 1000000;
+        private static final int MIN_RECT_SIZE = 10;
+        private static final int MAX_RECT_SIZE = 50;
+        private static final int MAX_SPEED = 0;
+        private static final int RECT_CURSOR_SIZE = 1000;
+        private static final Rectangle2D worldBounds = new Rectangle2D.Float(0, 0, WORLD_W, WORLD_H);
 
         // Camera state (world-space offset of the top-left corner of the viewport)
-        private double camX = 0;
-        private double camY = 0;
-        private double zoom = 0.35;   // world-units per screen-pixel = 1/zoom
-        private static final double MIN_ZOOM = 0.01/2;
-        private static final double MAX_ZOOM = 10.0;
+        private float camX = 0;
+        private float camY = 0;
+        private float zoom = 0.35f;   // world-units per screen-pixel = 1/zoom
+        private static final float MIN_ZOOM = 0.01f/2;
+        private static final float MAX_ZOOM = 10.0f;
 
         // Drag state
         private int dragStartX, dragStartY;
-        private double camXAtDrag, camYAtDrag;
+        private float camXAtDrag, camYAtDrag;
         private boolean dragging = false;
         private boolean delete = false;
 
         // Data
-        private final List<ColoredRect> allRects = new ArrayList<>(N_RECTANGLES);
-        private List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>(N_RECTANGLES);
-        private List<QuadTree.Entry<ColoredRect>> selectedEntries = new ArrayList<>(N_RECTANGLES);
-        private List<ColoredRect> visibleRects = new ArrayList<>(N_RECTANGLES);
-        private List<ColoredRect> selectedRects = new ArrayList<>(N_RECTANGLES);
+        private final List<ColoredRect> allRects = new ArrayList<>(N_RECTS);
+        private List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>(N_RECTS);
+        private List<QuadTree.Entry<ColoredRect>> selectedEntries = new ArrayList<>(N_RECTS);
+        private List<ColoredRect> visibleRects = new ArrayList<>(N_RECTS);
+        private List<ColoredRect> selectedRects = new ArrayList<>(N_RECTS);
 
         private QuadTree<ColoredRect> quadTree;
-        private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
+        private final Rectangle2D.Float rectCursor = new Rectangle2D.Float(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
         // Options
         private boolean showQuadCells = false;
@@ -173,13 +173,13 @@ public class QuadTreeViewer extends JFrame {
                 new Color(255, 120, 180),  // pink
             };
 
-            for (int i = 0; i < N_RECTANGLES; i++) {
-                double w = MIN_RECTANGLE_SIZE + rng.nextDouble() * (MAX_RECTANGLE_SIZE - MIN_RECTANGLE_SIZE);
-                double h = MIN_RECTANGLE_SIZE + rng.nextDouble() * (MAX_RECTANGLE_SIZE - MIN_RECTANGLE_SIZE);
-                double x = rng.nextDouble() * (WORLD_W - w);
-                double y = rng.nextDouble() * (WORLD_H - h);
-                double vx = (rng.nextDouble() * 2 - 1) * MAX_SPEED;
-                double vy = (rng.nextDouble() * 2 - 1) * MAX_SPEED;
+            for (int i = 0; i < N_RECTS; i++) {
+                float w = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                float h = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                float x = rng.nextFloat() * (WORLD_W - w);
+                float y = rng.nextFloat() * (WORLD_H - h);
+                float vx = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                float vy = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                 Color color = palette[rng.nextInt(palette.length)];
                 ColoredRect rect = new ColoredRect(x, y, w, h, vx, vy, color.getRGB());
                 allRects.add(rect);
@@ -195,11 +195,11 @@ public class QuadTreeViewer extends JFrame {
         // -----------------------------------------------------------------
 
         /** Screen → world */
-        private double toWorldX(int sx) {
+        private float toWorldX(int sx) {
             return camX + sx / zoom;
         }
 
-        private double toWorldY(int sy) {
+        private float toWorldY(int sy) {
             return camY + sy / zoom;
         }
 
@@ -234,15 +234,15 @@ public class QuadTreeViewer extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             // Viewport in world space
-            Rectangle2D viewRect = new Rectangle2D.Double(
+            Rectangle2D.Float viewRect = new Rectangle2D.Float(
                     camX,
                     camY,
                     getWidth() / zoom,
                     getHeight() / zoom
             );
-            Rectangle2D selectionRect = viewRect;
+            Rectangle2D.Float selectionRect = viewRect;
             if(selectionMode){
-                selectionRect = new Rectangle2D.Double(
+                selectionRect = new Rectangle2D.Float(
                         camX + viewBorderW / zoom / 2,
                         camY + viewBorderH / zoom / 2,
                         (getWidth() - viewBorderW) / zoom,
@@ -304,10 +304,10 @@ public class QuadTreeViewer extends JFrame {
             if(showRectCursor){
                 g2.setColor(new Color(255, 255, 255, 40));
                 g2.fillRect(
-                        toScreenX(rectCursor.getX()),
-                        toScreenY(rectCursor.getY()),
-                        toScreenLen(rectCursor.getWidth()),
-                        toScreenLen(rectCursor.getHeight())
+                        toScreenX(rectCursor.x),
+                        toScreenY(rectCursor.y),
+                        toScreenLen(rectCursor.width),
+                        toScreenLen(rectCursor.height)
                 );
             }
 
@@ -371,19 +371,13 @@ public class QuadTreeViewer extends JFrame {
             if (node == null) {
                 return;
             }
-            Rectangle2D b = new Rectangle2D.Double(
-                    (double) fX.get(node),
-                    (double) fY.get(node),
-                    (double) fChildW.get(node) * 2,
-                    (double) fChildH.get(node) * 2
-            );
-            if(!viewRect.intersects(b)) {
+            double x = (double) fX.get(node);
+            double y = (double) fY.get(node);
+            double w = (double) fChildW.get(node) * 2;
+            double h = (double) fChildH.get(node) * 2;
+            if(!viewRect.intersects(x, y, w, h)) {
                 return;
             }
-            double x = b.getX();
-            double y = b.getY();
-            double w = b.getWidth();
-            double h = b.getHeight();
             drawRect(x, y, w, h, QUAD_CELL_COLOR);
             for (Object child : (Object[]) fChildren.get(node)) {
                 drawQuadCells(viewRect, child);
@@ -465,8 +459,8 @@ public class QuadTreeViewer extends JFrame {
                 return;
             }
             if(!showRectCursor){
-                double dx = (e.getX() - dragStartX) / zoom;
-                double dy = (e.getY() - dragStartY) / zoom;
+                float dx = (e.getX() - dragStartX) / zoom;
+                float dy = (e.getY() - dragStartY) / zoom;
                 camX = camXAtDrag - dx;
                 camY = camYAtDrag - dy;
             } else{
@@ -478,11 +472,11 @@ public class QuadTreeViewer extends JFrame {
 
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
-            double mx = toWorldX(e.getX());
-            double my = toWorldY(e.getY());
+            float mx = toWorldX(e.getX());
+            float my = toWorldY(e.getY());
 
-            double rotation = e.getWheelRotation();
-            double factor = rotation == 0? 1 : rotation < 0 ? 1.03 : 1.0 / 1.03;
+            int rotation = e.getWheelRotation();
+            float factor = rotation == 0? 1 : rotation < 0 ? 1.03f : 1 / 1.03f;
             zoom = Math.max(MIN_ZOOM, Math.min(zoom * factor, MAX_ZOOM));
 
             // Zoom towards cursor
@@ -530,24 +524,28 @@ public class QuadTreeViewer extends JFrame {
 
         private void update(){
             for(QuadTree.Entry<ColoredRect> e : quadTree.entryList()){
-                ColoredRect rect = e.value;
-                rect.x += rect.vx;
-                rect.y += rect.vy;
-                if(rect.x < worldBounds.getX()){
-                    rect.x = worldBounds.getX();
-                    rect.vx = -rect.vx;
-                } else if(rect.x + rect.w > worldBounds.getMaxX()){
-                    rect.x = worldBounds.getMaxX() - rect.w;
-                    rect.vx = -rect.vx;
+                ColoredRect r = e.value;
+                float maxX;
+                float maxY;
+                float x = r.x + r.vx;
+                float y = r.y + r.vy;
+                if(x < 0){
+                    x = 0;
+                    r.vx = -r.vx;
+                } else if(x > (maxX = WORLD_W - r.w)){
+                    x = maxX;
+                    r.vx = -r.vx;
                 }
-                if(rect.y < worldBounds.getY()){
-                    rect.y = worldBounds.getY();
-                    rect.vy = -rect.vy;
-                } else if(rect.y + rect.h > worldBounds.getMaxY()){
-                    rect.y = worldBounds.getMaxY() - rect.h;
-                    rect.vy = -rect.vy;
+                if(y < 0){
+                    y = 0;
+                    r.vy = -r.vy;
+                } else if(y > (maxY = WORLD_H - r.h)){
+                    y = maxY;
+                    r.vy = -r.vy;
                 }
-                quadTree.move(e, rect.x, rect.y, rect.w, rect.h);
+                r.x = x;
+                r.y = y;
+                quadTree.move(e, r.x, r.y, r.w, r.h);
             }
         }
     }
@@ -555,15 +553,15 @@ public class QuadTreeViewer extends JFrame {
     // =========================================================================
 
     static final class ColoredRect{
-        double x;
-        double y;
-        double w;
-        double h;
-        double vx;
-        double vy;
+        float x;
+        float y;
+        float w;
+        float h;
+        float vx;
+        float vy;
         int color;
 
-        ColoredRect(double x, double y, double w, double h, double vx, double vy, int color){
+        ColoredRect(float x, float y, float w, float h, float vx, float vy, int color){
             this.x = x;
             this.y = y;
             this.w = w;
