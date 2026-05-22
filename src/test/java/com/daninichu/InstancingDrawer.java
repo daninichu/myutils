@@ -16,6 +16,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.stream.IntStream;
 
 import static com.badlogic.gdx.graphics.GL20.GL_ARRAY_BUFFER;
 
@@ -34,7 +35,7 @@ public class InstancingDrawer{
         private static final int WORLD_W = 150000;
         private static final int WORLD_H = 150000;
 
-        private static final int N_RECTS = 6000000;
+        private static final int N_RECTS = 1000000;
         private static final int MIN_RECT_SIZE = 10;
         private static final int MAX_RECT_SIZE = 50;
         private static final int MAX_SPEED = 5;
@@ -70,6 +71,7 @@ public class InstancingDrawer{
         // CPU-side instance buffer: 7 floats × N rects (x,y,w,h,r,g,b)
         private static final int FLOATS_PER_INSTANCE = 7;
         private FloatBuffer instanceData;
+        private float[] instanceRaw = new float[N_RECTS * FLOATS_PER_INSTANCE];
 
         // ── Shaders ──────────────────────────────────────────────────────────
 
@@ -201,7 +203,7 @@ public class InstancingDrawer{
             Timer timer = new Timer();
 
             if(MAX_SPEED != 0){
-                update();
+//                update();
                 updateTime = timer.seconds();
                 timer.reset();
             }
@@ -263,11 +265,27 @@ public class InstancingDrawer{
             // ── Upload instance data ──────────────────────────────────────
 
             int count = selectedRects.size();
+            int cores = Runtime.getRuntime().availableProcessors();
+            int chunk = count / cores;
+            IntStream.range(0, cores).parallel().forEach(core -> {
+                int from = core * chunk;
+                int to   = core == cores - 1 ? count : (core + 1) * chunk;
+                for (int i = from; i < to; i++) {
+                    ColoredRect r = selectedRects.get(i);
+                    int j = i * FLOATS_PER_INSTANCE;
+                    instanceRaw[j] = r.x;
+                    instanceRaw[j+1] = r.y;
+                    instanceRaw[j+2] = r.w;
+                    instanceRaw[j+3] = r.h;
+                    instanceRaw[j+4] = r.cr;
+                    instanceRaw[j+5] = r.cg;
+                    instanceRaw[j+6] = r.cb;
+                }
+            });
+
+            // One bulk copy into FloatBuffer
             instanceData.clear();
-            for (ColoredRect r : selectedRects) {
-                instanceData.put(r.x).put(r.y).put(r.w).put(r.h);
-                instanceData.put(r.cr).put(r.cg).put(r.cb);
-            }
+            instanceData.put(instanceRaw, 0, count * FLOATS_PER_INSTANCE);
             instanceData.flip();
 
             Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
