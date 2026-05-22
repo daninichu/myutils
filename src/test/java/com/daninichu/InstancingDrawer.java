@@ -195,7 +195,16 @@ public class InstancingDrawer{
 
         @Override
         public void render() {
-//            update();
+            double updateTime = 0;
+            double searchTime = 0;
+            double drawTime = 0;
+            Timer timer = new Timer();
+
+            if(MAX_SPEED != 0){
+                update();
+                updateTime = timer.seconds();
+                timer.reset();
+            }
 
             float camLeft   = camera.position.x - (camera.viewportWidth  * camera.zoom) / 2f;
             float camRight  = camera.position.x + (camera.viewportWidth  * camera.zoom) / 2f;
@@ -208,7 +217,18 @@ public class InstancingDrawer{
                     selectedRects.add(r);
                 }
             }
+            searchTime = timer.seconds();
+            timer.reset();
+
             draw(selectedRects);
+
+            drawTime = timer.seconds();
+
+            double totalTime = updateTime + searchTime + drawTime;
+            System.out.printf("update: %.9fs\n", updateTime);
+            System.out.printf("search: %.9fs\n", searchTime);
+            System.out.printf("draw:   %.9fs\n", drawTime);
+            System.out.printf("total:  %.9fs\n\n", totalTime);
         }
 
         private void update() {
@@ -237,9 +257,6 @@ public class InstancingDrawer{
         }
 
         private void draw(ArrayList<ColoredRect> selectedRects) {
-            double totalTime = 0;
-            Timer timer = new Timer();
-
             Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -253,34 +270,17 @@ public class InstancingDrawer{
             }
             instanceData.flip();
 
-            double fillTime = timer.seconds();
-            totalTime += fillTime;
-            System.out.printf("fill:   %.9fs\n", fillTime);
-            timer.reset();
-
             Gdx.gl.glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
             Gdx.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
                     count * FLOATS_PER_INSTANCE * Float.BYTES,
                     instanceData);
 
-            double uploadTime = timer.seconds();
-            totalTime += uploadTime;
-            System.out.printf("upload: %.9fs\n", uploadTime);
-            timer.reset();
-
             // ── Draw all rects in one call ────────────────────────────────
             shader.bind();
             shader.setUniformMatrix("u_proj", camera.combined);
-
             Gdx.gl30.glBindVertexArray(vao);
             Gdx.gl30.glDrawArraysInstanced(GL20.GL_LINES, 0, 8, count);
             Gdx.gl30.glBindVertexArray(0);
-
-            double drawTime = timer.seconds();
-            totalTime += drawTime;
-            System.out.printf("draw:   %.9fs\n", drawTime);
-            System.out.printf("total:  %.9fs\n", totalTime);
-            System.out.println();
         }
 
         private void setupInput() {
