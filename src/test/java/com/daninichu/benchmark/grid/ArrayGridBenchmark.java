@@ -2,8 +2,6 @@ package com.daninichu.benchmark.grid;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.ArrayGrid;
-import com.daninichu.util.ArrayMatrix;
-import com.daninichu.util.Matrix;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -59,15 +57,5 @@ public class ArrayGridBenchmark{
 //		}
 
 		bh.consume(arrayGrid.containsValue(-1));
-	}
-//	@Benchmark
-	public void arrayMatrix(Blackhole bh){
-		var arrayMatrix = new ArrayMatrix<>(height, width);
-		for(int c = 0; c < width; c++){
-			for(int r = 0; r < height; r++){
-				arrayMatrix.set(r, c, r + c);
-			}
-		}
-		bh.consume(arrayMatrix);
 	}
 }

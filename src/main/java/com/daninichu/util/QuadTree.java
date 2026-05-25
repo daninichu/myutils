@@ -71,6 +71,31 @@ public class QuadTree<T> implements Iterable<T> {
             throw new IllegalArgumentException("width or height cannot be negative");
     }
 
+    public void populate(){
+        populate(root, 0);
+    }
+
+    private void populate(Quadrant<T> quadrant, int depth){
+        if(depth != maxDepth){
+            double childW = quadrant.childW;
+            double childH = quadrant.childH;
+            double baseX = quadrant.x;
+            double baseY = quadrant.y;
+            Quadrant<T>[] children = quadrant.children;
+
+            for(int i = 0; i < 4; i++){
+                Quadrant<T> child = children[i];
+                if(child == null){
+                    double childX = baseX + (i % 2) * childW;
+                    double childY = baseY + (i / 2) * childH;
+                    children[i] = child = new Quadrant<>(childX, childY, childW / 2, childH / 2);
+                    child.parent = quadrant;
+                }
+                populate(child, depth + 1);
+            }
+        }
+    }
+
     private Quadrant<T> findQuadrant(double x, double y, double width, double height){
         Quadrant<T> quadrant = root;
         int depth = 0;

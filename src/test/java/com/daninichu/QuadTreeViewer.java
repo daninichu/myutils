@@ -22,7 +22,7 @@ public class QuadTreeViewer extends JFrame {
     QuadTreeViewer() {
         super("QuadTree Viewer");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(ViewPanel.width, ViewPanel.height);
+        setSize(ViewPanel.SCREEN_W, ViewPanel.SCREEN_H);
         setLocationRelativeTo(null);
 
         ViewPanel panel = new ViewPanel();
@@ -42,9 +42,9 @@ public class QuadTreeViewer extends JFrame {
         private static final int MAX_DEPTH = 9;
 
         // Rectangles
-        private float viewBorderW = 100;
-        private float viewBorderH = 100;
-        private static final int N_RECTS = 1000000;
+        private float viewBorderW = 200;
+        private float viewBorderH = 200;
+        private static final int N_RECTS = 2000000;
         private static final int MIN_RECT_SIZE = 10;
         private static final int MAX_RECT_SIZE = 50;
         private static final int MAX_SPEED = 0;
@@ -55,7 +55,7 @@ public class QuadTreeViewer extends JFrame {
         private float camX = 0;
         private float camY = 0;
         private float zoom = 0.35f;   // world-units per screen-pixel = 1/zoom
-        private static final float MIN_ZOOM = 0.01f/2;
+        private static final float MIN_ZOOM = 750f / Math.max(WORLD_W, WORLD_H);
         private static final float MAX_ZOOM = 10.0f;
 
         // Drag state
@@ -82,8 +82,8 @@ public class QuadTreeViewer extends JFrame {
 
         private final BufferedImage canvas;
         private final int[] pixels;
-        private static final int width = 1120;
-        private static final int height = 840;
+        private static final int SCREEN_W = 1120;
+        private static final int SCREEN_H = 810;
 
         // Colors
         private static final int QUAD_CELL_COLOR = new Color(90, 90, 120).getRGB();
@@ -97,12 +97,12 @@ public class QuadTreeViewer extends JFrame {
         private double totalTime = 0;
 
         // ── reflected fields, resolved once at construction ───────────────────────
-        private Field fRoot;       // QuadTree.root
-        private Field fX;    // Quadrant.originX
-        private Field fY;    // Quadrant.originY
-        private Field fChildW;     // Quadrant.childW
-        private Field fChildH;     // Quadrant.childH
-        private Field fChildren;   // Quadrant.children
+        private Field fRoot;
+        private Field fX;
+        private Field fY;
+        private Field fChildW;
+        private Field fChildH;
+        private Field fChildren;
 
         // In constructor / resize:
 
@@ -113,7 +113,7 @@ public class QuadTreeViewer extends JFrame {
             addMouseWheelListener(this);
             regenerate();
 
-            canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            canvas = new BufferedImage(SCREEN_W, SCREEN_H, BufferedImage.TYPE_INT_RGB);
             pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
             try {
@@ -223,10 +223,10 @@ public class QuadTreeViewer extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             updateTime = drawTime = searchTime = totalTime = 0;
-            Timer totalTimer = new Timer();
+            Timer timer = new Timer();
             if(MAX_SPEED != 0){
                 update();
-                totalTime += updateTime = totalTimer.seconds();
+                totalTime += updateTime = timer.seconds();
             }
 
             super.paintComponent(g);
@@ -251,7 +251,7 @@ public class QuadTreeViewer extends JFrame {
             }
 
             // Gather values
-            totalTimer.reset();
+            timer.reset();
 
             if(showRectCursor && delete){
                 quadTree.searchEntries(rectCursor).forEach(entry -> quadTree.removeAndCollapse(entry));
@@ -267,10 +267,10 @@ public class QuadTreeViewer extends JFrame {
                 searchBruteForce(viewRect, selectionRect);
             }
 
-            totalTime += searchTime = totalTimer.seconds();
+            totalTime += searchTime = timer.seconds();
 
             // Drawing
-            totalTimer.reset();
+            timer.reset();
 
             Arrays.fill(pixels, getBackground().getRGB());
             if (showQuadCells) {
@@ -297,7 +297,7 @@ public class QuadTreeViewer extends JFrame {
             }
             drawRect(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
             if(selectionMode){
-                drawRect(selectionRect.getX(), selectionRect.getY(), selectionRect.getWidth(), selectionRect.getHeight(), -1);
+                drawRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height, -1);
             }
             g2.drawImage(canvas, 0, 0, null);
 
@@ -311,7 +311,7 @@ public class QuadTreeViewer extends JFrame {
                 );
             }
 
-            totalTime += drawTime = totalTimer.seconds();
+            totalTime += drawTime = timer.seconds();
 
             // HUD
 
@@ -330,12 +330,12 @@ public class QuadTreeViewer extends JFrame {
         }
 
         private void searchBruteForce(Rectangle2D viewRect, Rectangle2D selectionRect) {
-            for(ColoredRect rect : allRects) {
-                if(selectionMode && viewRect.intersects(rect.x, rect.y, rect.w, rect.h)){
-                    visibleRects.add(rect);
+            for(ColoredRect r : allRects) {
+                if(selectionMode && viewRect.intersects(r.x, r.y, r.w, r.h)){
+                    visibleRects.add(r);
                 }
-                if(selectionRect.intersects(rect.x, rect.y, rect.w, rect.h)) {
-                    selectedRects.add(rect);
+                if(selectionRect.intersects(r.x, r.y, r.w, r.h)) {
+                    selectedRects.add(r);
                 }
             }
         }
@@ -362,8 +362,8 @@ public class QuadTreeViewer extends JFrame {
         }
 
         private void setPixel(int x, int y, int color) {
-            if (x >= 0 && x < width && y >= 0 && y < height) {
-                pixels[y * width + x] = color;
+            if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
+                pixels[y * SCREEN_W + x] = color;
             }
         }
 
@@ -387,7 +387,7 @@ public class QuadTreeViewer extends JFrame {
         private void drawHud(Graphics2D g2, int visibleCount, int allCount) {
             g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
             String[] lines = {
-                String.format("zoom   %.2fx", zoom),
+                String.format("zoom   %.3fx", zoom),
                 String.format("cam    (%.0f, %.0f)", camX, camY),
                 String.format("drawn  %d/%d rects", visibleCount, allCount),
                 String.format("mode   %s", quadTreeMode? "quadtree" : "brute force"),
@@ -508,9 +508,9 @@ public class QuadTreeViewer extends JFrame {
                 case KeyEvent.VK_SPACE -> quadTreeMode = !quadTreeMode;
                 case KeyEvent.VK_BACK_SPACE -> showRectCursor = !showRectCursor;
                 case KeyEvent.VK_RIGHT -> viewBorderW = Math.max(0, viewBorderW - d);
-                case KeyEvent.VK_LEFT -> viewBorderW = Math.min(viewBorderW + d, width / 2);
+                case KeyEvent.VK_LEFT -> viewBorderW = Math.min(viewBorderW + d, SCREEN_W / 2);
                 case KeyEvent.VK_UP -> viewBorderH = Math.max(0, viewBorderH - d);
-                case KeyEvent.VK_DOWN -> viewBorderH = Math.min(viewBorderH + d, height / 2);
+                case KeyEvent.VK_DOWN -> viewBorderH = Math.min(viewBorderH + d, SCREEN_H / 2);
             }
             repaint();
         }
@@ -553,12 +553,7 @@ public class QuadTreeViewer extends JFrame {
     // =========================================================================
 
     static final class ColoredRect{
-        float x;
-        float y;
-        float w;
-        float h;
-        float vx;
-        float vy;
+        float x, y, w, h, vx, vy;
         int color;
 
         ColoredRect(float x, float y, float w, float h, float vx, float vy, int color){
