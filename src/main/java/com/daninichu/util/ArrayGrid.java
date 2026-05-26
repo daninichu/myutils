@@ -22,21 +22,21 @@ public class ArrayGrid<E> implements Grid<E> {
     public ArrayGrid(int width, int height) {
 		if (width < 1 || height < 1)
             throw new IllegalArgumentException("width and height must be 1 or greater");
-        this.data = new Object[width][height];
+        this.data = new Object[height][width];
     }
 
     public ArrayGrid(ArrayGrid<? extends E> grid) {
-		this.data = new Object[grid.width()][];
-		for (int x = 0; x < grid.width(); x++)
-            data[x] = Arrays.copyOf(grid.data[x], grid.height());
+		this.data = new Object[grid.height()][];
+		for (int y = 0; y < grid.height(); y++)
+			data[y] = Arrays.copyOf(grid.data[y], grid.width());
     }
 
 	public int width() {
-		return data.length;
-	}
-	
-	public int height() {
 		return data[0].length;
+	}
+
+	public int height() {
+		return data.length;
 	}
 
 	/**
@@ -80,7 +80,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	@Override
     public E get(int x, int y) {
 		checkInBounds(x, y);
-		return (E) data[x][y];
+		return (E) data[y][x];
     }
 
 	/**
@@ -99,7 +99,7 @@ public class ArrayGrid<E> implements Grid<E> {
     @Override
     public void set(int x, int y, E e) {
 		checkInBounds(x, y);
-		data[x][y] = e;
+		data[y][x] = e;
     }
 
 	/**
@@ -127,7 +127,7 @@ public class ArrayGrid<E> implements Grid<E> {
     @Override
     public void removePoint(int x, int y) {
 		checkInBounds(x, y);
-        data[x][y] = null;
+		data[y][x] = null;
     }
 
 	/**
@@ -142,13 +142,13 @@ public class ArrayGrid<E> implements Grid<E> {
 	@Override
 	public void removeValue(E e){
         if(e != null){
-            for(int x = 0; x < width(); x++){
-                Object[] inner = data[x];
-                for(int y = 0; y < inner.length; y++){
-                    Object o = inner[y];
-                    if(o != null){
-                        if(e.equals(o)){
-                            data[x][y] = null;
+			for(int y = 0; y < height(); y++){
+				Object[] inner = data[y];
+				for(int x = 0; x < inner.length; x++){
+					Object value = inner[x];
+					if(value != null){
+						if(e.equals(value)){
+							data[y][x] = null;
                             return;
                         }
                     }
@@ -164,7 +164,7 @@ public class ArrayGrid<E> implements Grid<E> {
     @Override
     public boolean containsPoint(int x, int y) {
 		checkInBounds(x, y);
-        return data[x][y] != null;
+		return data[y][x] != null;
     }
 
 	/**
@@ -198,7 +198,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public Point next() {
 				if(hasNext())
-					return new Point(x, y++);
+					return new Point(x++, y);
 				throw new NoSuchElementException();
 			}
 		};
@@ -210,7 +210,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public Cell<E> next() {
 				if(hasNext())
-					return new Cell<>(x, y, (E) data[x][y++]);
+					return new Cell<>(x, y, (E) data[y][x++]);
 				throw new NoSuchElementException();
 			}
 		};
@@ -221,8 +221,9 @@ public class ArrayGrid<E> implements Grid<E> {
 		return new ArrayGridIterator<E>() {
 			@Override
 			public E next() {
-				if(hasNext())
-                    return (E) data[x][y++];
+				if(hasNext()){
+					return (E) data[y][x++];
+				}
 				throw new NoSuchElementException();
 			}
 		};
@@ -233,15 +234,15 @@ public class ArrayGrid<E> implements Grid<E> {
 
 		@Override
 		public boolean hasNext() {
-			while (x < data.length) {
-				Object[] inner = data[x];
-				while (y < inner.length) {
-					if (inner[y] != null)
+			while (y < data.length) {
+				Object[] inner = data[y];
+				while (x < inner.length) {
+					if (inner[x] != null)
                         return true;
-					y++;
+					x++;
 				}
-				y = 0;
-				x++;
+				x = 0;
+				y++;
 			}
 			return false;
 		}
@@ -250,20 +251,20 @@ public class ArrayGrid<E> implements Grid<E> {
 	@Override
 	public void compute(int x, int y, UnaryOperator<E> operator){
 		checkInBounds(x, y);
-		data[x][y] = operator.apply((E) data[x][y]);
+		data[y][x] = operator.apply((E) data[y][x]);
 	}
 
 	public E[][] toArray() {
 		Object[][] array = new Object[data.length][];
-		for (int x = 0; x < data.length; x++) {
-			array[x] = Arrays.copyOf(data[x], data[x].length);
+		for (int y = 0; y < data.length; y++) {
+			array[y] = Arrays.copyOf(data[y], data[y].length);
 		}
 		return (E[][]) array;
 	}
 
 	@Override
 	public boolean equals(Object obj){
-        if(this != obj && obj instanceof ArrayGrid arrayGrid)
+        if(this != obj && obj instanceof ArrayGrid<?> arrayGrid)
             return Arrays.deepEquals(data, arrayGrid.data);
 		return false;
     }
