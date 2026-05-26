@@ -10,7 +10,7 @@ import java.util.stream.IntStream;
 
 public class HashingSchemeViewer extends AbstractViewer {
     public static void main(String[] args){
-        SwingUtilities.invokeLater(HashingSchemeViewer::new);
+        new HashingSchemeViewer();
     }
 
     HashingSchemeViewer(){

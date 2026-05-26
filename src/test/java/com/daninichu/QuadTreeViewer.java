@@ -367,10 +367,7 @@ public class QuadTreeViewer extends AbstractViewer {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        dragStartX = e.getX();
-        dragStartY = e.getY();
-        camXAtDrag = camX;
-        camYAtDrag = camY;
+        super.mousePressed(e);
         delete = true;
 
         if(showRectCursor){

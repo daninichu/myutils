@@ -8,10 +8,9 @@ import java.awt.geom.Rectangle2D;
 public class AbstractViewer extends JPanel implements MouseListener,
         MouseMotionListener, MouseWheelListener, KeyListener {
 
-
     AbstractViewer(int width, int height){
-        JFrame frame = new JFrame();
         SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame();
             frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
             frame.setSize(width, height);
             frame.setLocationRelativeTo(null);
@@ -23,8 +22,8 @@ public class AbstractViewer extends JPanel implements MouseListener,
             addMouseMotionListener(this);
             addMouseWheelListener(this);
             setFocusable(true);
+            frame.setVisible(true);
         });
-        frame.setVisible(true);
     }
 
     protected float camX, camY;
@@ -83,7 +82,6 @@ public class AbstractViewer extends JPanel implements MouseListener,
         dragStartY = e.getY();
         camXAtDrag = camX;
         camYAtDrag = camY;
-        repaint();
     }
 
     @Override
