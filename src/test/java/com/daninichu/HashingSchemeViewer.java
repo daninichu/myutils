@@ -37,12 +37,7 @@ public class HashingSchemeViewer extends AbstractViewer {
     private int collisions;
 
     private int schemeIndex = 0;
-    private HashingScheme[] schemes = new HashingScheme[]{
-            new LinearHashingScheme(31),
-            new Point2DHashingScheme(),
-            new CantorHashingScheme(),
-            new SzudzikHashingScheme(),
-            new FnvHashingScheme(),
+    private HashingScheme[] schemes = new HashingScheme[]{new LinearHashingScheme(31), new Point2DHashingScheme(), new CantorHashingScheme(), new SzudzikHashingScheme(), new FnvHashingScheme(),
     };
 
     // Colors
@@ -202,59 +197,58 @@ public class HashingSchemeViewer extends AbstractViewer {
         }
         regenerate();
     }
-}
 
-
-abstract class HashingScheme{
-    public abstract int hashCode(int x, int y);
-    public abstract String toString();
-}
-class LinearHashingScheme extends HashingScheme{
-    final int a;
-    LinearHashingScheme(int a){
-        this.a = a;
+    abstract static class HashingScheme{
+        public abstract int hashCode(int x, int y);
+        public abstract String toString();
     }
-    public int hashCode(int x, int y){
-        return a * x + y;
+    static class LinearHashingScheme extends HashingScheme{
+        final int a;
+        LinearHashingScheme(int a){
+            this.a = a;
+        }
+        public int hashCode(int x, int y){
+            return a * x + y;
+        }
+        public String toString(){
+            return a+" * x + y";
+        }
     }
-    public String toString(){
-        return a+" * x + y";
+    static class CantorHashingScheme extends HashingScheme{
+        public int hashCode(int x, int y){
+            int a = x>=0?2*x:(-2*x)-1;
+            int b = y>=0?2*y:(-2*y)-1;
+            return (a+b)*(a+b+1)/2 + b;
+        }
+        public String toString(){
+            return "Cantor";
+        }
     }
-}
-class CantorHashingScheme extends HashingScheme{
-    public int hashCode(int x, int y){
-        int a = x>=0?2*x:(-2*x)-1;
-        int b = y>=0?2*y:(-2*y)-1;
-        return (a+b)*(a+b+1)/2 + b;
+    static class SzudzikHashingScheme extends HashingScheme{
+        public int hashCode(int x, int y){
+            return x >= y ? x*x + x + y : y*y + x;
+        }
+        public String toString(){
+            return "Szudzik";
+        }
     }
-    public String toString(){
-        return "Cantor";
+    static class FnvHashingScheme extends HashingScheme{
+        public int hashCode(int x, int y){
+            int h = x * 0x9e3779b9;
+            return h ^ (h >>> 16) ^ y * 0x6c62272e;
+        }
+        public String toString(){
+            return "Fnv";
+        }
     }
-}
-class SzudzikHashingScheme extends HashingScheme{
-    public int hashCode(int x, int y){
-        return x >= y ? x*x + x + y : y*y + x;
-    }
-    public String toString(){
-        return "Szudzik";
-    }
-}
-class FnvHashingScheme extends HashingScheme{
-    public int hashCode(int x, int y){
-        int h = x * 0x9e3779b9;
-        return h ^ (h >>> 16) ^ y * 0x6c62272e;
-    }
-    public String toString(){
-        return "Fnv";
-    }
-}
-class Point2DHashingScheme extends HashingScheme{
-    public int hashCode(int x, int y){
-        long bits = java.lang.Double.doubleToLongBits(x);
-        bits ^= java.lang.Double.doubleToLongBits(y) * 31;
-        return (((int) bits) ^ ((int) (bits >> 32)));
-    }
-    public String toString(){
-        return "Point2D";
+    static class Point2DHashingScheme extends HashingScheme{
+        public int hashCode(int x, int y){
+            long bits = java.lang.Double.doubleToLongBits(x);
+            bits ^= java.lang.Double.doubleToLongBits(y) * 31;
+            return (((int) bits) ^ ((int) (bits >> 32)));
+        }
+        public String toString(){
+            return "Point2D";
+        }
     }
 }

@@ -11,17 +11,19 @@ public class AbstractViewer extends JPanel implements MouseListener,
 
     AbstractViewer(int width, int height){
         JFrame frame = new JFrame();
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.setSize(width, height);
-        frame.setLocationRelativeTo(null);
+        SwingUtilities.invokeLater(() -> {
+            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            frame.setSize(width, height);
+            frame.setLocationRelativeTo(null);
 
-        setBackground(new Color(15, 15, 20));
-        frame.add(this);
-        addKeyListener(this);
-        addMouseListener(this);
-        addMouseMotionListener(this);
-        addMouseWheelListener(this);
-        setFocusable(true);
+            setBackground(new Color(15, 15, 20));
+            frame.add(this);
+            addKeyListener(this);
+            addMouseListener(this);
+            addMouseMotionListener(this);
+            addMouseWheelListener(this);
+            setFocusable(true);
+        });
         frame.setVisible(true);
     }
 
@@ -81,13 +83,6 @@ public class AbstractViewer extends JPanel implements MouseListener,
         dragStartY = e.getY();
         camXAtDrag = camX;
         camYAtDrag = camY;
-        setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-        repaint();
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e){
-        setCursor(Cursor.getDefaultCursor());
         repaint();
     }
 
@@ -99,7 +94,6 @@ public class AbstractViewer extends JPanel implements MouseListener,
         camY = camYAtDrag - dy;
         repaint();
     }
-
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e){
@@ -116,6 +110,7 @@ public class AbstractViewer extends JPanel implements MouseListener,
     }
 
     @Override public void mouseMoved(MouseEvent e){}
+    @Override public void mouseReleased(MouseEvent e){}
     @Override public void mouseClicked(MouseEvent e){}
     @Override public void mouseEntered(MouseEvent e){}
     @Override public void mouseExited(MouseEvent e){}
