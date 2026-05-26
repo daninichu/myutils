@@ -7,7 +7,9 @@ import java.util.NoSuchElementException;
 import java.util.function.UnaryOperator;
 
 /**
- * A grid with a fixed size. (x, y) coordinates cannot be negative.
+ * A grid with a fixed size. (x,y) coordinates cannot be negative.
+ * <p>
+ * The internal 2D array of this class is y-major.
  */
 @SuppressWarnings("unchecked")
 public class ArrayGrid<E> implements Grid<E> {
@@ -62,7 +64,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	private void checkInBounds(int x, int y) {
 		if (!inBounds(x, y)) {
 			throw new IndexOutOfBoundsException(
-				"(%d, %d) out of bounds for dimensions (%d, %d)".formatted(x, y, width(), height())
+					"Point (%d,%d) out of bounds for dimensions (%d,%d)".formatted(x, y, width(), height())
 			);
 		}
 	}
@@ -198,7 +200,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public Point next() {
 				if(hasNext())
-					return new Point(x++, y);
+					return new Point(lastX = x++, lastY = y);
 				throw new NoSuchElementException();
 			}
 		};
@@ -210,7 +212,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public Cell<E> next() {
 				if(hasNext())
-					return new Cell<>(x, y, (E) data[y][x++]);
+					return new Cell<>(x, y, (E) data[lastY = y][lastX = x++]);
 				throw new NoSuchElementException();
 			}
 		};
@@ -222,7 +224,7 @@ public class ArrayGrid<E> implements Grid<E> {
 			@Override
 			public E next() {
 				if(hasNext()){
-					return (E) data[y][x++];
+					return (E) data[lastY = y][lastX = x++];
 				}
 				throw new NoSuchElementException();
 			}
@@ -230,7 +232,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	}
 
     private abstract class ArrayGridIterator<T> implements Iterator<T> {
-		int x, y;
+		int x, y, lastX, lastY = -1;
 
 		@Override
 		public boolean hasNext() {
@@ -245,6 +247,14 @@ public class ArrayGrid<E> implements Grid<E> {
 				y++;
 			}
 			return false;
+		}
+
+		@Override
+		public void remove(){
+			if(lastY == -1)
+				throw new IllegalStateException();
+			data[lastY][lastX] = null;
+			lastY = -1;
 		}
 	}
 
@@ -264,9 +274,7 @@ public class ArrayGrid<E> implements Grid<E> {
 
 	@Override
 	public boolean equals(Object obj){
-        if(this != obj && obj instanceof ArrayGrid<?> arrayGrid)
-            return Arrays.deepEquals(data, arrayGrid.data);
-		return false;
+        return this == obj || obj instanceof ArrayGrid<?> arrayGrid && Arrays.deepEquals(data, arrayGrid.data);
     }
 
 	@Override
