@@ -1,6 +1,5 @@
 package com.daninichu.util;
 
-import java.awt.Point;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -55,7 +54,7 @@ public class HashGrid<E> implements Grid<E> {
             data.putAll(hashGrid.data);
         else
             for(Cell<? extends E> cell : grid.cells())
-                data.put(new Point(cell.x(), cell.y()), cell.value());
+                data.put(new Point(cell.x, cell.y), cell.value);
     }
 
     @Override
@@ -105,7 +104,7 @@ public class HashGrid<E> implements Grid<E> {
 
             @Override
             public Point next() {
-                return new Point(it.next());
+                return it.next();
             }
         };
     }

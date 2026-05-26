@@ -118,7 +118,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	@Override
 	public void setAll(Grid<? extends E> grid){
 		for(Cell<? extends E> cell : grid.cells())
-            set(cell.x(), cell.y(), cell.value());
+            set(cell.x, cell.y, cell.value);
 	}
 
 	/**

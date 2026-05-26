@@ -1,9 +1,6 @@
 package com.daninichu.util;
 
-import java.awt.Point;
-import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
@@ -11,13 +8,6 @@ import java.util.function.UnaryOperator;
  * @param <E>
  */
 public interface Grid<E> extends Iterable<E> {
-	record Cell<E>(int x, int y, E value){
-		@Override
-		public String toString(){
-			return "(" + x + ", " + y + ")=" + value;
-		}
-	}
-	
 	/**
 	 * @param x
 	 * @param y
@@ -116,22 +106,62 @@ public interface Grid<E> extends Iterable<E> {
 	 */
 	Iterable<Cell<E>> cells();
 
-	static List<Point> getPoints(Rectangle2D r, double cellWidth, double  cellHeight){
-		int x1 = (int) Math.floor((r.getX()) / cellWidth);
-        int y1 = (int) Math.floor((r.getY()) / cellHeight);
-        int x2 = (int) Math.ceil((r.getMaxX()) / cellWidth);
-        int y2 = (int) Math.ceil((r.getMaxY()) / cellHeight);
+	final class Point{
+		public final int x, y;
 
-		List<Point> points = new ArrayList<>();
-        for(int x = x1; x < x2; x++){
-            for(int y = y1; y < y2; y++){
-                points.add(new Point(x, y));
-            }
-        }
-		return points;
+		public Point(int x, int y){
+			this.x = x;
+			this.y = y;
+		}
+
+		@Override
+		public boolean equals(Object obj){
+			return obj == this || obj instanceof Point p && x == p.x && y == p.y;
+		}
+
+		@Override
+		public int hashCode(){
+			return 65537 * x + y;
+		}
+
+		@Override
+		public String toString(){
+			return "(" + x + ',' + y + ')';
+		}
+	}
+
+	final class Cell<E>{
+		public final int x;
+		public final int y;
+		public final E value;
+
+		public Cell(int x, int y, E value){
+			this.x = x;
+			this.y = y;
+			this.value = value;
+		}
+
+		public Cell(Point p, E value){
+			this.x = p.x;
+			this.y = p.y;
+			this.value = value;
+		}
+
+		@Override
+		public boolean equals(Object obj){
+			return obj == this || obj instanceof Cell<?> c && x == c.x && y == c.y && Objects.equals(value, c.value);
+		}
+
+		@Override
+		public int hashCode(){
+			return 65537 * (65537 * x + y) + Objects.hashCode(value);
+		}
+
+		@Override
+		public String toString(){
+			return "(" + x + ',' + y + ")=" + value;
+		}
 	}
 
 	void compute(int x, int y, UnaryOperator<E> operator);
-
-
 }

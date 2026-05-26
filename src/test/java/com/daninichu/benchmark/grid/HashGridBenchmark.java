@@ -1,6 +1,7 @@
 package com.daninichu.benchmark.grid;
 
 import com.daninichu.benchmark.Main;
+import com.daninichu.util.Grid;
 import com.daninichu.util.HashGrid;
 import com.daninichu.util.HashGrid2;
 import org.openjdk.jmh.annotations.*;
@@ -13,14 +14,13 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode({
-		Mode.AverageTime,
-//		Mode.SampleTime,
+//		Mode.AverageTime,
+		Mode.SampleTime,
+//		Mode.Throughput,
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 4, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
-//@Warmup(iterations = 3, time = 1)
-//@Measurement(iterations = 5, time = 1)
 @Fork(1)
 @State(Scope.Thread)
 public class HashGridBenchmark{
@@ -30,54 +30,72 @@ public class HashGridBenchmark{
 
 	HashGrid<Integer> grid;
 	HashGrid2<Integer> grid2;
-	int n = 20000;
-	{
-		grid = new HashGrid<>(2*n);
-		grid2 = new HashGrid2<>(2*n);
-//		fill();
-	}
+	int n = 100000;
 
-	private List<Point> points;
+	int[] x, y;
+	Grid.Point[] points1;
+	Grid.Cell<Integer>[] cells;
+	HashGrid2.Point[] points2;
+
 	@Setup
-	public void setup(){
-		points = new ArrayList<>(n);
+	public void setup() {
+		x = new int[n];
+		y = new int[n];
+		points1 = new Grid.Point[n];
+		points2 = new HashGrid2.Point[n];
+		cells = new Grid.Cell[n];
 
-		Random rng = new Random(0);
-
-		for(int i = 0; i < n; i++){
+		Random rng = new Random();
+		for (int i = 0; i < n; i++) {
 			int x = rng.nextInt(-n, n);
 			int y = rng.nextInt(-n, n);
-			points.add(new Point(x, y));
+
+			this.x[i] = x;
+			this.y[i] = y;
+			points1[i] = new Grid.Point(x, y);
+			points2[i] = new HashGrid2.Point(x, y);
+			cells[i] = new Grid.Cell<>(x, y, i);
 		}
 	}
 	@Setup(Level.Invocation)
 	public void setup2(){
-		grid = new HashGrid<>(2*n);
-		grid2 = new HashGrid2<>(2*n);
-	}
-
-//	@Benchmark
-	public void grid1(Blackhole bh) {
-//		var grid = new HashGrid<>(2*n);
-
-		for(Point p : points){
-			grid.set(p.x,p.y,1);
-		}
-//		for (int i = 0; i < n; i++) {
-//			grid.set(i, i, i);
-//		}
-		bh.consume(grid);
+		grid = new HashGrid<>(n*3/2);
+		grid2 = new HashGrid2<>(n*3/2);
 	}
 
 	@Benchmark
-	public void grid2(Blackhole bh) {
-//		var grid2 = new HashGrid2<>(2*n);
-		for(Point p : points){
-			grid2.set(p.x,p.y,1);
+	public void grid1(Blackhole bh) {
+		for (int i = 0; i < n; i++) {
+//			grid.set(x[i], y[i], i);
+			grid.set(points1[i], i);
 		}
-//		for (int i = 0; i < n; i++) {
-//			grid2.set(i, i, i);
-//		}
+		bh.consume(grid);
+	}
+	@Benchmark
+	public void grid2(Blackhole bh) {
+		for (int i = 0; i < n; i++) {
+//			grid2.set(x[i], y[i], i);
+			grid2.set(points2[i], i);
+		}
 		bh.consume(grid2);
 	}
+
+//	@Benchmark
+//	public void point1(Blackhole bh) {
+//		for (int i = 0; i < n; i++) {
+//			bh.consume(points1[i].hashCode());
+//		}
+//	}
+//	@Benchmark
+//	public void point2(Blackhole bh) {
+//		for (int i = 0; i < n; i++) {
+//			bh.consume(points2[i].hashCode());
+//		}
+//	}
+//	@Benchmark
+//	public void cells(Blackhole bh) {
+//		for (int i = 0; i < n; i++) {
+//			bh.consume(cells[i].hashCode());
+//		}
+//	}
 }

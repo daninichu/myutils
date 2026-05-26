@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 public class HashGrid2<E> {
-    record Point(int x, int y) {
+    public record Point(int x, int y) {
         @Override public int hashCode(){
             return 31 * x + y;
         }
@@ -56,9 +56,9 @@ public class HashGrid2<E> {
     }
 
 //
-//	public void set(Point p, E e){
-//        set(p.x, p.y, e);
-//	}
+	public void set(Point p, E e){
+        data.put(p, e);
+	}
 
 
 //    public void setAll(Grid<? extends E> grid){
