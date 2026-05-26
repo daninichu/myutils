@@ -10,6 +10,9 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.*;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.IntStream;
 
 public class HashingSchemeViewer extends AbstractViewer {
@@ -30,8 +33,8 @@ public class HashingSchemeViewer extends AbstractViewer {
 
     private static final int MIN_X = 0;
     private static final int MIN_Y = 0;
-    private static final int MAX_X = 100000;
-    private static final int MAX_Y = 100000;
+    private static final int MAX_X = 10000;
+    private static final int MAX_Y = 10000;
 
     // Data
     private Grid<Integer> grid = new HashGrid<>();
@@ -41,7 +44,12 @@ public class HashingSchemeViewer extends AbstractViewer {
     private int collisions;
 
     private int schemeIndex = 0;
-    private HashingScheme[] schemes = new HashingScheme[]{new LinearHashingScheme(31), new Point2DHashingScheme(), new CantorHashingScheme(), new SzudzikHashingScheme(), new FnvHashingScheme(),
+    private HashingScheme[] schemes = new HashingScheme[]{
+            new LinearHashingScheme((1 << 16) + 1),
+            new Point2DHashingScheme(),
+            new CantorHashingScheme(),
+            new SzudzikHashingScheme(),
+            new FnvHashingScheme(),
     };
 
     // Colors
@@ -54,14 +62,14 @@ public class HashingSchemeViewer extends AbstractViewer {
     // -----------------------------------------------------------------
 
     private void regenerate(){
-        HashingScheme hashingScheme = schemes[schemeIndex];
-        highlightedHash = hashingScheme.hashCode(highlightedCellX, highlightedCellY);
+        HashingScheme scheme = schemes[schemeIndex];
+        highlightedHash = scheme.hashCode(highlightedCellX, highlightedCellY);
 
         collisions = 0;
         final Grid<Integer> grid = this.grid = new HashGrid<>();
         IntStream.rangeClosed(MIN_Y, MAX_Y).parallel().forEach(y -> {
             for (int x = MIN_X; x <= MAX_X; x++){
-                int hash = hashingScheme.hashCode(x, y);
+                int hash = scheme.hashCode(x, y);
                 if (hash == highlightedHash){
                     synchronized(grid){
                         collisions++;
@@ -145,7 +153,7 @@ public class HashingSchemeViewer extends AbstractViewer {
 
     private void drawHud(Graphics2D g2){
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        String[] lines = {
+        List<String> lines = new ArrayList<>(Arrays.asList(
                 String.format("zoom   %.3fx", zoom),
                 String.format("cam    (%.0f, %.0f)", camX, camY),
                 "",
@@ -153,20 +161,25 @@ public class HashingSchemeViewer extends AbstractViewer {
                 "x [%d,%d]".formatted(MIN_X, MAX_X),
                 "y [%d,%d]".formatted(MIN_Y, MAX_Y),
                 "",
-                "hashing scheme: " + schemes[schemeIndex].toString(),
+                "HASHING SCHEMES",
+                "",
                 "hash: " + highlightedHash,
                 "from (%d,%d)".formatted(highlightedCellX, highlightedCellY),
                 "collisions: " + collisions,
                 "",
                 "drag   pan",
-                "wheel  zoom",
-        };
+                "wheel  zoom"
+        ));
+
+        for(int i = 0; i < schemes.length; i++){
+            lines.add(i+8, (i == schemeIndex? "> " : "  ") + schemes[i].toString());
+        }
 
         int lineH = 17;
         int padX = 14;
         int padY = 14;
         int boxW = 220;
-        int boxH = lines.length * lineH + 12;
+        int boxH = lines.size() * lineH + 12;
 
         g2.setColor(new Color(0, 0, 0, 160));
         g2.fillRoundRect(padX, padY, boxW, boxH, 8, 8);
