@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
 //		Mode.SampleTime,
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(		iterations = 3, 	time = 1000000000, 	timeUnit = TimeUnit.NANOSECONDS)
-@Measurement(	iterations = 5, 	time = 1000000000, 	timeUnit = TimeUnit.NANOSECONDS)
+@Warmup(		iterations = 2, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(	iterations = 5, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 @State(Scope.Thread)
 public class ArrayGridBenchmark{
@@ -25,37 +25,27 @@ public class ArrayGridBenchmark{
 
 	@Param({
 //			"100",
-			"2000",
+			"2000000",
 //			"4000",
-	})	int width;
+	})
+	int width;
 	@Param({
 //			"1000",
-			"2000",
+			"1",
 //			"40000",
 	})
 	int height;
 
-	private ArrayGrid<Integer> arrayGrid;
-
-	@Setup(Level.Trial)
-	public void setup() {
-		arrayGrid = new ArrayGrid<>(width, height);
-		var cells = GridUtils.cells(width, height);
-		Collections.shuffle(cells);
-		cells = cells.subList(0, 8);
-		GridUtils.setAll(arrayGrid, cells);
-//		GridUtils.fill(arrayGrid, width, height);
-	}
-
-//	@Benchmark
+	@Benchmark
 	public void arrayGrid(Blackhole bh){
-//		var arrayGrid = new ArrayGrid<Integer>(width, height);
-//		for(int x = 0; x < width; x++){
-//			for(int y = 0; y < height; y++){
-//				arrayGrid.set(x, y, x+y);
-//			}
-//		}
+		var arrayGrid = new ArrayGrid<Integer>(width, height);
 
-		bh.consume(arrayGrid.containsValue(-1));
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+				arrayGrid.set(x, y, x+y);
+			}
+		}
+
+		bh.consume(arrayGrid);
 	}
 }

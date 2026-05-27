@@ -1,9 +1,9 @@
 package com.daninichu.util;
 
-import java.awt.Point;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
@@ -12,7 +12,7 @@ import java.util.function.UnaryOperator;
  * The internal 2D array of this class is y-major.
  */
 @SuppressWarnings("unchecked")
-public class ArrayGrid<E> implements Grid<E> {
+public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	private final Object[][] data;
 
 	/**
@@ -21,23 +21,21 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @param height
 	 * @throws IllegalArgumentException if {@code width} or {@code height} are less than 1.
 	 */
-    public ArrayGrid(int width, int height) {
-		if (width < 1 || height < 1)
+    public ArrayGrid(int width, int height){
+		if(width < 1 || height < 1)
             throw new IllegalArgumentException("width and height must be 1 or greater");
         this.data = new Object[height][width];
     }
 
-    public ArrayGrid(ArrayGrid<? extends E> grid) {
-		this.data = new Object[grid.height()][];
-		for (int y = 0; y < grid.height(); y++)
-			data[y] = Arrays.copyOf(grid.data[y], grid.width());
+    public ArrayGrid(ArrayGrid<? extends E> grid){
+		this.data = grid.toArray();
     }
 
-	public int width() {
+	public int width(){
 		return data[0].length;
 	}
 
-	public int height() {
+	public int height(){
 		return data.length;
 	}
 
@@ -47,7 +45,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @param y
 	 * @return
 	 */
-	public boolean inBounds(int x, int y) {
+	public boolean inBounds(int x, int y){
 		return 0 <= x && x < width() && 0 <= y && y < height();
 	}
 
@@ -57,21 +55,16 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @return
 	 * @throws NullPointerException if {@code p} is null.
 	 */
-	public boolean inBounds(Point p) {
-		return 0 <= p.x && p.x < width() && 0 <= p.y && p.y < height();
+	public boolean inBounds(Point p){
+		return inBounds(p.x, p.y);
 	}
 
-	private void checkInBounds(int x, int y) {
-		if (!inBounds(x, y)) {
+	private void checkInBounds(int x, int y){
+		if(!inBounds(x, y)){
 			throw new IndexOutOfBoundsException(
 					"Point (%d,%d) out of bounds for dimensions (%d,%d)".formatted(x, y, width(), height())
 			);
 		}
-	}
-
-	public void fill(E e){
-        for(Object[] inner : data)
-            Arrays.fill(inner, e);
 	}
 
 	/**
@@ -80,7 +73,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
 	@Override
-    public E get(int x, int y) {
+    public E get(int x, int y){
 		checkInBounds(x, y);
 		return (E) data[y][x];
     }
@@ -91,7 +84,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
 	@Override
-	public E get(Point p) {
+	public E get(Point p){
 		return get(p.x, p.y);
 	}
 
@@ -99,9 +92,9 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void set(int x, int y, E e) {
+    public void set(int x, int y, E e){
 		checkInBounds(x, y);
-		data[y][x] = e;
+		data[y][x] = Objects.requireNonNull(e);
     }
 
 	/**
@@ -109,7 +102,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
 	@Override
-	public void set(Point p, E e) {
+	public void set(Point p, E e){
 		set(p.x, p.y, e);
 	}
 
@@ -127,7 +120,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void removePoint(int x, int y) {
+    public void removePoint(int x, int y){
 		checkInBounds(x, y);
 		data[y][x] = null;
     }
@@ -137,7 +130,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void removePoint(Point p) {
+    public void removePoint(Point p){
         removePoint(p.x, p.y);
     }
 
@@ -164,7 +157,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public boolean containsPoint(int x, int y) {
+    public boolean containsPoint(int x, int y){
 		checkInBounds(x, y);
 		return data[y][x] != null;
     }
@@ -175,7 +168,7 @@ public class ArrayGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public boolean containsPoint(Point p) {
+    public boolean containsPoint(Point p){
         return containsPoint(p.x, p.y);
     }
 
@@ -188,17 +181,42 @@ public class ArrayGrid<E> implements Grid<E> {
 		return false;
 	}
 
+	public void fill(E e){
+		for(Object[] inner : data)
+			Arrays.fill(inner, e);
+	}
+
+	public void fillRow(int y, E e){
+		Arrays.fill(data[y], e);
+	}
+
+	public void fillCol(int x, E e){
+		for(int y = 0, height = height(); y < height; y++){
+			data[y][x] = e;
+		}
+	}
+
 	@Override
-	public void clear() {
+	public void clear(){
         for(Object[] inner : data)
             Arrays.fill(inner, null);
 	}
 
+	public void clearRow(int y){
+		Arrays.fill(data[y], null);
+	}
+
+	public void clearCol(int x){
+		for(int y = 0, height = height(); y < height; y++){
+			data[y][x] = null;
+		}
+	}
+
 	@Override
-	public Iterable<Point> points() {
+	public Iterable<Point> points(){
 		return () -> new ArrayGridIterator<Point>(){
 			@Override
-			public Point next() {
+			public Point next(){
 				if(hasNext())
 					return new Point(lastX = x++, lastY = y);
 				throw new NoSuchElementException();
@@ -207,10 +225,10 @@ public class ArrayGrid<E> implements Grid<E> {
 	}
 
     @Override
-    public Iterable<Cell<E>> cells() {
+    public Iterable<Cell<E>> cells(){
 		return () -> new ArrayGridIterator<Cell<E>>(){
 			@Override
-			public Cell<E> next() {
+			public Cell<E> next(){
 				if(hasNext())
 					return new Cell<>(x, y, (E) data[lastY = y][lastX = x++]);
 				throw new NoSuchElementException();
@@ -219,13 +237,12 @@ public class ArrayGrid<E> implements Grid<E> {
 	}
 
     @Override
-    public Iterator<E> iterator() {
-		return new ArrayGridIterator<E>() {
+    public Iterator<E> iterator(){
+		return new ArrayGridIterator<E>(){
 			@Override
-			public E next() {
-				if(hasNext()){
-					return (E) data[lastY = y][lastX = x++];
-				}
+			public E next(){
+				if(hasNext())
+                    return (E) data[lastY = y][lastX = x++];
 				throw new NoSuchElementException();
 			}
 		};
@@ -235,11 +252,13 @@ public class ArrayGrid<E> implements Grid<E> {
 		int x, y, lastX, lastY = -1;
 
 		@Override
-		public boolean hasNext() {
-			while (y < data.length) {
+		public boolean hasNext(){
+			int height = height();
+			int width = width();
+			while(y < height){
 				Object[] inner = data[y];
-				while (x < inner.length) {
-					if (inner[x] != null)
+				while(x < width){
+					if(inner[x] != null)
                         return true;
 					x++;
 				}
@@ -264,10 +283,12 @@ public class ArrayGrid<E> implements Grid<E> {
 		data[y][x] = operator.apply((E) data[y][x]);
 	}
 
-	public E[][] toArray() {
-		Object[][] array = new Object[data.length][];
-		for (int y = 0; y < data.length; y++) {
-			array[y] = Arrays.copyOf(data[y], data[y].length);
+	public E[][] toArray(){
+		int height = height();
+		Object[][] array = new Object[height][];
+		int width = width();
+		for(int y = 0; y < height; y++){
+			array[y] = Arrays.copyOf(data[y], width);
 		}
 		return (E[][]) array;
 	}
@@ -276,13 +297,4 @@ public class ArrayGrid<E> implements Grid<E> {
 	public boolean equals(Object obj){
         return this == obj || obj instanceof ArrayGrid<?> arrayGrid && Arrays.deepEquals(data, arrayGrid.data);
     }
-
-	@Override
-	public String toString(){
-		StringBuilder sb = new StringBuilder("[");
-		for(Cell<E> cell : cells()){
-			sb.append(cell.toString()).append(", ");
-		}
-		return sb.delete(sb.length() - 2, sb.length()).append(']').toString();
-	}
 }

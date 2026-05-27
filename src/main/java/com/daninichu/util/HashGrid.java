@@ -5,52 +5,49 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-public class HashGrid<E> implements Grid<E> {
+public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	private final HashMap<Point, E> data;
 
-	public HashGrid() {
+	public HashGrid(){
         data = new HashMap<>();
     }
 
-    public HashGrid(int initialCapacity) {
+    public HashGrid(int initialCapacity){
         data = new HashMap<>(initialCapacity);
     }
 
-    public HashGrid(int initialCapacity, float loadFactor) {
+    public HashGrid(int initialCapacity, float loadFactor){
         data = new HashMap<>(initialCapacity, loadFactor);
     }
 
-	public HashGrid(Grid<? extends E> grid) {
+	public HashGrid(Grid<? extends E> grid){
         data = new HashMap<>();
         setAll(grid);
 	}
 
     @Override
-    public E get(int x, int y) {
+    public E get(int x, int y){
         return data.get(new Point(x, y));
     }
 
 	@Override
 	public E get(Point p){
-		return get(p.x, p.y);
+		return data.get(p);
 	}
 
     @Override
-    public void set(int x, int y, E e) {
-        if(e == null)
-            data.remove(new Point(x, y));
-        else
-            data.put(new Point(x, y), e);
+    public void set(int x, int y, E e){
+        data.put(new Point(x, y), e);
     }
 
 	@Override
 	public void set(Point p, E e){
-        set(p.x, p.y, e);
+        data.put(p, e);
 	}
 
     @Override
     public void setAll(Grid<? extends E> grid){
-        if (grid instanceof HashGrid<? extends E> hashGrid)
+        if(grid instanceof HashGrid<? extends E> hashGrid)
             data.putAll(hashGrid.data);
         else
             for(Cell<? extends E> cell : grid.cells())
@@ -58,13 +55,13 @@ public class HashGrid<E> implements Grid<E> {
     }
 
     @Override
-    public void removePoint(int x, int y) {
+    public void removePoint(int x, int y){
         data.remove(new Point(x, y));
     }
 
     @Override
-    public void removePoint(Point p) {
-        removePoint(p.x, p.y);
+    public void removePoint(Point p){
+        data.remove(p);
     }
 
     @Override
@@ -73,13 +70,13 @@ public class HashGrid<E> implements Grid<E> {
     }
 
     @Override
-    public boolean containsPoint(int x, int y) {
+    public boolean containsPoint(int x, int y){
         return data.containsKey(new Point(x, y));
     }
 
     @Override
-    public boolean containsPoint(Point p) {
-        return containsPoint(p.x, p.y);
+    public boolean containsPoint(Point p){
+        return data.containsKey(p);
     }
 
     @Override
@@ -94,35 +91,23 @@ public class HashGrid<E> implements Grid<E> {
 
 	@Override
 	public Iterable<Point> points(){
-        return () -> new Iterator<>() {
-            final Iterator<Point> it = data.keySet().iterator();
-
-            @Override
-            public boolean hasNext() {
-                return it.hasNext();
-            }
-
-            @Override
-            public Point next() {
-                return it.next();
-            }
-        };
+        return data.keySet();
     }
 
     @Override
-    public Iterable<Cell<E>> cells() {
-        return () -> new Iterator<>() {
+    public Iterable<Cell<E>> cells(){
+        return () -> new Iterator<>(){
             final Iterator<Map.Entry<Point, E>> it = data.entrySet().iterator();
 
             @Override
-            public boolean hasNext() {
+            public boolean hasNext(){
                 return it.hasNext();
             }
 
             @Override
             public Cell<E> next(){
                 Map.Entry<Point, E> entry = it.next();
-                return new Cell<>(entry.getKey().x, entry.getKey().y, entry.getValue());
+                return new Cell<>(entry.getKey(), entry.getValue());
             }
         };
     }
@@ -137,16 +122,7 @@ public class HashGrid<E> implements Grid<E> {
         data.compute(new Point(x, y), (k, e) -> operator.apply(e));
     }
 
-    public Map<Point, E> toMap(){
+    public HashMap<Point, E> toMap(){
         return new HashMap<>(data);
-    }
-
-    @Override
-    public String toString(){
-        StringBuilder sb = new StringBuilder("[");
-        for(Cell<E> cell : cells()){
-            sb.append(cell.toString()).append(", ");
-        }
-        return sb.delete(sb.length() - 2, sb.length()).append(']').toString();
     }
 }
