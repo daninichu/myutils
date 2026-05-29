@@ -55,18 +55,22 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
     }
 
     @Override
-    public void removePoint(int x, int y){
-        data.remove(new Point(x, y));
+    public boolean removePoint(int x, int y){
+        return removePoint(new Point(x, y));
     }
 
     @Override
-    public void removePoint(Point p){
-        data.remove(p);
+    public boolean removePoint(Point p){
+        if(data.containsKey(p)){
+            data.remove(p);
+            return true;
+        }
+        return false;
     }
 
     @Override
-    public void removeValue(E e){
-        data.values().remove(e);
+    public boolean removeValue(E e){
+        return data.values().remove(e);
     }
 
     @Override

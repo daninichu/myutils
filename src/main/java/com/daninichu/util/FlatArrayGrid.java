@@ -126,30 +126,34 @@ public class FlatArrayGrid<E> implements Grid<E> {
      * @throws IndexOutOfBoundsException If the point is out of bounds.
      */
     @Override
-    public void removePoint(int x, int y) {
+    public boolean removePoint(int x, int y) {
         checkInBounds(x, y);
-        data[index(x, y)] = null;
+        int index = index(x, y);
+        Object o = data[index];
+        data[index] = null;
+        return o != null;
     }
 
     /**
-     * @throws NullPointerException      {@inheritDoc}
+     * @throws NullPointerException {@inheritDoc}
      * @throws IndexOutOfBoundsException If the point is out of bounds.
      */
     @Override
-    public void removePoint(Point p) {
-        removePoint(p.x, p.y);
+    public boolean removePoint(Point p) {
+        return removePoint(p.x, p.y);
     }
 
     @Override
-    public void removeValue(E e) {
+    public boolean removeValue(E e) {
         if (e != null) {
             for (int i = 0; i < data.length; i++) {
                 if (e.equals(data[i])) {
                     data[i] = null;
-                    return;
+                    return true;
                 }
             }
         }
+        return false;
     }
 
     /**

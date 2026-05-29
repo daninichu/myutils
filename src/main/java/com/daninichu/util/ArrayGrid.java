@@ -9,7 +9,9 @@ import java.util.function.UnaryOperator;
 /**
  * A grid with a fixed size. (x,y) coordinates cannot be negative.
  * <p>
- * The internal 2D array of this class is y-major.
+ * The internal 2D array of this class is row-major (y-major).
+ * <p>
+ * Null values are not permitted in order to distinguish between vacant and occupied points.
  */
 @SuppressWarnings("unchecked")
 public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
@@ -120,9 +122,11 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void removePoint(int x, int y){
+    public boolean removePoint(int x, int y){
 		checkInBounds(x, y);
+        Object o = data[y][x];
 		data[y][x] = null;
+		return o == null;
     }
 
 	/**
@@ -130,12 +134,12 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void removePoint(Point p){
-        removePoint(p.x, p.y);
+    public boolean removePoint(Point p){
+        return removePoint(p.x, p.y);
     }
 
 	@Override
-	public void removeValue(E e){
+	public boolean removeValue(E e){
         if(e != null){
 			for(int y = 0; y < height(); y++){
 				Object[] inner = data[y];
@@ -144,12 +148,13 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 					if(value != null){
 						if(e.equals(value)){
 							data[y][x] = null;
-                            return;
+                            return true;
                         }
                     }
                 }
             }
         }
+		return false;
     }
 
 	/**
@@ -182,18 +187,20 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	}
 
 	public void fill(E e){
+		Objects.requireNonNull(e);
 		for(Object[] inner : data)
 			Arrays.fill(inner, e);
 	}
 
 	public void fillRow(int y, E e){
+		Objects.requireNonNull(e);
 		Arrays.fill(data[y], e);
 	}
 
 	public void fillCol(int x, E e){
-		for(int y = 0, height = height(); y < height; y++){
-			data[y][x] = e;
-		}
+		Objects.requireNonNull(e);
+		for(int y = 0, height = height(); y < height; y++)
+            data[y][x] = e;
 	}
 
 	@Override
@@ -207,9 +214,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	}
 
 	public void clearCol(int x){
-		for(int y = 0, height = height(); y < height; y++){
-			data[y][x] = null;
-		}
+		for(int y = 0, height = height(); y < height; y++)
+            data[y][x] = null;
 	}
 
 	@Override

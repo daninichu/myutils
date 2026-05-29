@@ -34,57 +34,58 @@ public interface Grid<E> extends Iterable<E> {
 
     /**
 	 * Overwrites the old value in the given point.
-	 * This method does nothing if the {@code e} is null.
 	 * @param x
 	 * @param y
 	 * @param e The new value.
+	 * @throws NullPointerException if {@code e} is null and this grid does not permit null values.
 	 */
 	void set(int x, int y, E e);
 
 	/**
 	 * Overwrites the old value in the given point.
-	 * This method does nothing if the {@code e} is null.
 	 * @param p The point to set the new value.
 	 * @param e The new value.
-	 * @throws NullPointerException if {@code p} is null.
+	 * @throws NullPointerException if {@code p} is null,
+	 * 		   or if {@code e} is null and this grid does not permit null values.
 	 */
 	void set(Point p, E e);
 
 	/**
 	 *
 	 * @param grid
-	 * @throws NullPointerException if {@code grid} is null.
+	 * @throws NullPointerException if {@code grid} is null,
+	 * 		   or if any value from {@code grid} is null and this grid does not permit null values.
 	 */
 	void setAll(Grid<? extends E> grid);
 
 	/**
-	 * Sets the value at the given point to null.
 	 * @param x
 	 * @param y
+	 * @return
 	 */
-	void removePoint(int x, int y);
+	boolean removePoint(int x, int y);
 
 	/**
-	 * Sets the value at the given point to null.
 	 * @param p The point to remove the value from.
+	 * @return
 	 * @throws NullPointerException if {@code p} is null.
 	 */
-	void removePoint(Point p);
+	boolean removePoint(Point p);
 
-	void removeValue(E e);
+	boolean removeValue(E e);
 
 	/**
-	 * Checks if there exists a non-null value at the given point.
+	 * Checks if there exists a value at the given point.
 	 * @param x
 	 * @param y
-	 * @return True if there is a non-null value.
+	 * @return {@code true} if there is a value.
 	 */
 	boolean containsPoint(int x, int y);
 
 	/**
-	 * Checks if there exists a non-null value at the given point.
+	 * Checks if there exists a value at the given point.
 	 * @param p The point to check the existence of a value.
-	 * @return True if there is a non-null value.
+	 * @return {@code true} if there is a value.
 	 * @throws NullPointerException if {@code p} is null.
 	 */
 	boolean containsPoint(Point p);
@@ -92,17 +93,17 @@ public interface Grid<E> extends Iterable<E> {
 	boolean containsValue(E e);
 
 	/**
-	 * Sets all values to null.
+	 * Removes all values from this grid.
 	 */
 	void clear();
 
 	/**
-	 * @return An Iterable of all points in the grid with non-null values.
+	 * @return An Iterable of all points in the grid with values.
 	 */
 	Iterable<Point> points();
 
 	/**
-	 * @return An Iterable of all point and non-null value pairs in the grid.
+	 * @return An Iterable of all point and value pairs in the grid.
 	 */
 	Iterable<Cell<E>> cells();
 

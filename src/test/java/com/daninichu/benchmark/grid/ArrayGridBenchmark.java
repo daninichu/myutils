@@ -2,17 +2,17 @@ package com.daninichu.benchmark.grid;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.ArrayGrid;
+import com.daninichu.util.FlatArrayGrid;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode({
 		Mode.AverageTime,
 //		Mode.SampleTime,
 })
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(		iterations = 2, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(	iterations = 5, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
@@ -24,28 +24,64 @@ public class ArrayGridBenchmark{
 	}
 
 	@Param({
-//			"100",
-			"2000000",
-//			"4000",
-	})
-	int width;
+			"1000000",
+	}) int n;
 	@Param({
-//			"1000",
-			"1",
-//			"40000",
+			"0",
+//			"10",
+//			"50",
+//			"90",
+			"100",
 	})
-	int height;
+	int widthPercent;
+
+	int width, height;
+
+	ArrayGrid<Object> arrayGrid;
+	FlatArrayGrid<Object> flatArrayGrid;
+
+	@Setup(Level.Iteration)
+	public void setup2(){
+		arrayGrid.clear();
+		flatArrayGrid.clear();
+	}
+	@Setup(Level.Trial)
+	public void setup(){
+		if(widthPercent == 0){
+			width = 1;
+			height = n;
+		} else if(widthPercent == 100){
+			width = n;
+			height = 1;
+		} else{
+			width = n * widthPercent / 100;
+			height = n / width;
+		}
+
+		arrayGrid = new ArrayGrid<>(width, height);
+		flatArrayGrid = new FlatArrayGrid<>(width, height);
+	}
 
 	@Benchmark
 	public void arrayGrid(Blackhole bh){
-		var arrayGrid = new ArrayGrid<Integer>(width, height);
-
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
-				arrayGrid.set(x, y, x+y);
+//				Object e = 0;
+//				arrayGrid.set(x, y, e);
+				bh.consume(arrayGrid.get(x, y));
 			}
 		}
-
 		bh.consume(arrayGrid);
+	}
+	@Benchmark
+	public void flatArrayGrid(Blackhole bh){
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+//				Object e = 0;
+//				flatArrayGrid.set(x, y, e);
+				bh.consume(flatArrayGrid.get(x, y));
+			}
+		}
+		bh.consume(flatArrayGrid);
 	}
 }
