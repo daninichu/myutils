@@ -34,12 +34,10 @@ public interface Grid<E> extends Iterable<E> {
 
     /**
 	 * Overwrites the old value in the given point.
-	 * @param x
-	 * @param y
 	 * @param e The new value.
 	 * @throws NullPointerException if {@code e} is null and this grid does not permit null values.
 	 */
-	void set(int x, int y, E e);
+	E set(int x, int y, E e);
 
 	/**
 	 * Overwrites the old value in the given point.
@@ -48,7 +46,7 @@ public interface Grid<E> extends Iterable<E> {
 	 * @throws NullPointerException if {@code p} is null,
 	 * 		   or if {@code e} is null and this grid does not permit null values.
 	 */
-	void set(Point p, E e);
+	E set(Point p, E e);
 
 	/**
 	 *
@@ -91,6 +89,8 @@ public interface Grid<E> extends Iterable<E> {
 	boolean containsPoint(Point p);
 
 	boolean containsValue(E e);
+
+	Point pointOf(E e);
 
 	/**
 	 * Removes all values from this grid.

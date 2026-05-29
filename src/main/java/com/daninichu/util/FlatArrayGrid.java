@@ -98,18 +98,21 @@ public class FlatArrayGrid<E> implements Grid<E> {
      * @throws IndexOutOfBoundsException If the point is out of bounds.
      */
     @Override
-    public void set(int x, int y, E e) {
+    public E set(int x, int y, E e) {
         checkInBounds(x, y);
-        data[index(x, y)] = Objects.requireNonNull(e);
+        int index = index(x, y);
+        E old = (E) data[index];
+        data[index] = Objects.requireNonNull(e);
+        return old;
     }
 
     /**
-     * @throws NullPointerException      {@inheritDoc}
+     * @throws NullPointerException {@inheritDoc}
      * @throws IndexOutOfBoundsException If the point is out of bounds.
      */
     @Override
-    public void set(Point p, E e) {
-        set(p.x, p.y, e);
+    public E set(Point p, E e) {
+        return set(p.x, p.y, e);
     }
 
     /**
@@ -181,6 +184,18 @@ public class FlatArrayGrid<E> implements Grid<E> {
                 if (e.equals(o))
                     return true;
         return false;
+    }
+
+    @Override
+    public Point pointOf(E e){
+        if (e != null){
+            for(int i = 0; i < data.length; i++){
+                if(data[i] != null && e.equals(data[i])){
+                    return new Point(i % width, i / width);
+                }
+            }
+        }
+        return null;
     }
 
     @Override

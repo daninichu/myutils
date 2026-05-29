@@ -27,11 +27,11 @@ public class ArrayGridBenchmark{
 			"1000000",
 	}) int n;
 	@Param({
-			"0",
-//			"10",
+//			"0",
+			"1",
 //			"50",
-//			"90",
-			"100",
+			"99",
+//			"100",
 	})
 	int widthPercent;
 
@@ -64,10 +64,11 @@ public class ArrayGridBenchmark{
 
 	@Benchmark
 	public void arrayGrid(Blackhole bh){
+		int i = 0;
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
 //				Object e = 0;
-//				arrayGrid.set(x, y, e);
+//				arrayGrid.set(x, y, i++);
 				bh.consume(arrayGrid.get(x, y));
 			}
 		}
@@ -75,10 +76,11 @@ public class ArrayGridBenchmark{
 	}
 	@Benchmark
 	public void flatArrayGrid(Blackhole bh){
+		int i = 0;
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
 //				Object e = 0;
-//				flatArrayGrid.set(x, y, e);
+//				flatArrayGrid.set(x, y, i++);
 				bh.consume(flatArrayGrid.get(x, y));
 			}
 		}

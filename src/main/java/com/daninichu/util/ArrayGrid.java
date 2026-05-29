@@ -94,9 +94,11 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
     @Override
-    public void set(int x, int y, E e){
+    public E set(int x, int y, E e){
 		checkInBounds(x, y);
+		E old = (E) data[y][x];
 		data[y][x] = Objects.requireNonNull(e);
+		return old;
     }
 
 	/**
@@ -104,8 +106,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	 * @throws IndexOutOfBoundsException If the point is out of bounds.
 	 */
 	@Override
-	public void set(Point p, E e){
-		set(p.x, p.y, e);
+	public E set(Point p, E e){
+		return set(p.x, p.y, e);
 	}
 
 	/**
@@ -141,15 +143,16 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	@Override
 	public boolean removeValue(E e){
         if(e != null){
-			for(int y = 0; y < height(); y++){
+			int height = height();
+			int width = width();
+			Object[][] data = this.data;
+			for(int y = 0; y < height; y++){
 				Object[] inner = data[y];
-				for(int x = 0; x < inner.length; x++){
-					Object value = inner[x];
-					if(value != null){
-						if(e.equals(value)){
-							data[y][x] = null;
-                            return true;
-                        }
+				for(int x = 0; x < width; x++){
+					Object o = inner[x];
+                    if(o != null && e.equals(o)){
+                        inner[x] = null;
+                        return true;
                     }
                 }
             }
@@ -179,17 +182,41 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
 	@Override
 	public boolean containsValue(E e){
-		if(e != null)
-            for(E o : this)
+		if(e != null){
+            for(E o : this){
                 if(e.equals(o))
                     return true;
+            }
+        }
 		return false;
+	}
+
+	@Override
+	public Point pointOf(E e){
+		if(e != null){
+			int height = height();
+			int width = width();
+			Object[][] data = this.data;
+			for(int y = 0; y < height; y++){
+				Object[] inner = data[y];
+				for(int x = 0; x < width; x++){
+					Object o = inner[x];
+                    if(o != null && e.equals(o)){
+                        return new Point(x, y);
+                    }
+				}
+			}
+		}
+		return null;
 	}
 
 	public void fill(E e){
 		Objects.requireNonNull(e);
-		for(Object[] inner : data)
+		Object[][] data = this.data;
+		for(int y = 0, height = height(); y < height; y++){
+			Object[] inner = data[y];
 			Arrays.fill(inner, e);
+        }
 	}
 
 	public void fillRow(int y, E e){
@@ -199,14 +226,18 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
 	public void fillCol(int x, E e){
 		Objects.requireNonNull(e);
+		Object[][] data = this.data;
 		for(int y = 0, height = height(); y < height; y++)
             data[y][x] = e;
 	}
 
 	@Override
 	public void clear(){
-        for(Object[] inner : data)
+		Object[][] data = this.data;
+        for(int y = 0, height = height(); y < height; y++){
+            Object[] inner = data[y];
             Arrays.fill(inner, null);
+        }
 	}
 
 	public void clearRow(int y){
@@ -214,6 +245,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 	}
 
 	public void clearCol(int x){
+		Object[][] data = this.data;
 		for(int y = 0, height = height(); y < height; y++)
             data[y][x] = null;
 	}
@@ -291,12 +323,13 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
 	public E[][] toArray(){
 		int height = height();
-		Object[][] array = new Object[height][];
 		int width = width();
+		Object[][] src = this.data;
+		Object[][] dst = new Object[height][];
 		for(int y = 0; y < height; y++){
-			array[y] = Arrays.copyOf(data[y], width);
+			dst[y] = Arrays.copyOf(src[y], width);
 		}
-		return (E[][]) array;
+		return (E[][]) dst;
 	}
 
 	@Override

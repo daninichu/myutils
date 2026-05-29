@@ -3,6 +3,7 @@ package com.daninichu.util;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
@@ -32,17 +33,17 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
 	@Override
 	public E get(Point p){
-		return data.get(p);
+		return data.get(Objects.requireNonNull(p));
 	}
 
     @Override
-    public void set(int x, int y, E e){
-        data.put(new Point(x, y), e);
+    public E set(int x, int y, E e){
+        return data.put(new Point(x, y), e);
     }
 
 	@Override
-	public void set(Point p, E e){
-        data.put(p, e);
+	public E set(Point p, E e){
+        return data.put(Objects.requireNonNull(p), e);
 	}
 
     @Override
@@ -56,12 +57,17 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     @Override
     public boolean removePoint(int x, int y){
-        return removePoint(new Point(x, y));
+        Point p = new Point(x, y);
+        if(data.containsKey(p)){
+            data.remove(p);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean removePoint(Point p){
-        if(data.containsKey(p)){
+        if(data.containsKey(Objects.requireNonNull(p))){
             data.remove(p);
             return true;
         }
@@ -80,12 +86,21 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     @Override
     public boolean containsPoint(Point p){
-        return data.containsKey(p);
+        return data.containsKey(Objects.requireNonNull(p));
     }
 
     @Override
     public boolean containsValue(E e){
         return data.containsValue(e);
+    }
+
+    @Override
+    public Point pointOf(E e){
+        for(Map.Entry<Point, E> entry : data.entrySet()){
+            if(entry.getValue().equals(e))
+                return entry.getKey();
+        }
+        return null;
     }
 
     @Override
