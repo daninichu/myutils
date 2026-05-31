@@ -83,13 +83,4 @@ public abstract class AbstractGrid<E> implements Grid<E>{
             sb.append(',').append(' ');
         }
     }
-
-    public static void main(String[] args){
-        Grid grid = new ArrayGrid(2, 2);
-        grid.set(1, 0, 1);
-        grid.set(2, 0, 0);
-        grid.set(1, 1, 3);
-        grid.set(0, 1, 2);
-        System.out.println(grid);
-    }
 }
