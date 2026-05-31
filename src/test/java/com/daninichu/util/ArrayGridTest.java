@@ -2,16 +2,12 @@ package com.daninichu.util;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import com.badlogic.gdx.math.Vector2;
 import org.junit.jupiter.api.Test;
-
-import com.daninichu.util.Grid.Cell;
 
 public class ArrayGridTest {
 	@Test
