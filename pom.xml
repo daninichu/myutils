@@ -11,8 +11,6 @@
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
-        <gdx.version>1.13.5</gdx.version>
-        <libgdx.version>1.13.1</libgdx.version>
 
     </properties>
 
@@ -36,33 +34,5 @@
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>1.37</version>
         </dependency>
-
-        <dependency>
-            <!--libGDX graphics library – https://libgdx.com/ -->
-            <groupId>com.badlogicgames.gdx</groupId>
-            <artifactId>gdx</artifactId>
-            <version>${libgdx.version}</version>
-        </dependency>
-        <dependency>
-            <!-- Platform-specific libraries -->
-            <groupId>com.badlogicgames.gdx</groupId>
-            <artifactId>gdx-platform</artifactId>
-            <version>${libgdx.version}</version>
-            <classifier>natives-desktop</classifier>
-        </dependency>
-        <dependency>
-            <!-- libgdx OpenGL backend-->
-            <groupId>com.badlogicgames.gdx</groupId>
-            <artifactId>gdx-backend-lwjgl3</artifactId>
-            <version>${libgdx.version}</version>
-        </dependency>
-        <dependency>
-            <!-- run libgdx without graphics (for testing)-->
-            <groupId>com.badlogicgames.gdx</groupId>
-            <artifactId>gdx-backend-headless</artifactId>
-            <version>${libgdx.version}</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 </project>
