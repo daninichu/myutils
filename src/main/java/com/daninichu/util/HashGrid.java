@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
-public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
+public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	private final HashMap<Point, E> data;
 
 	public HashGrid(){
@@ -56,22 +56,13 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
     }
 
     @Override
-    public boolean removePoint(int x, int y){
-        Point p = new Point(x, y);
-        if(data.containsKey(p)){
-            data.remove(p);
-            return true;
-        }
-        return false;
+    public E removePoint(int x, int y){
+        return data.remove(new Point(x, y));
     }
 
     @Override
-    public boolean removePoint(Point p){
-        if(data.containsKey(Objects.requireNonNull(p))){
-            data.remove(p);
-            return true;
-        }
-        return false;
+    public E removePoint(Point p){
+        return data.remove(Objects.requireNonNull(p));
     }
 
     @Override
@@ -96,9 +87,16 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     @Override
     public Point pointOf(E e){
-        for(Map.Entry<Point, E> entry : data.entrySet()){
-            if(entry.getValue().equals(e))
-                return entry.getKey();
+        if(e == null){
+            for(Map.Entry<Point, E> entry : data.entrySet()){
+                if(entry.getValue() == null)
+                    return entry.getKey();
+            }
+        } else{
+            for(Map.Entry<Point, E> entry : data.entrySet()){
+                if(e.equals(entry.getValue()))
+                    return entry.getKey();
+            }
         }
         return null;
     }
@@ -128,6 +126,11 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
                 Map.Entry<Point, E> entry = it.next();
                 return new Cell<>(entry.getKey(), entry.getValue());
             }
+
+            @Override
+            public void remove(){
+                it.remove();
+            }
         };
     }
 
@@ -143,5 +146,15 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     public HashMap<Point, E> toMap(){
         return new HashMap<>(data);
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        return this == obj || obj instanceof HashGrid<?> hashGrid && data.equals(hashGrid.data);
+    }
+
+    @Override
+    public int hashCode(){
+        return data.hashCode();
     }
 }

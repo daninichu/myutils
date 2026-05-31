@@ -15,7 +15,7 @@ import java.util.function.UnaryOperator;
  * through an array-of-arrays, yielding better cache locality.
  */
 @SuppressWarnings("unchecked")
-public class FlatArrayGrid<E> implements Grid<E> {
+public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
     private final Object[] data;
     private final int width;
     private final int height;
@@ -129,12 +129,12 @@ public class FlatArrayGrid<E> implements Grid<E> {
      * @throws IndexOutOfBoundsException If the point is out of bounds.
      */
     @Override
-    public boolean removePoint(int x, int y) {
+    public E removePoint(int x, int y) {
         checkInBounds(x, y);
         int index = index(x, y);
-        Object o = data[index];
+        E e = (E) data[index];
         data[index] = null;
-        return o != null;
+        return e;
     }
 
     /**
@@ -142,7 +142,7 @@ public class FlatArrayGrid<E> implements Grid<E> {
      * @throws IndexOutOfBoundsException If the point is out of bounds.
      */
     @Override
-    public boolean removePoint(Point p) {
+    public E removePoint(Point p) {
         return removePoint(p.x, p.y);
     }
 

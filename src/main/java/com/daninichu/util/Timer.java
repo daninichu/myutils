@@ -3,7 +3,7 @@ package com.daninichu.util;
 import static java.lang.System.nanoTime;
 import java.text.DecimalFormat;
 
-public class Timer {
+public class Timer{
 	private long start = nanoTime();
 
 	public void reset() {

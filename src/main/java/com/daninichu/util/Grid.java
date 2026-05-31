@@ -22,15 +22,9 @@ public interface Grid<E> extends Iterable<E> {
      */
 	E get(Point p);
 
-    default E getOrDefault(int x, int y, E defaultValue){
-		E e = get(x, y);
-        return e == null ? defaultValue : e;
-    }
+	E getOrDefault(int x, int y, E defaultValue);
 
-    default E getOrDefault(Point p, E defaultValue){
-        E e = get(p.x, p.y);
-		return e == null ? defaultValue : e;
-    }
+	E getOrDefault(Point p, E defaultValue);
 
     /**
 	 * Overwrites the old value in the given point.
@@ -57,19 +51,25 @@ public interface Grid<E> extends Iterable<E> {
 	void setAll(Grid<? extends E> grid);
 
 	/**
+	 * Removes the value at the given point.
 	 * @param x
 	 * @param y
-	 * @return
+	 * @return The value previously at the given point.
 	 */
-	boolean removePoint(int x, int y);
+	E removePoint(int x, int y);
 
 	/**
+	 * Removes the value at the given point.
 	 * @param p The point to remove the value from.
-	 * @return
+	 * @return The value previously at the given point.
 	 * @throws NullPointerException if {@code p} is null.
 	 */
-	boolean removePoint(Point p);
+	E removePoint(Point p);
 
+	/**
+	 * @param e The value to be removed.
+	 * @return {@code true} if the value was in this grid.
+	 */
 	boolean removeValue(E e);
 
 	/**
@@ -88,8 +88,16 @@ public interface Grid<E> extends Iterable<E> {
 	 */
 	boolean containsPoint(Point p);
 
+	/***
+	 * @param e The value whose presence in this grid is to be tested.
+	 * @return {@code true} the given value is in this grid.
+	 */
 	boolean containsValue(E e);
 
+	/**
+	 * @param e The value to search for.
+	 * @return One of the points that has the given value, or null if the value is not in this grid.
+	 */
 	Point pointOf(E e);
 
 	/**

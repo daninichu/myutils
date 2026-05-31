@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 @SuppressWarnings("unchecked")
-public class QuadTree<T> implements Iterable<T> {
+public class QuadTree<T> implements Iterable<T>{
     private Quadrant<T> root;
     private int size;
     private double x, y, width, height;
@@ -18,7 +18,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @param bounds The bounds of this tree.
      * @throws IllegalArgumentException If the width or height of {@code bounds} are negative.
      */
-    public QuadTree(Rectangle2D bounds) {
+    public QuadTree(Rectangle2D bounds){
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), 8);
     }
 
@@ -28,7 +28,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @param maxDepth The maximum node depth of this tree.
      * @throws IllegalArgumentException If the width or height of {@code bounds} or {@code maxDepth} are negative.
      */
-    public QuadTree(Rectangle2D bounds, int maxDepth) {
+    public QuadTree(Rectangle2D bounds, int maxDepth){
         this(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(), maxDepth);
     }
 
@@ -40,7 +40,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @param height The height of this tree's bounds.
      * @throws IllegalArgumentException If {@code width} or {@code height} are negative.
      */
-    public QuadTree(double x, double y, double width, double height) {
+    public QuadTree(double x, double y, double width, double height){
         this(x, y, width, height, 8);
     }
 
@@ -53,7 +53,7 @@ public class QuadTree<T> implements Iterable<T> {
      * @param maxDepth The maximum node depth of this tree.
      * @throws IllegalArgumentException If {@code width} or {@code height} or {@code maxDepth} are negative.
      */
-    public QuadTree(double x, double y, double width, double height, int maxDepth) {
+    public QuadTree(double x, double y, double width, double height, int maxDepth){
         checkNonNegativity(width, height);
         if(maxDepth < 0){
             throw new IllegalArgumentException("maxDepth cannot be negative");
@@ -386,7 +386,7 @@ public class QuadTree<T> implements Iterable<T> {
         return false;
     }
 
-    private static <T> void fastRemove(ArrayList<Entry<T>> entries, int i, int lastIndex) {
+    private static <T> void fastRemove(ArrayList<Entry<T>> entries, int i, int lastIndex){
         Entry<T> last = entries.get(lastIndex);
         entries.set(last.index = i, last);
         entries.remove(lastIndex);
@@ -528,7 +528,7 @@ public class QuadTree<T> implements Iterable<T> {
     /**
      * @return The rectangular bounds of this quadtree.
      */
-    public Rectangle2D.Double getBounds() {
+    public Rectangle2D.Double getBounds(){
         return new Rectangle2D.Double(x, y, width, height);
     }
 
@@ -791,23 +791,21 @@ public class QuadTree<T> implements Iterable<T> {
     public Iterable<Entry<T>> entries(){
         return () -> new QuadTreeIterator<Entry<T>>(){
             @Override
-            public Entry<T> next() {
-                if(hasNext()){
+            public Entry<T> next(){
+                if(hasNext())
                     return iterator.next();
-                }
                 throw new NoSuchElementException();
             }
         };
     }
 
     @Override
-    public Iterator<T> iterator() {
+    public Iterator<T> iterator(){
         return new QuadTreeIterator<T>(){
             @Override
-            public T next() {
-                if(hasNext()){
+            public T next(){
+                if(hasNext())
                     return iterator.next().value;
-                }
                 throw new NoSuchElementException();
             }
         };
@@ -825,27 +823,27 @@ public class QuadTree<T> implements Iterable<T> {
         void visitQuadrant(Quadrant<T> q){
             Quadrant<T>[] stack = this.stack;
             Quadrant<T>[] children = q.children;
-            for (int i = 3; i >= 0; i--) {
+            for(int i = 3; i >= 0; i--){
                 Quadrant<T> child = children[i];
-                if (child != null)
+                if(child != null)
                     stack[stackEnd++] =  child;
             }
             iterator = q.entries.iterator();
         }
 
         @Override
-        public boolean hasNext() {
-            while (true) {
-                if (iterator.hasNext())
+        public boolean hasNext(){
+            while (true){
+                if(iterator.hasNext())
                     return true;
-                if (stackEnd == 0)
+                if(stackEnd == 0)
                     return false;
                 visitQuadrant(stack[--stackEnd]);
             }
         }
     }
 
-    private void appendQuadrant(StringBuilder sb, Quadrant<T> q, int depth) {
+    private void appendQuadrant(StringBuilder sb, Quadrant<T> q, int depth){
         sb.repeat("  ", depth).append(q).append("\n");
         Quadrant<T>[] children = q.children;
         for(int i = 0; i < 4; i++){
