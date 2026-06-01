@@ -251,9 +251,9 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return () -> new ArrayGridIterator<Point>(){
 			@Override
 			public Point next(){
-				if(hasNext())
-					return new Point(lastX = x++, lastY = y);
-				throw new NoSuchElementException();
+				if(!hasNext())
+					throw new NoSuchElementException();
+				return new Point(lastX = x++, lastY = y);
 			}
 		};
 	}
@@ -263,10 +263,10 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return () -> new ArrayGridIterator<Cell<E>>(){
 			@Override
 			public Cell<E> next(){
-				if(hasNext())
-					return new Cell<>(x, y, (E) data[lastY = y][lastX = x++]);
-				throw new NoSuchElementException();
-			}
+                if(!hasNext())
+                    throw new NoSuchElementException();
+                return new Cell<>(x, y, (E) data[lastY = y][lastX = x++]);
+            }
 		};
 	}
 
@@ -275,10 +275,10 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return new ArrayGridIterator<E>(){
 			@Override
 			public E next(){
-				if(hasNext())
-                    return (E) data[lastY = y][lastX = x++];
-				throw new NoSuchElementException();
-			}
+                if(!hasNext())
+                    throw new NoSuchElementException();
+                return (E) data[lastY = y][lastX = x++];
+            }
 		};
 	}
 

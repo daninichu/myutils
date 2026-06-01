@@ -315,8 +315,11 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     public Iterable<Point> points(){
         return () -> new HashGridIterator<Point>(){
             @Override
-            protected Point produce(int slot){
-                return new Point(unpackX(keys[slot]), unpackY(keys[slot]));
+            public Point next(){
+                if(!hasNext())
+                    throw new NoSuchElementException();
+                long key = keys[lastSlot = cursor++];
+                return new Point(unpackX(key), unpackY(key));
             }
         };
     }
@@ -325,8 +328,11 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     public Iterable<Cell<E>> cells(){
         return () -> new HashGridIterator<Cell<E>>(){
             @Override
-            protected Cell<E> produce(int slot){
-                return new Cell<>(unpackX(keys[slot]), unpackY(keys[slot]), (E) vals[slot]);
+            public Cell<E> next(){
+                if(!hasNext())
+                    throw new NoSuchElementException();
+                long key = keys[lastSlot = cursor++];
+                return new Cell<>(unpackX(key), unpackY(key), (E) vals[lastSlot]);
             }
         };
     }
@@ -335,14 +341,16 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     public Iterator<E> iterator(){
         return new HashGridIterator<E>(){
             @Override
-            protected E produce(int slot){
-                return (E) vals[slot];
+            public E next(){
+                if(!hasNext())
+                    throw new NoSuchElementException();
+                return (E) vals[lastSlot = cursor++];
             }
         };
     }
 
     private abstract class HashGridIterator<T> implements Iterator<T>{
-        private int cursor, lastSlot = -1;
+        int cursor, lastSlot = -1;
 
         @Override
         public boolean hasNext(){
@@ -355,18 +363,6 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
         }
 
         @Override
-        public T next(){
-            while(cursor < state.length){
-                if(state[cursor] == LIVE){
-                    lastSlot = cursor++;
-                    return produce(lastSlot);
-                }
-                cursor++;
-            }
-            throw new NoSuchElementException();
-        }
-
-        @Override
         public void remove(){
             if(lastSlot < 0)
                 throw new IllegalStateException();
@@ -375,8 +371,6 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
             size--;
             lastSlot = -1;
         }
-
-        protected abstract T produce(int slot);
     }
 
     @Override
