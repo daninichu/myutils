@@ -10,7 +10,7 @@ import java.util.function.UnaryOperator;
  * A hash-based Grid backed by a custom open-addressing hash table with linear probing.
  * <p>
  * Keys are stored as packed {@code long}s (x in the high 32 bits, y in the low 32 bits),
- * avoiding {@link Point} allocation on lookups. Slot state (empty / live / tombstone)
+ * avoiding {@link Point} allocation on lookups. Slot occupied (empty / live / tombstone)
  * is tracked in a parallel {@code byte[]} so that no key value is ever reserved as a sentinel —
  * every possible {@code (x,y)} coordinate is a valid key.
  * <p>
@@ -20,12 +20,9 @@ import java.util.function.UnaryOperator;
  */
 @SuppressWarnings("unchecked")
 public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
-    private static final byte EMPTY = 0;
-    private static final byte LIVE = 1;
-
     private long[] keys;
     private Object[] vals;
-    private byte[] state;
+    private boolean[] occupied;
     private int size, threshold;
     private float loadFactor;
 
@@ -55,7 +52,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private void init(int capacity){
         keys = new long[capacity];
         vals = new Object[capacity];
-        state = new byte[capacity];
+        occupied = new boolean[capacity];
         threshold = (int) (capacity * loadFactor);
     }
 
@@ -85,12 +82,12 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
      */
     private int findSlot(long key){
         long[] keys = this.keys;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
 
-        int mask = state.length - 1;
+        int mask = occupied.length - 1;
         int i = hash(key) & mask;
         while(true){
-            if(state[i] == EMPTY)
+            if(!occupied[i])
                 return ~i;
             if(keys[i] == key)
                 return i;
@@ -112,19 +109,19 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         }
         keys[i] = key;
         vals[i] = value;
-        state[i] = LIVE;
+        occupied[i] = true;
         size++;
         return null;
     }
 
     private E rawRemove(long key){
         long[] keys = this.keys;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
 
-        int mask = state.length - 1;
+        int mask = occupied.length - 1;
         int i = hash(key) & mask;
         while(true){
-            if(state[i] == EMPTY)
+            if(!occupied[i])
                 return null;
             if(keys[i] == key){
                 E oldValue = (E) vals[i];
@@ -139,11 +136,11 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private void shiftDelete(int hole){
         long[] keys = this.keys;
         Object[] vals = this.vals;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
 
-        int mask = state.length - 1;
+        int mask = occupied.length - 1;
         int next = (hole + 1) & mask;
-        while(state[next] == LIVE){
+        while(occupied[next]){
             int home = hash(keys[next]) & mask;
             if(((next - home) & mask) > ((hole - home) & mask)){
                 keys[hole] = keys[next];
@@ -153,33 +150,33 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
             next = (next + 1) & mask;
         }
         vals[hole] = null;
-        state[hole] = EMPTY;
+        occupied[hole] = false;
     }
 
     private void resize(){
         long[] oldKeys = this.keys;
         Object[] oldVals = this.vals;
-        byte[] oldState = this.state;
+        boolean[] oldOccupied = this.occupied;
 
         int oldCap = keys.length;
         int newCap = oldCap << 1;
 
         long[] keys = this.keys = new long[newCap];
         Object[] vals = this.vals = new Object[newCap];
-        byte[] state = this.state = new byte[newCap];
+        boolean[] occupied = this.occupied = new boolean[newCap];
         threshold = (int) (newCap * loadFactor);
 
         int mask = newCap - 1;
         for(int i = 0; i < oldCap; i++){
-            if(oldState[i] == LIVE){
+            if(oldOccupied[i]){
                 long k = oldKeys[i];
                 int j = hash(k) & mask;
-                while(state[j] == LIVE){
+                while(occupied[j]){
                     j = (j + 1) & mask;
                 }
                 keys[j] = k;
                 vals[j] = oldVals[i];
-                state[j] = LIVE;
+                occupied[j] = true;
             }
         }
     }
@@ -209,7 +206,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     public void setAll(Grid<? extends E> grid){
         if(grid instanceof HashGrid2_5<? extends E> other){
             for(int i = 0; i < other.keys.length; i++){
-                if(other.state[i] == LIVE)
+                if(other.occupied[i])
                     rawPut(other.keys[i], (E) other.vals[i]);
             }
         } else{
@@ -231,18 +228,18 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public boolean removeValue(E e){
         Object[] vals = this.vals;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
         if(e == null){
-            for(int i = 0, n = state.length; i < n; i++){
-                if(state[i] == LIVE && vals[i] == null){
+            for(int i = 0, n = occupied.length; i < n; i++){
+                if(occupied[i] && vals[i] == null){
                     shiftDelete(i);
                     size--;
                     return true;
                 }
             }
         } else{
-            for(int i = 0, n = state.length; i < n; i++){
-                if(state[i] == LIVE && e.equals(vals[i])){
+            for(int i = 0, n = occupied.length; i < n; i++){
+                if(occupied[i] && e.equals(vals[i])){
                     shiftDelete(i);
                     size--;
                     return true;
@@ -265,15 +262,15 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public boolean containsValue(E e){
         Object[] vals = this.vals;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
         if(e == null){
-            for(int i = 0, n = state.length; i < n; i++){
-                if(state[i] == LIVE && vals[i] == null)
+            for(int i = 0, n = occupied.length; i < n; i++){
+                if(occupied[i] && vals[i] == null)
                     return true;
             }
         } else{
-            for(int i = 0, n = state.length; i < n; i++){
-                if(state[i] == LIVE && e.equals(vals[i]))
+            for(int i = 0, n = occupied.length; i < n; i++){
+                if(occupied[i] && e.equals(vals[i]))
                     return true;
             }
         }
@@ -283,17 +280,17 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public Point pointOf(E e){
         Object[] vals = this.vals;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
         if(e == null){
-            for(int i = 0, n = state.length; i < n; i++){
-                if(state[i] == LIVE && vals[i] == null){
+            for(int i = 0, n = occupied.length; i < n; i++){
+                if(occupied[i] && vals[i] == null){
                     long key = keys[i];
                     return new Point(unpackX(key), unpackY(key));
                 }
             }
         } else{
-            for(int i = 0, n = state.length; i < n; i++){
-                if(state[i] == LIVE && e.equals(vals[i])){
+            for(int i = 0, n = occupied.length; i < n; i++){
+                if(occupied[i] && e.equals(vals[i])){
                     long key = keys[i];
                     return new Point(unpackX(key), unpackY(key));
                 }
@@ -304,7 +301,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public void clear(){
-        Arrays.fill(state, EMPTY);
+        Arrays.fill(occupied, false);
         Arrays.fill(vals, null);
         size = 0;
     }
@@ -352,8 +349,8 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
 
         @Override
         public boolean hasNext(){
-            while(cursor < state.length){
-                if(state[cursor] == LIVE)
+            while(cursor < occupied.length){
+                if(occupied[cursor])
                     return true;
                 cursor++;
             }
@@ -384,7 +381,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
             }
             keys[i] = key;
             vals[i] = operator.apply(null);
-            state[i] = LIVE;
+            occupied[i] = true;
             size++;
         }
     }
@@ -401,9 +398,9 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         if(!(obj instanceof HashGrid2_5<?> hashGrid) || size != hashGrid.size){
             return false;
         }
-        byte[] state = this.state;
-        for(int i = 0, n = state.length; i < n; i++){
-            if(state[i] == LIVE){
+        boolean[] occupied = this.occupied;
+        for(int i = 0, n = occupied.length; i < n; i++){
+            if(occupied[i]){
                 int j = hashGrid.findSlot(keys[i]);
                 if(j < 0 || !Objects.equals(vals[i], hashGrid.vals[j]))
                     return false;
@@ -416,11 +413,11 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     public int hashCode(){
         long[] keys = this.keys;
         Object[] vals = this.vals;
-        byte[] state = this.state;
+        boolean[] occupied = this.occupied;
 
         int h = 0;
-        for(int i = 0, n = state.length; i < n; i++){
-            if(state[i] == LIVE){
+        for(int i = 0, n = occupied.length; i < n; i++){
+            if(occupied[i]){
                 long k = keys[i];
                 int kh = (int) (k ^ (k >>> 32));
                 h += kh ^ Objects.hashCode(vals[i]);
