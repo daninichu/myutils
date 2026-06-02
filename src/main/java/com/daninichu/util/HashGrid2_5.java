@@ -22,7 +22,7 @@ import java.util.function.UnaryOperator;
 public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private boolean[] occupied;
     private long[] keys;
-    private Object[] vals;
+    private Object[] values;
     private int size, threshold;
     private float loadFactor;
 
@@ -52,7 +52,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private void init(int capacity){
         occupied = new boolean[capacity];
         keys = new long[capacity];
-        vals = new Object[capacity];
+        values = new Object[capacity];
         threshold = (int) (capacity * loadFactor);
     }
 
@@ -78,7 +78,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     /**
      * Returns the slot index of {@code key} if present,
      * or {@code ~insertSlot} (a negative value) if absent.
-     * The insert slot is the first tombstone in the probe chain, or the first empty slot.
+     * The insert slot is the first empty slot.
      */
     private int findSlot(long key){
         boolean[] occupied = this.occupied;
@@ -98,8 +98,8 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private E rawPut(long key, E value){
         int i = findSlot(key);
         if(i >= 0){
-            E oldValue = (E) vals[i];
-            vals[i] = value;
+            E oldValue = (E) values[i];
+            values[i] = value;
             return oldValue;
         }
         i = ~i;
@@ -109,7 +109,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         }
         occupied[i] = true;
         keys[i] = key;
-        vals[i] = value;
+        values[i] = value;
         size++;
         return null;
     }
@@ -124,7 +124,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
             if(!occupied[i])
                 return null;
             if(keys[i] == key){
-                E oldValue = (E) vals[i];
+                E oldValue = (E) values[i];
                 shiftDelete(i);
                 size--;
                 return oldValue;
@@ -136,7 +136,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private void shiftDelete(int hole){
         boolean[] occupied = this.occupied;
         long[] keys = this.keys;
-        Object[] vals = this.vals;
+        Object[] values = this.values;
 
         int mask = occupied.length - 1;
         int next = (hole + 1) & mask;
@@ -144,26 +144,26 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
             int home = hash(keys[next]) & mask;
             if(((next - home) & mask) > ((hole - home) & mask)){
                 keys[hole] = keys[next];
-                vals[hole] = vals[next];
+                values[hole] = values[next];
                 hole = next;
             }
             next = (next + 1) & mask;
         }
         occupied[hole] = false;
-        vals[hole] = null;
+        values[hole] = null;
     }
 
     private void resize(){
         boolean[] oldOccupied = this.occupied;
         long[] oldKeys = this.keys;
-        Object[] oldVals = this.vals;
+        Object[] oldVals = this.values;
 
         int oldCap = keys.length;
         int newCap = oldCap << 1;
 
         boolean[] occupied = this.occupied = new boolean[newCap];
         long[] keys = this.keys = new long[newCap];
-        Object[] vals = this.vals = new Object[newCap];
+        Object[] values = this.values = new Object[newCap];
         threshold = (int) (newCap * loadFactor);
 
         int mask = newCap - 1;
@@ -176,7 +176,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
                 }
                 occupied[j] = true;
                 keys[j] = k;
-                vals[j] = oldVals[i];
+                values[j] = oldVals[i];
             }
         }
     }
@@ -184,7 +184,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public E get(int x, int y){
         int i = findSlot(pack(x, y));
-        return i >= 0? (E) vals[i] : null;
+        return i >= 0? (E) values[i] : null;
     }
 
     @Override
@@ -206,12 +206,12 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     public void setAll(Grid<? extends E> grid){
         if(grid instanceof HashGrid2_5<? extends E> other){
             long[] keys = other.keys;
-            Object[] vals = other.vals;
+            Object[] values = other.values;
             boolean[] occupied = other.occupied;
 
             for(int i = 0, n = occupied.length; i < n; i++){
                 if(occupied[i])
-                    rawPut(keys[i], (E) vals[i]);
+                    rawPut(keys[i], (E) values[i]);
             }
         } else{
             for(Cell<? extends E> cell : grid.cells())
@@ -232,10 +232,10 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public boolean removeValue(E e){
         boolean[] occupied = this.occupied;
-        Object[] vals = this.vals;
+        Object[] values = this.values;
         if(e == null){
             for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && vals[i] == null){
+                if(occupied[i] && values[i] == null){
                     shiftDelete(i);
                     size--;
                     return true;
@@ -243,7 +243,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
             }
         } else{
             for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && e.equals(vals[i])){
+                if(occupied[i] && e.equals(values[i])){
                     shiftDelete(i);
                     size--;
                     return true;
@@ -266,15 +266,15 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public boolean containsValue(E e){
         boolean[] occupied = this.occupied;
-        Object[] vals = this.vals;
+        Object[] values = this.values;
         if(e == null){
             for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && vals[i] == null)
+                if(occupied[i] && values[i] == null)
                     return true;
             }
         } else{
             for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && e.equals(vals[i]))
+                if(occupied[i] && e.equals(values[i]))
                     return true;
             }
         }
@@ -284,17 +284,17 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public Point pointOf(E e){
         boolean[] occupied = this.occupied;
-        Object[] vals = this.vals;
+        Object[] values = this.values;
         if(e == null){
             for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && vals[i] == null){
+                if(occupied[i] && values[i] == null){
                     long key = keys[i];
                     return new Point(unpackX(key), unpackY(key));
                 }
             }
         } else{
             for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && e.equals(vals[i])){
+                if(occupied[i] && e.equals(values[i])){
                     long key = keys[i];
                     return new Point(unpackX(key), unpackY(key));
                 }
@@ -306,7 +306,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public void clear(){
         Arrays.fill(occupied, false);
-        Arrays.fill(vals, null);
+        Arrays.fill(values, null);
         size = 0;
     }
 
@@ -331,7 +331,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
                 if(!hasNext())
                     throw new NoSuchElementException();
                 long key = keys[lastSlot = cursor++];
-                return new Cell<>(unpackX(key), unpackY(key), (E) vals[lastSlot]);
+                return new Cell<>(unpackX(key), unpackY(key), (E) values[lastSlot]);
             }
         };
     }
@@ -343,7 +343,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
             public E next(){
                 if(!hasNext())
                     throw new NoSuchElementException();
-                return (E) vals[lastSlot = cursor++];
+                return (E) values[lastSlot = cursor++];
             }
         };
     }
@@ -378,7 +378,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         long key = pack(x, y);
         int i = findSlot(key);
         if(i >= 0){
-            vals[i] = operator.apply((E) vals[i]);
+            values[i] = operator.apply((E) values[i]);
         } else{
             i = ~i;
             if(size >= threshold){
@@ -386,7 +386,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
                 i = ~findSlot(key);
             }
             keys[i] = key;
-            vals[i] = operator.apply(null);
+            values[i] = operator.apply(null);
             occupied[i] = true;
             size++;
         }
@@ -406,13 +406,13 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         }
         boolean[] occupied = this.occupied;
         long[] keys = this.keys;
-        Object[] vals = this.vals;
-        Object[] otherVals = hashGrid.vals;
+        Object[] values = this.values;
+        Object[] otherVals = hashGrid.values;
 
         for(int i = 0, n = occupied.length; i < n; i++){
             if(occupied[i]){
                 int j = hashGrid.findSlot(keys[i]);
-                if(j < 0 || !Objects.equals(vals[i], otherVals[j]))
+                if(j < 0 || !Objects.equals(values[i], otherVals[j]))
                     return false;
             }
         }
@@ -423,14 +423,14 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     public int hashCode(){
         boolean[] occupied = this.occupied;
         long[] keys = this.keys;
-        Object[] vals = this.vals;
+        Object[] values = this.values;
 
         int h = 0;
         for(int i = 0, n = occupied.length; i < n; i++){
             if(occupied[i]){
                 long k = keys[i];
                 int kh = (int) (k ^ (k >>> 32));
-                h += kh ^ Objects.hashCode(vals[i]);
+                h += kh ^ Objects.hashCode(values[i]);
             }
         }
         return h;
