@@ -30,26 +30,6 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private int size, threshold;
     private float loadFactor;
 
-    public static void main(String[] args){
-        HashGrid2_5 grid = new HashGrid2_5(1, 0.9999999f);
-//        System.out.println(Arrays.toString(grid.vals));
-        for (int i = 0; i < 4; i++){
-            System.out.println(i);
-            grid.set(i, i, i);
-            System.out.println("set ok");
-            grid.removePoint(i, i);
-            System.out.println("remove ok");
-        System.out.println(Arrays.toString(grid.vals));
-        System.out.println(Arrays.toString(grid.state));
-        }
-            grid.set(0, 0, 0);
-        float f = 0.99999994f;
-        System.out.println((int) ((1<<20)*f));
-//        grid.set(0, 0, 0);
-//        grid.set(0, 1, 0);
-//        grid.set(0, 2, 0);
-//        grid.set(0, 3, 0);
-    }
     public HashGrid2_5(){
         this.loadFactor = 0.75f;
         init(16);
