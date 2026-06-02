@@ -24,7 +24,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     private long[] keys;
     private Object[] values;
     private int size, threshold;
-    private float loadFactor;
+    private final float loadFactor;
 
     public HashGrid2(){
         this.loadFactor = 0.75f;
@@ -156,7 +156,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     private void resize(){
         boolean[] oldOccupied = this.occupied;
         long[] oldKeys = this.keys;
-        Object[] oldVals = this.values;
+        Object[] oldValues = this.values;
 
         int oldCap = keys.length;
         int newCap = oldCap << 1;
@@ -176,7 +176,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
                 }
                 occupied[j] = true;
                 keys[j] = k;
-                values[j] = oldVals[i];
+                values[j] = oldValues[i];
             }
         }
     }
@@ -233,6 +233,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     public boolean removeValue(E e){
         boolean[] occupied = this.occupied;
         Object[] values = this.values;
+
         if(e == null){
             for(int i = 0, n = occupied.length; i < n; i++){
                 if(occupied[i] && values[i] == null){
@@ -267,6 +268,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     public boolean containsValue(E e){
         boolean[] occupied = this.occupied;
         Object[] values = this.values;
+
         if(e == null){
             for(int i = 0, n = occupied.length; i < n; i++){
                 if(occupied[i] && values[i] == null)
@@ -285,6 +287,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     public Point pointOf(E e){
         boolean[] occupied = this.occupied;
         Object[] values = this.values;
+
         if(e == null){
             for(int i = 0, n = occupied.length; i < n; i++){
                 if(occupied[i] && values[i] == null){
@@ -407,12 +410,12 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
         boolean[] occupied = this.occupied;
         long[] keys = this.keys;
         Object[] values = this.values;
-        Object[] otherVals = hashGrid.values;
+        Object[] otherValues = hashGrid.values;
 
         for(int i = 0, n = occupied.length; i < n; i++){
             if(occupied[i]){
                 int j = hashGrid.findSlot(keys[i]);
-                if(j < 0 || !Objects.equals(values[i], otherVals[j]))
+                if(j < 0 || !Objects.equals(values[i], otherValues[j]))
                     return false;
             }
         }
