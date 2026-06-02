@@ -111,15 +111,21 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
      * the target key cannot be further in the chain — stop early.
      */
     private int findSlot(long key){
-        int mask = keys.length - 1;
+        long[] keys = this.keys;
+        byte[] state = this.state;
+
+        int len = keys.length;
+        int mask = len - 1;
         int i = hash(key) & mask;
         int probe = 0;
         while(true){
             if(state[i] == EMPTY)
                 return -1;
-            if(keys[i] == key)
+            long other = keys[i];
+            if(other == key)
                 return i;
-            if(dib(i) < probe)
+            int dib = (i - (hash(other) & mask) + len) & mask;
+            if(dib < probe)
                 return -1;
             i = (i + 1) & mask;
             probe++;

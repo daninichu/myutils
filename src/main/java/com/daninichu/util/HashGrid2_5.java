@@ -22,7 +22,6 @@ import java.util.function.UnaryOperator;
 public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     private static final byte EMPTY = 0;
     private static final byte LIVE = 1;
-    private static final byte TOMBSTONE = 2;
 
     private long[] keys;
     private Object[] vals;
@@ -85,54 +84,31 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
      * The insert slot is the first tombstone in the probe chain, or the first empty slot.
      */
     private int findSlot(long key){
-        int mask = keys.length - 1;
-        int i = hash(key) & mask;
-        int start = i;
-        while(true){
-            byte s = state[i];
-            if(s == EMPTY)
-                return ~i;
-            if(s == LIVE && keys[i] == key)
-                return i;
-            i = (i + 1) & mask;
-            if(i == start)
-                return -1;
-        }
-    }
-
-    private int findSlotForInsert(long key){
         long[] keys = this.keys;
         byte[] state = this.state;
 
         int mask = state.length - 1;
         int i = hash(key) & mask;
-        int start = i;
-        int tombstone = -1;
         while(true){
-            byte s = state[i];
-            if(s == EMPTY)
-                return tombstone < 0? ~i : ~tombstone;
-            if(s == LIVE && keys[i] == key)
+            if(state[i] == EMPTY)
+                return ~i;
+            if(keys[i] == key)
                 return i;
-            if(s == TOMBSTONE && tombstone < 0)
-                tombstone = i;
             i = (i + 1) & mask;
-            if(i == start)
-                return ~tombstone;
         }
     }
 
     private E rawPut(long key, E value){
-        int i = findSlotForInsert(key);
+        int i = findSlot(key);
         if(i >= 0){
             E oldValue = (E) vals[i];
             vals[i] = value;
             return oldValue;
         }
         i = ~i;
-        if(state[i] != TOMBSTONE && size >= threshold){
+        if(size >= threshold){
             resize();
-            i = ~findSlotForInsert(key);
+            i = ~findSlot(key);
         }
         keys[i] = key;
         vals[i] = value;
@@ -147,22 +123,37 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
 
         int mask = state.length - 1;
         int i = hash(key) & mask;
-        int start = i;
         while(true){
-            byte s = state[i];
-            if(s == EMPTY)
+            if(state[i] == EMPTY)
                 return null;
-            if(s == LIVE && keys[i] == key){
+            if(keys[i] == key){
                 E oldValue = (E) vals[i];
-                state[i] = TOMBSTONE;
-                vals[i] = null;
+                shiftDelete(i);
                 size--;
                 return oldValue;
             }
             i = (i + 1) & mask;
-            if(i == start)
-                return null;
         }
+    }
+
+    private void shiftDelete(int hole){
+        long[] keys = this.keys;
+        Object[] vals = this.vals;
+        byte[] state = this.state;
+
+        int mask = state.length - 1;
+        int next = (hole + 1) & mask;
+        while(state[next] == LIVE){
+            int home = hash(keys[next]) & mask;
+            if(((next - home) & mask) > ((hole - home) & mask)){
+                keys[hole] = keys[next];
+                vals[hole] = vals[next];
+                hole = next;
+            }
+            next = (next + 1) & mask;
+        }
+        vals[hole] = null;
+        state[hole] = EMPTY;
     }
 
     private void resize(){
@@ -244,8 +235,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         if(e == null){
             for(int i = 0, n = state.length; i < n; i++){
                 if(state[i] == LIVE && vals[i] == null){
-                    state[i] = TOMBSTONE;
-                    vals[i] = null;
+                    shiftDelete(i);
                     size--;
                     return true;
                 }
@@ -253,8 +243,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         } else{
             for(int i = 0, n = state.length; i < n; i++){
                 if(state[i] == LIVE && e.equals(vals[i])){
-                    state[i] = TOMBSTONE;
-                    vals[i] = null;
+                    shiftDelete(i);
                     size--;
                     return true;
                 }
@@ -375,8 +364,7 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
         public void remove(){
             if(lastSlot < 0)
                 throw new IllegalStateException();
-            state[lastSlot] = TOMBSTONE;
-            vals[lastSlot] = null;
+            shiftDelete(cursor = lastSlot);
             size--;
             lastSlot = -1;
         }
@@ -385,14 +373,14 @@ public class HashGrid2_5<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public void compute(int x, int y, UnaryOperator<E> operator){
         long key = pack(x, y);
-        int i = findSlotForInsert(key);
+        int i = findSlot(key);
         if(i >= 0){
             vals[i] = operator.apply((E) vals[i]);
         } else{
             i = ~i;
-            if(state[i] != TOMBSTONE && size >= threshold){
+            if(size >= threshold){
                 resize();
-                i = ~findSlotForInsert(key);
+                i = ~findSlot(key);
             }
             keys[i] = key;
             vals[i] = operator.apply(null);

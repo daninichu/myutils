@@ -87,6 +87,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
     private int findSlot(long key){
         int mask = keys.length - 1;
         int i = hash(key) & mask;
+        int start = i;
         while(true){
             byte s = state[i];
             if(s == EMPTY)
@@ -94,6 +95,8 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
             if(s == LIVE && keys[i] == key)
                 return i;
             i = (i + 1) & mask;
+            if(i == start)
+                return -1;
         }
     }
 
@@ -103,6 +106,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
         int mask = state.length - 1;
         int i = hash(key) & mask;
+        int start = i;
         int tombstone = -1;
         while(true){
             byte s = state[i];
@@ -113,6 +117,8 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
             if(s == TOMBSTONE && tombstone < 0)
                 tombstone = i;
             i = (i + 1) & mask;
+            if(i == start)
+                return ~tombstone;
         }
     }
 
@@ -141,6 +147,7 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
         int mask = state.length - 1;
         int i = hash(key) & mask;
+        int start = i;
         while(true){
             byte s = state[i];
             if(s == EMPTY)
@@ -153,6 +160,8 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
                 return oldValue;
             }
             i = (i + 1) & mask;
+            if(i == start)
+                return null;
         }
     }
 
