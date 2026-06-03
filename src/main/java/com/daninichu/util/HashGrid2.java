@@ -78,10 +78,6 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
         return (int) (key ^ (key >>> 32));
     }
 
-    private int idealSlot(long key){
-        return hash(key) & (keys.length - 1);
-    }
-
     /**
      * Distance from initial bucket: how many slots the key at {@code slot}
      * has travelled from its ideal position.
