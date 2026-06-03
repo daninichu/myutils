@@ -25,15 +25,32 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     private int size, threshold;
     private final float loadFactor;
 
+    /**
+     * Constructs an empty {@code HashGrid} with a default initial capacity of 16
+     * and a default load factor of 0.75.
+     */
     public HashGrid(){
         this.loadFactor = 0.75f;
         init(16);
     }
 
+    /**
+     * Constructs an empty {@code HashGrid} with the specified initial capacity
+     * and a default load factor of 0.75.
+     * @param initialCapacity The number of entries this grid can initially hold.
+     * @throws IllegalArgumentException if {@code initialCapacity} is less than 2.
+     */
     public HashGrid(int initialCapacity){
         this(initialCapacity, 0.75f);
     }
 
+    /**
+     * Constructs an empty {@code HashGrid} with the specified initial capacity and load factor.
+     * @param initialCapacity The number of entries this grid can initially hold.
+     * @param loadFactor The fraction of the table capacity that may be occupied before a resize occurs.
+     * @throws IllegalArgumentException if {@code initialCapacity} is less than 2,
+     *         or if {@code loadFactor} does not satisfy {@code 0 < loadFactor && loadFactor < 1}.
+     */
     public HashGrid(int initialCapacity, float loadFactor){
         if(initialCapacity < 2)
             throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
@@ -132,24 +149,24 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         }
     }
 
-    private void shiftDelete(int hole){
+    private void shiftDelete(int deleted){
         boolean[] occupied = this.occupied;
         long[] keys = this.keys;
         Object[] values = this.values;
 
         int mask = occupied.length - 1;
-        int next = (hole + 1) & mask;
+        int next = (deleted + 1) & mask;
         while(occupied[next]){
             int home = hash(keys[next]) & mask;
-            if(((next - home) & mask) > ((hole - home) & mask)){
-                keys[hole] = keys[next];
-                values[hole] = values[next];
-                hole = next;
+            if(((next - home) & mask) > ((deleted - home) & mask)){
+                keys[deleted] = keys[next];
+                values[deleted] = values[next];
+                deleted = next;
             }
             next = (next + 1) & mask;
         }
-        occupied[hole] = false;
-        values[hole] = null;
+        occupied[deleted] = false;
+        values[deleted] = null;
     }
 
     private void resize(){
@@ -159,7 +176,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
         int oldCap = keys.length;
         int newCap = oldCap << 1;
-
+        if(newCap < 0){
+            throw new OutOfMemoryError("Capacity cannot grow any further");
+        }
         boolean[] occupied = this.occupied = new boolean[newCap];
         long[] keys = this.keys = new long[newCap];
         Object[] values = this.values = new Object[newCap];
@@ -203,10 +222,10 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public void setAll(Grid<? extends E> grid){
-        if(grid instanceof HashGrid<? extends E> other){
-            long[] keys = other.keys;
-            Object[] values = other.values;
-            boolean[] occupied = other.occupied;
+        if(grid instanceof HashGrid<? extends E> hashGrid){
+            boolean[] occupied = hashGrid.occupied;
+            long[] keys = hashGrid.keys;
+            Object[] values = hashGrid.values;
 
             for(int i = 0, n = occupied.length; i < n; i++){
                 if(occupied[i])
@@ -417,5 +436,32 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             }
         }
         return h;
+    }
+
+    @Override
+    public void compute(int x, int y, UnaryOperator<E> operator){
+        long key = pack(x, y);
+        int i = findSlot(key);
+        if(i >= 0){
+            E e = operator.apply((E) values[i]);
+            if(e == null){
+                shiftDelete(i);
+                size--;
+            } else
+                values[i] = e;
+        } else{
+            E e = operator.apply(null);
+            if(e != null){
+                i = ~i;
+                if(size >= threshold){
+                    resize();
+                    i = ~findSlot(key);
+                }
+                keys[i] = key;
+                values[i] = e;
+                occupied[i] = true;
+                size++;
+            }
+        }
     }
 }
