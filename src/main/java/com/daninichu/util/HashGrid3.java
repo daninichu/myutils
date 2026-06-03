@@ -7,57 +7,111 @@ import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
- * A hash-based Grid backed by a custom open-addressing hash table with Robin Hood linear probing.
+ * A hash-based Grid backed by a Swiss Table (SWAR) open-addressing hash table.
  * <p>
- * Keys are stored as packed {@code long}s (x in the high 32 bits, y in the low 32 bits).
- * Slot state is tracked in a parallel {@code byte[]} so no key value is reserved as a sentinel.
+ * <h3>Design</h3>
+ * Each slot has a 1-byte control byte stored in a flat {@code byte[]} parallel to the key/value
+ * arrays. Control bytes have three states:
+ * <ul>
+ *   <li>{@code EMPTY   = 0xFF} — slot has never been written.</li>
+ *   <li>{@code DELETED = 0x80} — slot was occupied but has been deleted (tombstone).</li>
+ *   <li>{@code 0x00..0x7F} — slot is live; the byte holds the low 7 bits of the key's hash
+ *       (the "H2 fingerprint").</li>
+ * </ul>
+ *
+ * <h3>Group probing (SWAR)</h3>
+ * Control bytes are probed in groups of {@value #GROUP} using {@code long} bitmask arithmetic
+ * that mimics SIMD: a single {@code matchByte} call checks all 8 bytes in a group simultaneously,
+ * returning a bitmask with bit 7 set for each matching slot. This typically resolves a lookup
+ * in one or two group loads with zero full-key comparisons for absent keys.
  * <p>
- * Robin Hood insertion: when inserting a key K at slot i, if the resident key R has a shorter
- * probe distance (DIB) than K, K evicts R and continues inserting R. This equalises probe
- * lengths across all entries, bounding worst-case lookup cost.
- * <p>
- * As a result of the reduced variance, tombstone-free deletion via backward shift is viable.
- * Deleted slots are immediately reclaimed rather than marked, so the table never degrades
- * under mixed insert/delete workloads.
+ * The table capacity is always a multiple of {@value #GROUP} so group reads never straddle
+ * a capacity boundary.
+ *
+ * <h3>Two-level hashing</h3>
+ * A 64-bit hash {@code h} is split into:
+ * <ul>
+ *   <li>{@code H1 = h >>> 7} — selects the starting group index.</li>
+ *   <li>{@code H2 = h & 0x7F} — the fingerprint written into the control byte on insertion.</li>
+ * </ul>
+ *
+ * <h3>Load factor</h3>
+ * Capped at 0.875 (7/8 of capacity). Swiss Tables tolerate high load because the fingerprint
+ * filter eliminates most full-key comparisons before they happen.
  * <p>
  * Null values are permitted.
  */
 @SuppressWarnings("unchecked")
 public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
-    private static final byte EMPTY = 0;
-    private static final byte LIVE = 1;
 
-    private static final int DEFAULT_CAPACITY = 16;
-    private static final float LOAD_FACTOR = 0.9f;
+    // -------------------------------------------------------------------------
+    // Control byte constants
+    // -------------------------------------------------------------------------
 
-    private long[] keys;
-    private Object[] values;
-    private byte[] state;
-    private int size;
-    private int threshold;
+    private static final byte EMPTY   = (byte) 0xFF;
+    private static final byte DELETED = (byte) 0x80;
+
+    // -------------------------------------------------------------------------
+    // SWAR constants (operate on 8 control bytes packed into a long, little-endian)
+    // -------------------------------------------------------------------------
+
+    /** One copy of a byte value broadcast across all 8 bytes of a long. */
+    private static final long BROADCAST  = 0x0101_0101_0101_0101L;
+    /** Bit 7 of every byte. */
+    private static final long SIGN_BITS  = 0x8080_8080_8080_8080L;
+
+    // -------------------------------------------------------------------------
+    // Group size
+    // -------------------------------------------------------------------------
+
+    /** Number of slots per group — must equal 8 (one long). */
+    private static final int GROUP      = 8;
+    private static final int GROUP_MASK = GROUP - 1;
+
+    // -------------------------------------------------------------------------
+    // Sizing
+    // -------------------------------------------------------------------------
+
+    private static final int   DEFAULT_GROUPS = 4;          // 32 slots
+    private static final float LOAD_FACTOR    = 0.875f;     // 7/8
+
+    // -------------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------------
+
+    /** Flat control byte array. Length is always a multiple of GROUP. */
+    private byte[]   ctrl;
+    private long[]   keys;
+    private Object[] vals;
+    private int      numGroups;
+    private int      size;
+    private int      threshold;
 
     // -------------------------------------------------------------------------
     // Constructors
     // -------------------------------------------------------------------------
 
     public HashGrid3(){
-        init(DEFAULT_CAPACITY);
+        init(DEFAULT_GROUPS);
     }
 
     public HashGrid3(int initialCapacity){
-        init(tableSizeFor(initialCapacity));
+        init(groupsFor(initialCapacity));
     }
 
     public HashGrid3(Grid<? extends E> grid){
-        init(DEFAULT_CAPACITY);
+        init(DEFAULT_GROUPS);
         setAll(grid);
     }
 
-    private void init(int capacity){
-        keys = new long[capacity];
-        values = new Object[capacity];
-        state = new byte[capacity];
-        threshold = (int)(capacity * LOAD_FACTOR);
+    private void init(int groups){
+        numGroups = groups;
+        int cap   = groups * GROUP;
+        ctrl      = new byte[cap];
+        keys      = new long[cap];
+        vals      = new Object[cap];
+        Arrays.fill(ctrl, EMPTY);
+        threshold = (int)(cap * LOAD_FACTOR);
     }
 
     // -------------------------------------------------------------------------
@@ -65,169 +119,179 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
     // -------------------------------------------------------------------------
 
     private static long pack(int x, int y){
-        return (long) x << 32 | y & 0xFFFFFFFFL;
+        return ((long) x << 32) | (y & 0xFFFFFFFFL);
     }
 
-    private static int unpackX(long key){
-        return (int) (key >>> 32);
-    }
-
-    private static int unpackY(long key){
-        return (int) key;
-    }
+    private static int unpackX(long key){ return (int)(key >>> 32); }
+    private static int unpackY(long key){ return (int) key; }
 
     // -------------------------------------------------------------------------
-    // Hashing
+    // Hashing & fingerprint split
     // -------------------------------------------------------------------------
 
-    private static int hash(long key){
+    private static long hash(long key){
         key ^= key >>> 33;
         key *= 0xff51afd7ed558ccdL;
         key ^= key >>> 33;
-        return (int) (key ^ (key >>> 32));
+        return key;
     }
 
-    private int idealSlot(long key){
-        return hash(key) & (keys.length - 1);
+    /** H1: selects the starting slot (group-aligned). */
+    private int h1(long h){ return (int)(h >>> 7) & (capacity() - 1); }
+
+    /** H2: 7-bit fingerprint stored in the control byte. Always in 0x00..0x7F. */
+    private static byte h2(long h){ return (byte)(h & 0x7F); }
+
+    private int capacity(){ return numGroups * GROUP; }
+
+    // -------------------------------------------------------------------------
+    // SWAR group operations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads 8 control bytes starting at {@code groupStart} as a little-endian long.
+     */
+    private long loadGroup(int groupStart){
+        long v = 0;
+        byte[] c = ctrl;
+        for(int i = 0; i < GROUP; i++)
+            v |= (c[groupStart + i] & 0xFFL) << (i * 8);
+        return v;
     }
 
     /**
-     * Distance from initial bucket: how many slots the key at {@code slot}
-     * has travelled from its ideal position.
+     * Returns a bitmask with bit 7 set at each byte position where the control byte equals {@code b}.
+     * All other bits are 0.
      */
-    private int dib(int slot){
-        return (slot - idealSlot(keys[slot]) + keys.length) & (keys.length - 1);
+    private static long matchByte(long group, int b){
+        long x = group ^ (BROADCAST * (b & 0xFFL));
+        return (x - BROADCAST) & ~x & SIGN_BITS;
+    }
+
+    /**
+     * Returns a bitmask with bit 7 set at each byte position where the control byte is EMPTY.
+     */
+    private static long matchEmpty(long group){
+        // EMPTY = 0xFF. Bit 7 is set and bits 0-6 are all set.
+        // A slot is empty iff (byte & 0x80) != 0 AND (byte & 0x7F) == 0x7F.
+        return group & (group << 1) & SIGN_BITS;
+    }
+
+    /**
+     * Returns a bitmask with bit 7 set at each byte position where the slot is empty or deleted.
+     */
+    private static long matchEmptyOrDeleted(long group){
+        // EMPTY = 0xFF (bit7=1, bit6=1), DELETED = 0x80 (bit7=1, bit6=0), LIVE = 0x00..0x7F (bit7=0).
+        return group & SIGN_BITS;
+    }
+
+    /**
+     * Extracts the index (0-7) of the lowest set bit-7 from a match bitmask, or -1 if none.
+     */
+    private static int firstMatch(long mask){
+        if(mask == 0) return -1;
+        return Long.numberOfTrailingZeros(mask) >>> 3;
+    }
+
+    /**
+     * Clears the lowest set bit-7 from a match bitmask (advances to next match).
+     */
+    private static long clearFirst(long mask){
+        return mask & (mask - 1);
     }
 
     // -------------------------------------------------------------------------
-    // Lookup
+    // Core lookup
     // -------------------------------------------------------------------------
 
     /**
      * Returns the slot index of {@code key}, or -1 if absent.
-     * <p>
-     * Robin Hood invariant: every key in a probe chain has DIB >= the previous one.
-     * So if we ever encounter a key whose DIB is less than our own probe distance,
-     * the target key cannot be further in the chain — stop early.
      */
     private int findSlot(long key){
-        long[] keys = this.keys;
-        byte[] state = this.state;
+        long h   = hash(key);
+        byte fp  = h2(h);
+        int  cap = capacity();
+        int  i   = h1(h) & ~GROUP_MASK;    // align to group boundary
 
-        int len = keys.length;
-        int mask = len - 1;
-        int i = hash(key) & mask;
-        int probe = 0;
         while(true){
-            if(state[i] == EMPTY)
-                return -1;
-            long other = keys[i];
-            if(other == key)
-                return i;
-            int dib = (i - (hash(other) & mask) + len) & mask;
-            if(dib < probe)
-                return -1;
-            i = (i + 1) & mask;
-            probe++;
+            long group = loadGroup(i);
+            long hits  = matchByte(group, fp);
+            while(hits != 0){
+                int offset = firstMatch(hits);
+                int slot   = (i + offset) & (cap - 1);
+                if(keys[slot] == key) return slot;
+                hits = clearFirst(hits);
+            }
+            if(firstMatch(matchEmpty(group)) >= 0) return -1;
+            i = (i + GROUP) & (cap - 1);
         }
     }
 
     // -------------------------------------------------------------------------
-    // Insertion (Robin Hood)
+    // Insertion
     // -------------------------------------------------------------------------
 
-    /**
-     * Inserts or updates {@code key -> value}.
-     * Returns the previous value, or null if absent.
-     */
     private E rawPut(long key, E value){
         if(size >= threshold){
             resize();
         }
-        int mask = keys.length - 1;
-        int i = hash(key) & mask;
-        int probe = 0;
 
-        long insertKey = key;
-        Object insertVal = value;
+        long h   = hash(key);
+        byte fp  = h2(h);
+        int  cap = capacity();
+        int  i   = h1(h) & ~GROUP_MASK;
+        int  insertSlot = -1;
 
         while(true){
-            if(state[i] == EMPTY){
-                keys[i] = insertKey;
-                values[i] = insertVal;
-                state[i] = LIVE;
+            long group = loadGroup(i);
+
+            // Check for existing key or a free slot to insert into.
+            long hits = matchByte(group, fp);
+            while(hits != 0){
+                int offset = firstMatch(hits);
+                int slot   = (i + offset) & (cap - 1);
+                if(keys[slot] == key){
+                    E old    = (E) vals[slot];
+                    vals[slot] = value;
+                    return old;
+                }
+                hits = clearFirst(hits);
+            }
+
+            // Record first available slot (empty or deleted) for insertion.
+            if(insertSlot < 0){
+                long avail = matchEmptyOrDeleted(group);
+                if(avail != 0){
+                    int offset = firstMatch(avail);
+                    insertSlot = (i + offset) & (cap - 1);
+                }
+            }
+
+            // If this group has an empty slot, the key is definitely not in the table.
+            if(firstMatch(matchEmpty(group)) >= 0){
+                ctrl[insertSlot] = fp;
+                keys[insertSlot] = key;
+                vals[insertSlot] = value;
                 size++;
                 return null;
             }
 
-            if(keys[i] == insertKey){
-                // Key already present — update value only, no size change.
-                // If we swapped along the way, we need to restore: but we only
-                // swap when dib(i) < probe, meaning the slot's key != insertKey
-                // (we'd have matched earlier). So this branch is only reached
-                // before any swap — safe to return old value directly.
-                E oldValue = (E) values[i];
-                values[i] = insertVal;
-                return oldValue;
-            }
-
-            // Robin Hood: if the resident is "richer" (closer to home) than us, evict it.
-            int residentDib = dib(i);
-            if(residentDib < probe){
-                // Swap: we take this slot, and continue inserting the evicted entry.
-                long tmpKey = keys[i];
-                Object tmpVal = values[i];
-                keys[i] = insertKey;
-                values[i] = insertVal;
-                insertKey = tmpKey;
-                insertVal = tmpVal;
-                probe = residentDib;
-            }
-
-            i = (i + 1) & mask;
-            probe++;
+            i = (i + GROUP) & (cap - 1);
         }
     }
 
     // -------------------------------------------------------------------------
-    // Deletion (backward shift — no tombstones needed)
+    // Deletion
     // -------------------------------------------------------------------------
 
-    /**
-     * Removes {@code key} and returns its value, or null if absent.
-     * <p>
-     * After removing a slot, entries immediately following it are shifted
-     * backward as long as they would benefit (i.e. their DIB > 0).
-     * This keeps the Robin Hood invariant intact without tombstones.
-     */
     private E rawRemove(long key){
         int slot = findSlot(key);
-        if(slot < 0){
-            return null;
-        }
-        E old = (E) values[slot];
-        backwardShift(slot);
+        if(slot < 0) return null;
+        E old       = (E) vals[slot];
+        ctrl[slot]  = DELETED;
+        vals[slot]  = null;
         size--;
         return old;
-    }
-
-    private void backwardShift(int slot){
-        int mask = keys.length - 1;
-        int cur = slot;
-        while(true){
-            int next = (cur + 1) & mask;
-            if(state[next] == EMPTY || dib(next) == 0){
-                // Next slot is empty or is already at its ideal position — stop.
-                state[cur] = EMPTY;
-                values[cur] = null;
-                return;
-            }
-            // Pull next slot back by one.
-            keys[cur] = keys[next];
-            values[cur] = values[next];
-            state[cur] = LIVE;
-            cur = next;
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -235,23 +299,20 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
     // -------------------------------------------------------------------------
 
     private void resize(){
-        int newCap = keys.length << 1;
-        long[] oldKeys = keys;
-        Object[] oldVals = values;
-        byte[] oldState = state;
-        init(newCap);
-        size = 0;
-        for(int i = 0; i < oldKeys.length; i++){
-            if(oldState[i] == LIVE)
+        byte[]   oldCtrl = ctrl;
+        long[]   oldKeys = keys;
+        Object[] oldVals = vals;
+        int      oldCap  = capacity();
+        init(numGroups * 2);
+        for(int i = 0; i < oldCap; i++){
+            if(oldCtrl[i] != EMPTY && oldCtrl[i] != DELETED)
                 rawPut(oldKeys[i], (E) oldVals[i]);
         }
     }
 
-    private static int tableSizeFor(int n){
-        if(n <= 1)
-            return DEFAULT_CAPACITY;
-        n = Integer.highestOneBit(n - 1) << 1;
-        return Math.max(n, DEFAULT_CAPACITY);
+    private static int groupsFor(int capacity){
+        int groups = Math.max(DEFAULT_GROUPS, Integer.highestOneBit((int) Math.ceil(capacity / LOAD_FACTOR)));
+        return groups < capacity ? groups * 2 : groups;
     }
 
     // -------------------------------------------------------------------------
@@ -261,7 +322,7 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public E get(int x, int y){
         int slot = findSlot(pack(x, y));
-        return slot >= 0? (E) values[slot] : null;
+        return slot >= 0 ? (E) vals[slot] : null;
     }
 
     @Override
@@ -284,9 +345,10 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public void setAll(Grid<? extends E> grid){
         if(grid instanceof HashGrid3<? extends E> other){
-            for(int i = 0; i < other.keys.length; i++){
-                if(other.state[i] == LIVE)
-                    rawPut(other.keys[i], (E) other.values[i]);
+            int otherCap = other.capacity();
+            for(int i = 0; i < otherCap; i++){
+                if(other.ctrl[i] != EMPTY && other.ctrl[i] != DELETED)
+                    rawPut(other.keys[i], (E) other.vals[i]);
             }
         } else{
             for(Cell<? extends E> cell : grid.cells())
@@ -307,9 +369,11 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public boolean removeValue(E e){
-        for(int i = 0; i < state.length; i++){
-            if(state[i] == LIVE && Objects.equals(e, values[i])){
-                backwardShift(i);
+        int cap = capacity();
+        for(int i = 0; i < cap; i++){
+            if(ctrl[i] != EMPTY && ctrl[i] != DELETED && Objects.equals(e, vals[i])){
+                ctrl[i] = DELETED;
+                vals[i] = null;
                 size--;
                 return true;
             }
@@ -330,8 +394,9 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public boolean containsValue(E e){
-        for(int i = 0; i < state.length; i++){
-            if(state[i] == LIVE && Objects.equals(e, values[i]))
+        int cap = capacity();
+        for(int i = 0; i < cap; i++){
+            if(ctrl[i] != EMPTY && ctrl[i] != DELETED && Objects.equals(e, vals[i]))
                 return true;
         }
         return false;
@@ -339,8 +404,9 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public Point pointOf(E e){
-        for(int i = 0; i < state.length; i++){
-            if(state[i] == LIVE && Objects.equals(e, values[i]))
+        int cap = capacity();
+        for(int i = 0; i < cap; i++){
+            if(ctrl[i] != EMPTY && ctrl[i] != DELETED && Objects.equals(e, vals[i]))
                 return new Point(unpackX(keys[i]), unpackY(keys[i]));
         }
         return null;
@@ -348,14 +414,14 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public void clear(){
-        Arrays.fill(state, EMPTY);
-        Arrays.fill(values, null);
+        Arrays.fill(ctrl, EMPTY);
+        Arrays.fill(vals, null);
         size = 0;
     }
 
     @Override
     public Iterable<Point> points(){
-        return () -> new HashGridIterator<Point>(){
+        return () -> new SwissIterator<>(){
             @Override
             protected Point produce(int slot){
                 return new Point(unpackX(keys[slot]), unpackY(keys[slot]));
@@ -365,32 +431,33 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public Iterable<Cell<E>> cells(){
-        return () -> new HashGridIterator<Cell<E>>(){
+        return () -> new SwissIterator<Cell<E>>(){
             @Override
             protected Cell<E> produce(int slot){
-                return new Cell<>(unpackX(keys[slot]), unpackY(keys[slot]), (E) values[slot]);
+                return new Cell<>(unpackX(keys[slot]), unpackY(keys[slot]), (E) vals[slot]);
             }
         };
     }
 
     @Override
     public Iterator<E> iterator(){
-        return new HashGridIterator<E>(){
+        return new SwissIterator<>(){
             @Override
             protected E produce(int slot){
-                return (E) values[slot];
+                return (E) vals[slot];
             }
         };
     }
 
-    private abstract class HashGridIterator<T> implements Iterator<T>{
-        private int cursor, lastSlot = -1;
+    private abstract class SwissIterator<T> implements Iterator<T>{
+        private int cursor   = 0;
+        private int lastSlot = -1;
 
         @Override
         public boolean hasNext(){
-            while(cursor < state.length){
-                if(state[cursor] == LIVE)
-                    return true;
+            int cap = capacity();
+            while(cursor < cap){
+                if(ctrl[cursor] != EMPTY && ctrl[cursor] != DELETED) return true;
                 cursor++;
             }
             return false;
@@ -398,8 +465,9 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
         @Override
         public T next(){
-            while(cursor < state.length){
-                if(state[cursor] == LIVE){
+            int cap = capacity();
+            while(cursor < cap){
+                if(ctrl[cursor] != EMPTY && ctrl[cursor] != DELETED){
                     lastSlot = cursor++;
                     return produce(lastSlot);
                 }
@@ -410,13 +478,10 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
         @Override
         public void remove(){
-            if(lastSlot < 0)
-                throw new IllegalStateException();
-            backwardShift(lastSlot);
+            if(lastSlot < 0) throw new IllegalStateException();
+            ctrl[lastSlot] = DELETED;
+            vals[lastSlot] = null;
             size--;
-            // Backward shift may have pulled a later entry into lastSlot.
-            // Step cursor back so hasNext()/next() re-examines it.
-            cursor = lastSlot;
             lastSlot = -1;
         }
 
@@ -428,7 +493,7 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
         long key  = pack(x, y);
         int  slot = findSlot(key);
         if(slot >= 0){
-            values[slot] = operator.apply((E) values[slot]);
+            vals[slot] = operator.apply((E) vals[slot]);
         } else{
             rawPut(key, operator.apply(null));
         }
@@ -438,8 +503,16 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
     // Size / conversion
     // -------------------------------------------------------------------------
 
-    public int size(){
-        return size;
+    public int size(){ return size; }
+
+    public java.util.HashMap<Point, E> toMap(){
+        int cap = capacity();
+        var map = new java.util.HashMap<Point, E>(size * 2);
+        for(int i = 0; i < cap; i++){
+            if(ctrl[i] != EMPTY && ctrl[i] != DELETED)
+                map.put(new Point(unpackX(keys[i]), unpackY(keys[i])), (E) vals[i]);
+        }
+        return map;
     }
 
     // -------------------------------------------------------------------------
@@ -448,32 +521,27 @@ public class HashGrid3<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public boolean equals(Object obj){
-        if(this == obj)
-            return true;
-        if(!(obj instanceof HashGrid3<?> other))
-            return false;
-        if(size != other.size)
-            return false;
-        for(int i = 0; i < state.length; i++){
-            if(state[i] != LIVE)
-                continue;
+        if(this == obj) return true;
+        if(!(obj instanceof HashGrid3<?> other)) return false;
+        if(size != other.size) return false;
+        int cap = capacity();
+        for(int i = 0; i < cap; i++){
+            if(ctrl[i] == EMPTY || ctrl[i] == DELETED) continue;
             int j = other.findSlot(keys[i]);
-            if(j < 0)
-                return false;
-            if(!Objects.equals(values[i], other.values[j]))
-                return false;
+            if(j < 0) return false;
+            if(!Objects.equals(vals[i], other.vals[j])) return false;
         }
         return true;
     }
 
     @Override
     public int hashCode(){
-        int h = 0;
-        for(int i = 0; i < state.length; i++){
-            if(state[i] != LIVE)
-                continue;
+        int h   = 0;
+        int cap = capacity();
+        for(int i = 0; i < cap; i++){
+            if(ctrl[i] == EMPTY || ctrl[i] == DELETED) continue;
             long k = keys[i];
-            h += (int)(k ^ (k >>> 32)) ^ Objects.hashCode(values[i]);
+            h += (int)(k ^ (k >>> 32)) ^ Objects.hashCode(vals[i]);
         }
         return h;
     }

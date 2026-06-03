@@ -7,53 +7,56 @@ import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
- * A hash-based Grid backed by a custom open-addressing hash table with linear probing.
+ * A hash-based Grid backed by a custom open-addressing hash table with Robin Hood linear probing.
  * <p>
- * Keys are stored as packed {@code long}s (x in the high 32 bits, y in the low 32 bits),
- * avoiding {@link Point} allocation on lookups. Slot occupied (empty / live / tombstone)
- * is tracked in a parallel {@code byte[]} so that no key value is ever reserved as a sentinel —
- * every possible {@code (x,y)} coordinate is a valid key.
+ * Keys are stored as packed {@code long}s (x in the high 32 bits, y in the low 32 bits).
+ * Slot state is tracked in a parallel {@code byte[]} so no key value is reserved as a sentinel.
  * <p>
- * The table size is always a power of two so slot indices can be computed with a bitwise AND.
+ * Robin Hood insertion: when inserting a key K at slot i, if the resident key R has a shorter
+ * probe distance (DIB) than K, K evicts R and continues inserting R. This equalises probe
+ * lengths across all entries, bounding worst-case lookup cost.
+ * <p>
+ * As a result of the reduced variance, tombstone-free deletion via backward shift is viable.
+ * Deleted slots are immediately reclaimed rather than marked, so the table never degrades
+ * under mixed insert/delete workloads.
  * <p>
  * Null values are permitted.
  */
 @SuppressWarnings("unchecked")
 public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
-    private boolean[] occupied;
+    private static final byte EMPTY = 0;
+    private static final byte LIVE = 1;
+
+    private static final int DEFAULT_CAPACITY = 16;
+    private static final float LOAD_FACTOR = 0.9f;
+
+    private byte[] state;
+    private int[] dib;
     private long[] keys;
     private Object[] values;
-    private int size, threshold;
-    private final float loadFactor;
+
+    private int size;
+    private int threshold;
 
     public HashGrid2(){
-        this.loadFactor = 0.75f;
-        init(16);
+        init(DEFAULT_CAPACITY);
     }
 
     public HashGrid2(int initialCapacity){
-        this(initialCapacity, 0.75f);
-    }
-
-    public HashGrid2(int initialCapacity, float loadFactor){
-        if(initialCapacity < 2)
-            throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
-        if(!(0 < loadFactor && loadFactor < 1))
-            throw new IllegalArgumentException("Illegal load factor: " + loadFactor);
-        this.loadFactor = loadFactor;
-        init(Integer.highestOneBit(initialCapacity - 1) << 1);
+        init(tableSizeFor(initialCapacity));
     }
 
     public HashGrid2(Grid<? extends E> grid){
-        this();
+        init(DEFAULT_CAPACITY);
         setAll(grid);
     }
 
     private void init(int capacity){
-        occupied = new boolean[capacity];
         keys = new long[capacity];
         values = new Object[capacity];
-        threshold = (int) (capacity * loadFactor);
+        state = new byte[capacity];
+        dib = new int[capacity];
+        threshold = (int)(capacity * LOAD_FACTOR);
     }
 
     private static long pack(int x, int y){
@@ -75,120 +78,167 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
         return (int) (key ^ (key >>> 32));
     }
 
+    private int idealSlot(long key){
+        return hash(key) & (keys.length - 1);
+    }
+
     /**
-     * Returns the slot index of {@code key} if present,
-     * or {@code ~insertSlot} (a negative value) if absent.
-     * The insert slot is the first empty slot.
+     * Distance from initial bucket: how many slots the key at {@code slot}
+     * has travelled from its ideal position.
+     */
+    private int dib(int slot){
+        int n = keys.length;
+        return (slot - (hash(keys[slot]) & (n - 1)) + n) & (n - 1);
+    }
+
+    /**
+     * Returns the slot index of {@code key}, or -1 if absent.
+     * <p>
+     * Robin Hood invariant: every key in a probe chain has DIB >= the previous one.
+     * So if we ever encounter a key whose DIB is less than our own probe distance,
+     * the target key cannot be further in the chain — stop early.
      */
     private int findSlot(long key){
-        boolean[] occupied = this.occupied;
         long[] keys = this.keys;
+        byte[] state = this.state;
 
-        int mask = occupied.length - 1;
+        int len = keys.length;
+        int mask = len - 1;
         int i = hash(key) & mask;
+        int probe = 0;
         while(true){
-            if(!occupied[i])
-                return ~i;
-            if(keys[i] == key)
+            if(state[i] == EMPTY)
+                return -1;
+            long other = keys[i];
+            if(other == key)
                 return i;
+            if(dib[i] < probe)
+                return -1;
             i = (i + 1) & mask;
+            probe++;
         }
     }
 
-    private E rawPut(long key, E value){
-        int i = findSlot(key);
-        if(i >= 0){
-            E oldValue = (E) values[i];
-            values[i] = value;
-            return oldValue;
-        }
-        i = ~i;
+    /**
+     * Inserts or updates {@code key -> value}.
+     * Returns the previous value, or null if absent.
+     */
+    private E rawPut(long key, Object value){
         if(size >= threshold){
             resize();
-            i = ~findSlot(key);
         }
-        occupied[i] = true;
-        keys[i] = key;
-        values[i] = value;
-        size++;
-        return null;
-    }
-
-    private E rawRemove(long key){
-        boolean[] occupied = this.occupied;
-        long[] keys = this.keys;
-
-        int mask = occupied.length - 1;
+        int mask = keys.length - 1;
         int i = hash(key) & mask;
+        int probe = 0;
+
+        long insertKey = key;
+        Object insertVal = value;
+
         while(true){
-            if(!occupied[i])
+            if(state[i] == EMPTY){
+                keys[i] = insertKey;
+                values[i] = insertVal;
+                state[i] = LIVE;
+                dib[i] = probe;
+                size++;
                 return null;
-            if(keys[i] == key){
+            }
+
+            if(keys[i] == insertKey){
                 E oldValue = (E) values[i];
-                shiftDelete(i);
-                size--;
+                values[i] = insertVal;
                 return oldValue;
             }
+
+            // Robin Hood: if the resident is "richer" (closer to home) than us, evict it.
+            int residentDib = dib[i];
+            if(residentDib < probe){
+                // Swap: we take this slot, and continue inserting the evicted entry.
+                long tmpKey = keys[i];
+                Object tmpVal = values[i];
+                keys[i] = insertKey;
+                values[i] = insertVal;
+                dib[i] = probe;
+                insertKey = tmpKey;
+                insertVal = tmpVal;
+                probe = residentDib;
+            }
+
             i = (i + 1) & mask;
+            probe++;
         }
     }
 
-    private void shiftDelete(int hole){
-        boolean[] occupied = this.occupied;
-        long[] keys = this.keys;
-        Object[] values = this.values;
-
-        int mask = occupied.length - 1;
-        int next = (hole + 1) & mask;
-        while(occupied[next]){
-            int home = hash(keys[next]) & mask;
-            if(((next - home) & mask) > ((hole - home) & mask)){
-                keys[hole] = keys[next];
-                values[hole] = values[next];
-                hole = next;
-            }
-            next = (next + 1) & mask;
+    /**
+     * Removes {@code key} and returns its value, or null if absent.
+     * <p>
+     * After removing a slot, entries immediately following it are shifted
+     * backward as long as they would benefit (i.e. their DIB > 0).
+     * This keeps the Robin Hood invariant intact without tombstones.
+     */
+    private E rawRemove(long key){
+        int slot = findSlot(key);
+        if(slot < 0){
+            return null;
         }
-        occupied[hole] = false;
-        values[hole] = null;
+        E old = (E) values[slot];
+        backwardShift(slot);
+        size--;
+        return old;
+    }
+
+    private void backwardShift(int slot){
+        int mask = keys.length - 1;
+        int cur = slot;
+        while(true){
+            int next = (cur + 1) & mask;
+            if(state[next] == EMPTY || dib[next] == 0){
+                // Next slot is empty or is already at its ideal position — stop.
+                state[cur] = EMPTY;
+                values[cur] = null;
+                return;
+            }
+            // Pull next slot back by one.
+            keys[cur] = keys[next];
+            values[cur] = values[next];
+            state[cur] = LIVE;
+            cur = next;
+        }
     }
 
     private void resize(){
-        boolean[] oldOccupied = this.occupied;
-        long[] oldKeys = this.keys;
-        Object[] oldValues = this.values;
+        byte[] oldState = state;
+        long[] oldKeys = keys;
+        Object[] oldVals = values;
 
-        int oldCap = keys.length;
-        int newCap = oldCap << 1;
-
-        boolean[] occupied = this.occupied = new boolean[newCap];
-        long[] keys = this.keys = new long[newCap];
-        Object[] values = this.values = new Object[newCap];
-        threshold = (int) (newCap * loadFactor);
-
-        int mask = newCap - 1;
-        for(int i = 0; i < oldCap; i++){
-            if(oldOccupied[i]){
-                long k = oldKeys[i];
-                int j = hash(k) & mask;
-                while(occupied[j]){
-                    j = (j + 1) & mask;
-                }
-                occupied[j] = true;
-                keys[j] = k;
-                values[j] = oldValues[i];
-            }
+        int oldCap = oldState.length;
+        init(oldCap << 1);
+        for(int i = size = 0; i < oldCap; i++){
+            if(oldState[i] == LIVE)
+                rawPut(oldKeys[i], oldVals[i]);
         }
     }
 
+    private static int tableSizeFor(int n){
+        if(n <= 1)
+            return DEFAULT_CAPACITY;
+        n = Integer.highestOneBit(n - 1) << 1;
+        return Math.max(n, DEFAULT_CAPACITY);
+    }
+
+    // -------------------------------------------------------------------------
+    // Grid implementation
+    // -------------------------------------------------------------------------
+
     @Override
     public E get(int x, int y){
-        int i = findSlot(pack(x, y));
-        return i >= 0? (E) values[i] : null;
+        int slot = findSlot(pack(x, y));
+        return slot >= 0? (E) values[slot] : null;
     }
 
     @Override
     public E get(Point p){
+        Objects.requireNonNull(p);
         return get(p.x, p.y);
     }
 
@@ -199,19 +249,16 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public E set(Point p, E e){
+        Objects.requireNonNull(p);
         return rawPut(pack(p.x, p.y), e);
     }
 
     @Override
     public void setAll(Grid<? extends E> grid){
         if(grid instanceof HashGrid2<? extends E> other){
-            long[] keys = other.keys;
-            Object[] values = other.values;
-            boolean[] occupied = other.occupied;
-
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i])
-                    rawPut(keys[i], (E) values[i]);
+            for(int i = 0; i < other.keys.length; i++){
+                if(other.state[i] == LIVE)
+                    rawPut(other.keys[i], (E) other.values[i]);
             }
         } else{
             for(Cell<? extends E> cell : grid.cells())
@@ -226,29 +273,17 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public E removePoint(Point p){
+        Objects.requireNonNull(p);
         return rawRemove(pack(p.x, p.y));
     }
 
     @Override
     public boolean removeValue(E e){
-        boolean[] occupied = this.occupied;
-        Object[] values = this.values;
-
-        if(e == null){
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && values[i] == null){
-                    shiftDelete(i);
-                    size--;
-                    return true;
-                }
-            }
-        } else{
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && e.equals(values[i])){
-                    shiftDelete(i);
-                    size--;
-                    return true;
-                }
+        for(int i = 0; i < state.length; i++){
+            if(state[i] == LIVE && Objects.equals(e, values[i])){
+                backwardShift(i);
+                size--;
+                return true;
             }
         }
         return false;
@@ -261,54 +296,31 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public boolean containsPoint(Point p){
+        Objects.requireNonNull(p);
         return findSlot(pack(p.x, p.y)) >= 0;
     }
 
     @Override
     public boolean containsValue(E e){
-        boolean[] occupied = this.occupied;
-        Object[] values = this.values;
-
-        if(e == null){
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && values[i] == null)
-                    return true;
-            }
-        } else{
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && e.equals(values[i]))
-                    return true;
-            }
+        for(int i = 0; i < state.length; i++){
+            if(state[i] == LIVE && Objects.equals(e, values[i]))
+                return true;
         }
         return false;
     }
 
     @Override
     public Point pointOf(E e){
-        boolean[] occupied = this.occupied;
-        Object[] values = this.values;
-
-        if(e == null){
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && values[i] == null){
-                    long key = keys[i];
-                    return new Point(unpackX(key), unpackY(key));
-                }
-            }
-        } else{
-            for(int i = 0, n = occupied.length; i < n; i++){
-                if(occupied[i] && e.equals(values[i])){
-                    long key = keys[i];
-                    return new Point(unpackX(key), unpackY(key));
-                }
-            }
+        for(int i = 0; i < state.length; i++){
+            if(state[i] == LIVE && Objects.equals(e, values[i]))
+                return new Point(unpackX(keys[i]), unpackY(keys[i]));
         }
         return null;
     }
 
     @Override
     public void clear(){
-        Arrays.fill(occupied, false);
+        Arrays.fill(state, EMPTY);
         Arrays.fill(values, null);
         size = 0;
     }
@@ -356,10 +368,10 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
         @Override
         public boolean hasNext(){
-            boolean[] occupied = HashGrid2.this.occupied;
+            byte[] occupied = HashGrid2.this.state;
             int n = occupied.length;
             while(cursor < n){
-                if(occupied[cursor])
+                if(occupied[cursor] == LIVE)
                     return true;
                 cursor++;
             }
@@ -370,28 +382,9 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
         public void remove(){
             if(lastSlot < 0)
                 throw new IllegalStateException();
-            shiftDelete(cursor = lastSlot);
+            backwardShift(cursor = lastSlot);
             size--;
             lastSlot = -1;
-        }
-    }
-
-    @Override
-    public void compute(int x, int y, UnaryOperator<E> operator){
-        long key = pack(x, y);
-        int i = findSlot(key);
-        if(i >= 0){
-            values[i] = operator.apply((E) values[i]);
-        } else{
-            i = ~i;
-            if(size >= threshold){
-                resize();
-                i = ~findSlot(key);
-            }
-            keys[i] = key;
-            values[i] = operator.apply(null);
-            occupied[i] = true;
-            size++;
         }
     }
 
@@ -401,40 +394,30 @@ public class HashGrid2<E> extends AbstractGrid<E> implements Grid<E>{
 
     @Override
     public boolean equals(Object obj){
-        if(this == obj){
+        if(this == obj)
             return true;
-        }
-        if(!(obj instanceof HashGrid2<?> hashGrid) || size != hashGrid.size){
+        if(!(obj instanceof HashGrid2<?> other) || size != other.size)
             return false;
-        }
-        boolean[] occupied = this.occupied;
-        long[] keys = this.keys;
-        Object[] values = this.values;
-        Object[] otherValues = hashGrid.values;
-
-        for(int i = 0, n = occupied.length; i < n; i++){
-            if(occupied[i]){
-                int j = hashGrid.findSlot(keys[i]);
-                if(j < 0 || !Objects.equals(values[i], otherValues[j]))
-                    return false;
-            }
+        for(int i = 0; i < state.length; i++){
+            if(state[i] != LIVE)
+                continue;
+            int j = other.findSlot(keys[i]);
+            if(j < 0)
+                return false;
+            if(!Objects.equals(values[i], other.values[j]))
+                return false;
         }
         return true;
     }
 
     @Override
     public int hashCode(){
-        boolean[] occupied = this.occupied;
-        long[] keys = this.keys;
-        Object[] values = this.values;
-
         int h = 0;
-        for(int i = 0, n = occupied.length; i < n; i++){
-            if(occupied[i]){
-                long k = keys[i];
-                int kh = (int) (k ^ (k >>> 32));
-                h += kh ^ Objects.hashCode(values[i]);
-            }
+        for(int i = 0; i < state.length; i++){
+            if(state[i] != LIVE)
+                continue;
+            long k = keys[i];
+            h += (int)(k ^ (k >>> 32)) ^ Objects.hashCode(values[i]);
         }
         return h;
     }

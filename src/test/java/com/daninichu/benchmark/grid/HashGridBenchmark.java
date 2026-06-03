@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 //		Mode.SampleTime,
 //		Mode.Throughput,
 })
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(		iterations = 2,	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(	iterations = 4, time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
@@ -24,23 +24,20 @@ public class HashGridBenchmark{
 		Main.benchmark(HashGridBenchmark.class);
 	}
 
-	HashGrid<Integer> grid;
-    HashGrid<Integer> filledGrid;
-	HashGrid2<Integer> setGrid2_5;
-    HashGrid2<Integer> filledGrid2_5;
-	HashGrid2<Integer> setGrid2;
-    HashGrid2<Integer> filledGrid2;
-	int n = 1000000;
-	int initCapGet = 2*n;
+	HashGrid2<Integer> setGrid3;
+    HashGrid2<Integer> filledGrid3;
+	HashGrid<Integer> setGrid2;
+    HashGrid<Integer> filledGrid2;
+	int n = 10000000;
+	int initCapGet = 2;
 
 	int[] x, y;
 //	Grid.Point[] points;
 
 	@Setup
 	public void setup() {
-//		filledGrid = new HashGrid<>(initCapGet);
-		filledGrid2_5 = new HashGrid2<>(initCapGet);
-		filledGrid2 = new HashGrid2<>(initCapGet);
+		filledGrid3 = new HashGrid2<>(initCapGet);
+		filledGrid2 = new HashGrid<>(initCapGet);
 		x = new int[n];
 		y = new int[n];
 //		points = new Grid.Point[n];
@@ -53,28 +50,25 @@ public class HashGridBenchmark{
 			this.x[i] = x;
 			this.y[i] = y;
 //			points[i] = new Grid.Point(x, y);
-//			filledGrid.set(x, y, i);
-			filledGrid2_5.set(x, y, i);
-			filledGrid2.set(x, y, i);
 
-//			Assertions.assertEquals(i+1, filledGrid2_5.size());
-//			Assertions.assertEquals(i+1, filledGrid2.size());
+			filledGrid3.set(x, y, i);
+			filledGrid2.set(x, y, i);
 		}
 	}
 	@Setup(Level.Iteration)
 	public void setup2(){
-		setGrid2_5 = new HashGrid2<>();
-		setGrid2 = new HashGrid2<>();
+		setGrid3 = new HashGrid2<>();
+		setGrid2 = new HashGrid<>();
 	}
 
 	@Benchmark
-	public void setGrid2_5(Blackhole bh) {
+	public void setGrid3(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
-			setGrid2_5.set(x[i], y[i], i);
+			setGrid3.set(x[i], y[i], i);
 		}
-		bh.consume(setGrid2_5);
+		bh.consume(setGrid3);
 	}
-//	@Benchmark
+	@Benchmark
 	public void setGrid2(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
 			setGrid2.set(x[i], y[i], i);
@@ -82,57 +76,39 @@ public class HashGridBenchmark{
 		bh.consume(setGrid2);
 	}
 
-//	@Benchmark
-	public void successfulGetGrid(Blackhole bh) {
+	@Benchmark
+	public void successfulGetGrid3(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
-			bh.consume(filledGrid.get(x[i], y[i]));
+			bh.consume(filledGrid3.get(x[i], y[i]));
 		}
 	}
 	@Benchmark
-	public void successfulGetGrid2_5(Blackhole bh) {
-		for (int i = 0; i < n; i++) {
-			bh.consume(filledGrid2_5.get(x[i], y[i]));
-		}
-	}
-//	@Benchmark
 	public void successfulGetGrid2(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
 			bh.consume(filledGrid2.get(x[i], y[i]));
 		}
 	}
 
-	//	@Benchmark
-	public void failedGetGrid(Blackhole bh) {
+	@Benchmark
+	public void failedGetGrid3(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
-			bh.consume(filledGrid.get(y[i], x[i]+1));
+			bh.consume(filledGrid3.get(y[i], x[i]+1));
 		}
 	}
 	@Benchmark
-	public void failedGetGrid2_5(Blackhole bh) {
-		for (int i = 0; i < n; i++) {
-			bh.consume(filledGrid2_5.get(y[i], x[i]+1));
-		}
-	}
-//	@Benchmark
 	public void failedGetGrid2(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
 			bh.consume(filledGrid2.get(y[i], x[i]+1));
 		}
 	}
 
-//	@Benchmark
-	public void removeGrid(Blackhole bh) {
+	@Benchmark
+	public void removeGrid3(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
-			bh.consume(filledGrid.removePoint(x[i], y[i]));
+			bh.consume(filledGrid3.removePoint(x[i], y[i]));
 		}
 	}
 	@Benchmark
-	public void removeGrid2_5(Blackhole bh) {
-		for (int i = 0; i < n; i++) {
-			bh.consume(filledGrid2_5.removePoint(x[i], y[i]));
-		}
-	}
-//	@Benchmark
 	public void removeGrid2(Blackhole bh) {
 		for (int i = 0; i < n; i++) {
 			bh.consume(filledGrid2.removePoint(x[i], y[i]));
