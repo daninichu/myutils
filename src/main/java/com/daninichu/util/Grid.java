@@ -8,16 +8,20 @@ import java.util.function.UnaryOperator;
  * @param <E>
  */
 public interface Grid<E> extends Iterable<E> {
+	int size();
+
+	boolean isEmpty();
+
 	/**
 	 * @param x
 	 * @param y
-     * @return The value at the specified point, or null if there is none.
+     * @return The value at the given point, or null if there is none.
 	 */
 	E get(int x, int y);
 
 	/**
      * @param p The point to retrieve a value from.
-     * @return The value at the specified point, or null if there is none.
+     * @return The value at the given point, or null if there is none.
      * @throws NullPointerException if {@code p} is null.
      */
 	E get(Point p);
@@ -27,14 +31,14 @@ public interface Grid<E> extends Iterable<E> {
 	E getOrDefault(Point p, E defaultValue);
 
     /**
-	 * Overwrites the old value in the given point.
+	 * Overwrites the old value at the given point.
 	 * @param e The new value.
 	 * @throws NullPointerException if {@code e} is null and this grid does not permit null values.
 	 */
 	E set(int x, int y, E e);
 
 	/**
-	 * Overwrites the old value in the given point.
+	 * Overwrites the old value at the given point.
 	 * @param p The point to set the new value.
 	 * @param e The new value.
 	 * @throws NullPointerException if {@code p} is null,

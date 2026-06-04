@@ -5,6 +5,16 @@ import java.util.function.UnaryOperator;
 
 public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
+    public int size(){
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isEmpty(){
+        return size() == 0;
+    }
+
+    @Override
     public E get(Point p){
         return get(p.x, p.y);
     }

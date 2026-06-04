@@ -35,7 +35,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Constructs an empty {@code HashGrid} with the specified initial capacity
+     * Constructs an empty {@code HashGrid} with the given initial capacity
      * and a default load factor of 0.75.
      * @param initialCapacity The number of entries this grid can initially hold.
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 2.
@@ -45,9 +45,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Constructs an empty {@code HashGrid} with the specified initial capacity and load factor.
+     * Constructs an empty {@code HashGrid} with the given initial capacity and load factor.
      * @param initialCapacity The number of entries this grid can initially hold.
-     * @param loadFactor The fraction of the table capacity that may be occupied before a resize occurs.
+     * @param loadFactor The fraction of the capacity that may be occupied before a resize occurs.
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 2,
      *         or if {@code loadFactor} does not satisfy {@code 0 < loadFactor && loadFactor < 1}.
      */
@@ -60,8 +60,21 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         init(Integer.highestOneBit(initialCapacity - 1) << 1);
     }
 
+    /**
+     * Constructs a new {@code HashGrid} with the same entries as the given {@code Grid}
+     * with a default load factor of 0.75 and an initial capacity sufficient to
+     * hold the entries of the given {@code Grid}.
+     * @param grid The grid to copy from.
+     * @throws NullPointerException if {@code grid} is null.
+     * @throws OutOfMemoryError if this grid cannot hold all entries from the given {@code Grid}.
+     */
     public HashGrid(Grid<? extends E> grid){
-        this();
+        int s = grid.size();
+        int n = Math.max(2, (int) Math.ceil(s / (double) (loadFactor = 0.75f)));
+        int capacity = Integer.highestOneBit(n - 1) << 1;
+        if(capacity < 0)
+            throw new OutOfMemoryError("Cannot hold all entries from grid of size " + s);
+        init(capacity);
         setAll(grid);
     }
 
@@ -85,9 +98,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     private static int hash(long key){
-        key ^= key >>> 33;
         key *= 0xff51afd7ed558ccdL;
-        key ^= key >>> 33;
         return (int) (key ^ (key >>> 32));
     }
 
@@ -111,7 +122,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         }
     }
 
-    private E rawPut(long key, E value){
+    private E rawPut(long key, Object value){
         int i = findSlot(key);
         if(i >= 0){
             E oldValue = (E) values[i];
@@ -200,6 +211,11 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
+    public int size(){
+        return size;
+    }
+
+    @Override
     public E get(int x, int y){
         int i = findSlot(pack(x, y));
         return i >= 0? (E) values[i] : null;
@@ -229,7 +245,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
             for(int i = 0, n = occupied.length; i < n; i++){
                 if(occupied[i])
-                    rawPut(keys[i], (E) values[i]);
+                    rawPut(keys[i], values[i]);
             }
         } else{
             for(Cell<? extends E> cell : grid.cells())
@@ -392,10 +408,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             size--;
             lastSlot = -1;
         }
-    }
-
-    public int size(){
-        return size;
     }
 
     @Override
