@@ -232,15 +232,15 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 			for(int x = 0; x < width; x++){
 				if(row[x] == null){
 					row[x] = e;
-					size++;
 				}
 			}
         }
+		size = width * height;
 	}
 
 	public void fillRow(int y, E e){
 		Objects.requireNonNull(e);
-		Object[] row = this.data[y];
+		Object[] row = data[y];
 		for(int x = 0, width = row.length; x < width; x++){
 			if(row[x] == null){
 				row[x] = e;
@@ -264,13 +264,21 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	@Override
 	public void clear(){
 		Object[][] data = this.data;
-		for(int y = 0, height = data.length; y < height; y++)
-            Arrays.fill(data[y], null);
+		int height = data.length;
+		int width = data[0].length;
+		for(int y = 0; y < height; y++){
+			Object[] row = data[y];
+			for(int x = 0; x < width; x++){
+				if(row[x] != null){
+					row[x] = null;
+				}
+			}
+		}
 		size = 0;
 	}
 
 	public void clearRow(int y){
-		Object[] row = this.data[y];
+		Object[] row = data[y];
 		for(int x = 0, width = row.length; x < width; x++){
 			if(row[x] != null){
 				row[x] = null;
@@ -359,7 +367,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	@Override
 	public void compute(int x, int y, UnaryOperator<E> operator){
 		checkInBounds(x, y);
-		Object[] row = this.data[y];
+		Object[] row = data[y];
 		E e = (E) row[x];
 		E result = operator.apply(e);
 		if(e == null){
