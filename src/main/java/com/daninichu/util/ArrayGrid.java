@@ -450,7 +450,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		int width = src[0].length;
 		Object[][] dst = new Object[height][];
 		for(int y = 0; y < height; y++){
-			dst[y] = Arrays.copyOf(src[y], width, src.getClass());
+			dst[y] = Arrays.copyOf(src[y], width);
 		}
 		return (E[][]) dst;
 	}
