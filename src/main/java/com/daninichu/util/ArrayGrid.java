@@ -19,9 +19,9 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	private int size;
 
 	/**
-	 * Sets the dimensions of the grid.
-	 * @param width
-	 * @param height
+	 * Constructs an empty {@code ArrayGrid} with the given width and height.
+	 * @param width The width of this grid.
+	 * @param height The height of this grid.
 	 * @throws IllegalArgumentException if {@code width} or {@code height} are less than 1.
 	 */
     public ArrayGrid(int width, int height){
@@ -35,28 +35,35 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		size = grid.size();
     }
 
+	/**
+	 * @return The number of columns in this grid.
+	 */
 	public int width(){
 		return data[0].length;
 	}
 
+	/**
+	 * @return The number of rows in this grid.
+	 */
 	public int height(){
 		return data.length;
 	}
 
 	/**
-	 *
-	 * @param x
-	 * @param y
-	 * @return
+	 * Checks whether the given point is within the bounds of this grid.
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
+	 * @return {@code true} if {@code 0 <= x < width()} and {@code 0 <= y < height()}.
 	 */
 	public boolean inBounds(int x, int y){
-		return 0 <= x && x < width() && 0 <= y && y < height();
+		Object[][] data = this.data;
+		return 0 <= x && x < data[0].length && 0 <= y && y < data.length;
 	}
 
 	/**
-	 *
-	 * @param p
-	 * @return
+	 * Checks whether the given point is within the bounds of this grid.
+	 * @param p The point to check.
+	 * @return {@code true} if {@code p} is within bounds.
 	 * @throws NullPointerException if {@code p} is null.
 	 */
 	public boolean inBounds(Point p){
@@ -69,6 +76,16 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 					"Point (%d,%d) out of bounds for dimensions (%d,%d)".formatted(x, y, width(), height())
 			);
 		}
+	}
+
+	private static void checkRowInBounds(int y, int height){
+		if(y < 0 || height <= y)
+			throw new IndexOutOfBoundsException("Row " + y + " out of bounds for height " + height);
+	}
+
+	private static void checkColInBounds(int x, int width){
+		if(x < 0 || width <= x)
+            throw new IndexOutOfBoundsException("Column " + x + " out of bounds for width " + width);
 	}
 
 	@Override
@@ -195,11 +212,18 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	@Override
 	public boolean containsValue(E e){
 		if(e != null){
-            for(E o : this){
-                if(e.equals(o))
-                    return true;
-            }
-        }
+			Object[][] data = this.data;
+			int height = data.length;
+			int width = data[0].length;
+			for(int y = 0; y < height; y++){
+				Object[] row = data[y];
+				for(int x = 0; x < width; x++){
+					Object o = row[x];
+					if(o != null && e.equals(o))
+                        return true;
+				}
+			}
+		}
 		return false;
 	}
 
@@ -213,15 +237,19 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 				Object[] row = data[y];
 				for(int x = 0; x < width; x++){
 					Object o = row[x];
-                    if(o != null && e.equals(o)){
+                    if(o != null && e.equals(o))
                         return new Point(x, y);
-                    }
 				}
 			}
 		}
 		return null;
 	}
 
+	/**
+	 * Sets every point in this grid to {@code e}.
+	 * @param e The value to fill with.
+	 * @throws NullPointerException if {@code e} is null.
+	 */
 	public void fill(E e){
 		Objects.requireNonNull(e);
 		Object[][] data = this.data;
@@ -238,8 +266,18 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		size = width * height;
 	}
 
+	/**
+	 * Sets every point in row {@code y} to {@code e}.
+	 * @param y The row index.
+	 * @param e The value to fill with.
+	 * @throws NullPointerException if {@code e} is null.
+	 * @throws IndexOutOfBoundsException if {@code y} is out of bounds.
+	 */
 	public void fillRow(int y, E e){
 		Objects.requireNonNull(e);
+		Object[][] data = this.data;
+		checkRowInBounds(y, data.length);
+
 		Object[] row = data[y];
 		for(int x = 0, width = row.length; x < width; x++){
 			if(row[x] == null){
@@ -249,9 +287,18 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		}
 	}
 
+	/**
+	 * Sets every point in column {@code x} to {@code e}.
+	 * @param x The column index.
+	 * @param e The value to fill with.
+	 * @throws NullPointerException if {@code e} is null.
+	 * @throws IndexOutOfBoundsException if {@code x} is out of bounds.
+	 */
 	public void fillCol(int x, E e){
 		Objects.requireNonNull(e);
 		Object[][] data = this.data;
+		checkColInBounds(x, data[0].length);
+
 		for(int y = 0, height = data.length; y < height; y++){
 			Object[] row = data[y];
 			if(row[x] == null){
@@ -277,7 +324,15 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		size = 0;
 	}
 
+	/**
+	 * Removes all values in row {@code y}, leaving every point vacant.
+	 * @param y The row index.
+	 * @throws IndexOutOfBoundsException if {@code y} is out of bounds.
+	 */
 	public void clearRow(int y){
+		Object[][] data = this.data;
+		checkRowInBounds(y, data.length);
+
 		Object[] row = data[y];
 		for(int x = 0, width = row.length; x < width; x++){
 			if(row[x] != null){
@@ -287,8 +342,15 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		}
 	}
 
+	/**
+	 * Removes all values in column {@code x}, leaving every point vacant.
+	 * @param x The column index.
+	 * @throws IndexOutOfBoundsException if {@code x} is out of bounds.
+	 */
 	public void clearCol(int x){
 		Object[][] data = this.data;
+		checkColInBounds(x, data[0].length);
+
 		for(int y = 0, height = data.length; y < height; y++){
 			Object[] row = data[y];
 			if(row[x] != null){
@@ -339,8 +401,9 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
 		@Override
 		public boolean hasNext(){
-			int height = height();
-			int width = width();
+			Object[][] data = ArrayGrid.this.data;
+			int height = data.length;
+			int width = data[y].length;
 			while(y < height){
 				Object[] row = data[y];
 				while(x < width){
@@ -382,19 +445,19 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	}
 
 	public E[][] toArray(){
-		int height = height();
-		int width = width();
-		Object[][] src = this.data;
+		Object[][] src = data;
+		int height = src.length;
+		int width = src[0].length;
 		Object[][] dst = new Object[height][];
 		for(int y = 0; y < height; y++){
-			dst[y] = Arrays.copyOf(src[y], width);
+			dst[y] = Arrays.copyOf(src[y], width, src.getClass());
 		}
 		return (E[][]) dst;
 	}
 
 	@Override
 	public boolean equals(Object obj){
-        return this == obj || obj instanceof ArrayGrid<?> arrayGrid && Arrays.deepEquals(data, arrayGrid.data);
+        return this == obj || obj instanceof ArrayGrid<?> other && Arrays.deepEquals(data, other.data);
     }
 
 	@Override
