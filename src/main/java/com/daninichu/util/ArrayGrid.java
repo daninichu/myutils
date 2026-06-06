@@ -23,13 +23,22 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	 * @param width The width of this grid.
 	 * @param height The height of this grid.
 	 * @throws IllegalArgumentException if {@code width} or {@code height} are less than 1.
+	 * @throws OutOfMemoryError if {@code width * height} exceeds {@link  Integer#MAX_VALUE}.
 	 */
     public ArrayGrid(int width, int height){
 		if(width < 1 || height < 1)
             throw new IllegalArgumentException("width and height must be 1 or greater");
+		if((long) width * height > Integer.MAX_VALUE)
+			throw new OutOfMemoryError("width * height exceeds maximum size");
         data = new Object[height][width];
     }
 
+	/**
+	 * Creates a shallow copy of {@code grid}.
+	 * The new grid has the same dimensions and contains the same element references.
+	 * @param grid The grid to copy from.
+	 * @throws NullPointerException if {@code grid} is {@code null}.
+	 */
     public ArrayGrid(ArrayGrid<? extends E> grid){
 		data = grid.toArray();
 		size = grid.size();
@@ -93,30 +102,17 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return size;
 	}
 
-	/**
-	 * @return {@inheritDoc}
-	 * @throws NullPointerException {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
 	@Override
     public E get(int x, int y){
 		checkInBounds(x, y);
 		return (E) data[y][x];
     }
 
-	/**
-	 * @return {@inheritDoc}
-	 * @throws NullPointerException {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
 	@Override
 	public E get(Point p){
 		return get(p.x, p.y);
 	}
 
-	/**
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
     @Override
     public E set(int x, int y, E e){
 		checkInBounds(x, y);
@@ -127,28 +123,17 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return oldValue;
     }
 
-	/**
-	 * @throws NullPointerException {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
 	@Override
 	public E set(Point p, E e){
 		return set(p.x, p.y, e);
 	}
 
-	/**
-	 * @throws NullPointerException {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If any point in {@code grid} is out of bounds.
-	 */
 	@Override
 	public void setAll(Grid<? extends E> grid){
 		for(Cell<? extends E> cell : grid.cells())
             set(cell.x, cell.y, cell.value);
 	}
 
-	/**
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
     @Override
     public E removePoint(int x, int y){
 		checkInBounds(x, y);
@@ -159,10 +144,6 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return oldValue;
     }
 
-	/**
-	 * @throws NullPointerException {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
     @Override
     public E removePoint(Point p){
         return removePoint(p.x, p.y);
@@ -189,21 +170,12 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return false;
     }
 
-	/**
-	 * @return {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
     @Override
     public boolean containsPoint(int x, int y){
 		checkInBounds(x, y);
 		return data[y][x] != null;
     }
 
-	/**
-	 * @return {@inheritDoc}
-	 * @throws NullPointerException {@inheritDoc}
-	 * @throws IndexOutOfBoundsException If the point is out of bounds.
-	 */
     @Override
     public boolean containsPoint(Point p){
         return containsPoint(p.x, p.y);
@@ -444,6 +416,13 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         }
 	}
 
+	/**
+	 * Returns a shallow copy of the internal data as a new 2D array.
+	 * Vacant points are represented as {@code null}.
+	 * <p>
+	 * The array is row-major (y-major). {@code result[y][x]} holds the value at point (x,y).
+	 * @return A new {@code E[][]} of dimensions {@code [height()][width()]}.
+	 */
 	public E[][] toArray(){
 		Object[][] src = data;
 		int height = src.length;

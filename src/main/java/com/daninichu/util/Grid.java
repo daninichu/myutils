@@ -8,39 +8,67 @@ import java.util.function.UnaryOperator;
  * @param <E>
  */
 public interface Grid<E> extends Iterable<E> {
+	/**
+	 * @return The number of values in this grid.
+	 */
 	int size();
 
+	/**
+	 * @return {@code true} if this grid contains no values.
+	 */
 	boolean isEmpty();
 
 	/**
-	 * @param x
-	 * @param y
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
      * @return The value at the given point, or null if there is none.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 */
 	E get(int x, int y);
 
 	/**
-     * @param p The point to retrieve a value from.
+     * @param p The point to retrieve the value from.
      * @return The value at the given point, or null if there is none.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
      * @throws NullPointerException if {@code p} is null.
      */
 	E get(Point p);
 
+	/**
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
+	 * @param defaultValue The value to return if no value was found.
+	 * @return The value at the given point, or the default value if there is none.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 */
 	E getOrDefault(int x, int y, E defaultValue);
 
+	/**
+	 * @param p The point to retrieve the value from.
+	 * @param defaultValue The value to return if no value was found.
+	 * @return The value at the given point, or the default value if there is none.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if {@code p} is null.
+	 */
 	E getOrDefault(Point p, E defaultValue);
 
     /**
-	 * Overwrites the old value at the given point.
+	 * Overwrites the value at the given point.
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
 	 * @param e The new value.
+	 * @return The value previously at the given point.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 * @throws NullPointerException if {@code e} is null and this grid does not permit null values.
 	 */
 	E set(int x, int y, E e);
 
 	/**
-	 * Overwrites the old value at the given point.
+	 * Overwrites the value at the given point.
 	 * @param p The point to set the new value.
 	 * @param e The new value.
+	 * @return The value previously at the given point.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 * @throws NullPointerException if {@code p} is null,
 	 * 		   or if {@code e} is null and this grid does not permit null values.
 	 */
@@ -48,7 +76,8 @@ public interface Grid<E> extends Iterable<E> {
 
 	/**
 	 *
-	 * @param grid
+	 * @param grid The grid to set points from.
+	 * @throws IndexOutOfBoundsException if any point in {@code grid} is out of bounds of this grid.
 	 * @throws NullPointerException if {@code grid} is null,
 	 * 		   or if any value from {@code grid} is null and this grid does not permit null values.
 	 */
@@ -56,9 +85,10 @@ public interface Grid<E> extends Iterable<E> {
 
 	/**
 	 * Removes the value at the given point.
-	 * @param x
-	 * @param y
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
 	 * @return The value previously at the given point.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 */
 	E removePoint(int x, int y);
 
@@ -66,6 +96,7 @@ public interface Grid<E> extends Iterable<E> {
 	 * Removes the value at the given point.
 	 * @param p The point to remove the value from.
 	 * @return The value previously at the given point.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 * @throws NullPointerException if {@code p} is null.
 	 */
 	E removePoint(Point p);
@@ -78,9 +109,10 @@ public interface Grid<E> extends Iterable<E> {
 
 	/**
 	 * Checks if there exists a value at the given point.
-	 * @param x
-	 * @param y
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
 	 * @return {@code true} if there is a value.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 */
 	boolean containsPoint(int x, int y);
 
@@ -88,6 +120,7 @@ public interface Grid<E> extends Iterable<E> {
 	 * Checks if there exists a value at the given point.
 	 * @param p The point to check the existence of a value.
 	 * @return {@code true} if there is a value.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 * @throws NullPointerException if {@code p} is null.
 	 */
 	boolean containsPoint(Point p);
@@ -151,12 +184,6 @@ public interface Grid<E> extends Iterable<E> {
 		public Cell(int x, int y, E value){
 			this.x = x;
 			this.y = y;
-			this.value = value;
-		}
-
-		public Cell(Point p, E value){
-			this.x = p.x;
-			this.y = p.y;
 			this.value = value;
 		}
 
