@@ -82,7 +82,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	private void checkInBounds(int x, int y){
 		if(!inBounds(x, y)){
 			throw new IndexOutOfBoundsException(
-					"Point (%d,%d) out of bounds for dimensions (%d,%d)".formatted(x, y, width(), height())
+					"Point (%d,%d) out of bounds for dimensions [%d,%d]".formatted(x, y, width(), height())
 			);
 		}
 	}
@@ -230,9 +230,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		for(int y = 0; y < height; y++){
 			Object[] row = data[y];
 			for(int x = 0; x < width; x++){
-				if(row[x] == null){
-					row[x] = e;
-				}
+				row[x] = e;
 			}
         }
 		size = width * height;
@@ -242,8 +240,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	 * Sets every point in row {@code y} to {@code e}.
 	 * @param y The row index.
 	 * @param e The value to fill with.
-	 * @throws NullPointerException if {@code e} is null.
 	 * @throws IndexOutOfBoundsException if {@code y} is out of bounds.
+	 * @throws NullPointerException if {@code e} is null.
 	 */
 	public void fillRow(int y, E e){
 		Objects.requireNonNull(e);
@@ -252,10 +250,9 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
 		Object[] row = data[y];
 		for(int x = 0, width = row.length; x < width; x++){
-			if(row[x] == null){
-				row[x] = e;
+			if(row[x] == null)
                 size++;
-            }
+			row[x] = e;
 		}
 	}
 
@@ -263,8 +260,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	 * Sets every point in column {@code x} to {@code e}.
 	 * @param x The column index.
 	 * @param e The value to fill with.
-	 * @throws NullPointerException if {@code e} is null.
 	 * @throws IndexOutOfBoundsException if {@code x} is out of bounds.
+	 * @throws NullPointerException if {@code e} is null.
 	 */
 	public void fillCol(int x, E e){
 		Objects.requireNonNull(e);
@@ -273,10 +270,9 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
 		for(int y = 0, height = data.length; y < height; y++){
 			Object[] row = data[y];
-			if(row[x] == null){
-				row[x] = e;
+			if(row[x] == null)
                 size++;
-            }
+			row[x] = e;
 		}
 	}
 
@@ -288,9 +284,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		for(int y = 0; y < height; y++){
 			Object[] row = data[y];
 			for(int x = 0; x < width; x++){
-				if(row[x] != null){
-					row[x] = null;
-				}
+				if(row[x] != null)
+                    row[x] = null;
 			}
 		}
 		size = 0;
@@ -413,7 +408,9 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		} else if(result == null){
             row[x] = null;
             size--;
-        }
+        } else{
+			row[x] = result;
+		}
 	}
 
 	/**
