@@ -228,10 +228,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		int height = data.length;
 		int width = data[0].length;
 		for(int y = 0; y < height; y++){
-			Object[] row = data[y];
-			for(int x = 0; x < width; x++){
-				row[x] = e;
-			}
+			Arrays.fill(data[y], e);
         }
 		size = width * height;
 	}
@@ -279,16 +276,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	@Override
 	public void clear(){
 		Object[][] data = this.data;
-		int height = data.length;
-		int width = data[0].length;
-		for(int y = 0; y < height; y++){
-			Object[] row = data[y];
-			for(int x = 0; x < width; x++){
-				if(row[x] != null)
-                    row[x] = null;
-			}
-		}
-		size = 0;
+		for(int y = size = 0, height = data.length; y < height; y++)
+            Arrays.fill(data[y], null);
 	}
 
 	/**
@@ -400,17 +389,12 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		Object[] row = data[y];
 		E e = (E) row[x];
 		E result = operator.apply(e);
+		row[x] = result;
 		if(e == null){
-			if(result != null){
-				row[x] = result;
-				size++;
-			}
-		} else if(result == null){
-            row[x] = null;
+			if(result != null)
+                size++;
+		} else if(result == null)
             size--;
-        } else{
-			row[x] = result;
-		}
 	}
 
 	/**

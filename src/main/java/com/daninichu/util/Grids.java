@@ -22,7 +22,9 @@ public final class Grids{
         int y2 = (int) Math.ceil((y + h) / cellHeight);
 
         List<Grid.Point> points = new ArrayList<>((x2 - x1) * (y2 - y1));
+        int startX = x1;
         while(y1 < y2){
+            x1 = startX;
             while(x1 < x2){
                 points.add(new Grid.Point(x1, y1));
                 x1++;
@@ -72,9 +74,6 @@ public final class Grids{
         public Iterator<E> iterator(){return grid.iterator();}
 
         public void compute(int x, int y, UnaryOperator<E> operator){grid.compute(x, y, operator);}
-
-        public boolean equals(Object obj){return grid.equals(obj);}
-        public int hashCode(){return grid.hashCode();}
     }
 
     private static final class TranslatedGrid<E> extends BackedGrid<E>{
@@ -110,7 +109,6 @@ public final class Grids{
         public E removePoint(Point p){
             return grid.removePoint(p.x - originX, p.y - originY);
         }
-
         public boolean containsPoint(int x, int y){
             return grid.containsPoint(x - originX, y - originY);
         }
