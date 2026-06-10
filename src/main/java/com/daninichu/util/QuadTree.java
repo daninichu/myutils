@@ -86,8 +86,8 @@ public class QuadTree<T> implements Iterable<T>{
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child == null){
-                    double childX = baseX + (i % 2) * childW;
-                    double childY = baseY + (i / 2) * childH;
+                    double childX = (i & 1) == 0? baseX : baseX + childW;
+                    double childY = (i & 2) == 0? baseY : baseY + childH;
                     children[i] = child = new Quadrant<>(childX, childY, childW / 2, childH / 2);
                     child.parent = quadrant;
                 }
@@ -110,8 +110,8 @@ public class QuadTree<T> implements Iterable<T>{
             Quadrant<T>[] children = quadrant.children;
 
             for(int i = 0; i < 4; i++){
-                double childX = baseX + (i % 2) * childW;
-                double childY = baseY + (i / 2) * childH;
+                double childX = (i & 1) == 0? baseX : baseX + childW;
+                double childY = (i & 2) == 0? baseY : baseY + childH;
 
                 if(contains(childX, childY, childW, childH, x, y, width, height)){
                     depth++;
@@ -236,6 +236,14 @@ public class QuadTree<T> implements Iterable<T>{
     }
 
     /**
+     * Fills the given collection with all entries in this quadtree.
+     * @param result The collection to fill with entries.
+     */
+    public void copyEntries(Collection<? super Entry<T>> result){
+        root.copyEntries(result);
+    }
+
+    /**
      * Finds all values in the quadtree that intersect with a given search area.
      * <p>
      * The values are retrieved through {@code Entry.value}.
@@ -305,6 +313,14 @@ public class QuadTree<T> implements Iterable<T>{
      */
     public void searchValues(Rectangle2D searchArea, Collection<? super T> result){
         searchValues(searchArea.getX(), searchArea.getY(), searchArea.getWidth(), searchArea.getHeight(), result);
+    }
+
+    /**
+     * Fills the given collection with all values in this quadtree.
+     * @param result The collection to fill with values.
+     */
+    public void copyValues(Collection<? super T> result){
+        root.copyValues(result);
     }
 
     /**
@@ -571,7 +587,7 @@ public class QuadTree<T> implements Iterable<T>{
      * This class can be used for fast removal without needing to search the entire tree.
      * @param <T> The type of values in the quadtree.
      */
-    public static class Entry<T>{
+    public static final class Entry<T>{
         public final T value;
         private double x, y, width, height;
         private QuadTree<T> owner;
@@ -616,12 +632,12 @@ public class QuadTree<T> implements Iterable<T>{
 
         @Override
         public String toString(){
-            return "Entry[value=" + (value == this? "(this Entry)" : value == owner? "(this QuadTree)" : value)
+            return "Entry[value=" + (value == owner? "(this QuadTree)" : value)
                     + ", x=" + x + ", y=" + y + ", w=" + width + ", h=" + height + "]";
         }
     }
 
-    private static class Quadrant<T>{
+    private static final class Quadrant<T>{
         Quadrant<T>[] children = new Quadrant[4];
         Quadrant<T> parent;
         ArrayList<Entry<T>> entries = new ArrayList<>();
@@ -648,8 +664,8 @@ public class QuadTree<T> implements Iterable<T>{
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null){
-                    double childX = baseX + (i % 2) * childW;
-                    double childY = baseY + (i / 2) * childH;
+                    double childX = (i & 1) == 0? baseX : baseX + childW;
+                    double childY = (i & 2) == 0? baseY : baseY + childH;
 
                     if(contains(x, y, w, h, childX, childY, childW, childH))
                         child.copyEntries(result);
@@ -683,8 +699,8 @@ public class QuadTree<T> implements Iterable<T>{
             for(int i = 0; i < 4; i++){
                 Quadrant<T> child = children[i];
                 if(child != null){
-                    double childX = baseX + (i % 2) * childW;
-                    double childY = baseY + (i / 2) * childH;
+                    double childX = (i & 1) == 0? baseX : baseX + childW;
+                    double childY = (i & 2) == 0? baseY : baseY + childH;
 
                     if(contains(x, y, w, h, childX, childY, childW, childH))
                         child.copyValues(result);
@@ -820,7 +836,7 @@ public class QuadTree<T> implements Iterable<T>{
             visitQuadrant(root);
         }
 
-        void visitQuadrant(Quadrant<T> q){
+        final void visitQuadrant(Quadrant<T> q){
             Quadrant<T>[] stack = this.stack;
             Quadrant<T>[] children = q.children;
             for(int i = 3; i >= 0; i--){
@@ -832,7 +848,7 @@ public class QuadTree<T> implements Iterable<T>{
         }
 
         @Override
-        public boolean hasNext(){
+        public final boolean hasNext(){
             while (true){
                 if(iterator.hasNext())
                     return true;

@@ -19,7 +19,7 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     QuadTreeViewer() {
-        super(SCREEN_W, SCREEN_H);
+        super("Quad Tree Viewer", SCREEN_W, SCREEN_H);
         minZoom = 750f / Math.max(WORLD_W, WORLD_H);
         maxZoom = 10;
 
@@ -71,24 +71,23 @@ public class QuadTreeViewer extends AbstractViewer {
     private static final int SCREEN_H = 810;
 
     // World dimensions
-    private static final int WORLD_W = 150000;
-    private static final int WORLD_H = 150000;
+    private static final int WORLD_W = 200000;
+    private static final int WORLD_H = 200000;
     private static final int MAX_DEPTH = 9;
 
     // Rectangles
-    private float viewBorderW = 200;
-    private float viewBorderH = 200;
+    private float viewBorderW = 400;
+    private float viewBorderH = 400;
     private static final int N_RECTS = 2000000;
     private static final int MIN_RECT_SIZE = 10;
     private static final int MAX_RECT_SIZE = 50;
     private static final int MAX_SPEED = 0;
     private static final int RECT_CURSOR_SIZE = 1000;
-    private static final Rectangle2D worldBounds = new Rectangle2D.Float(0, 0, WORLD_W, WORLD_H);
 
     private boolean delete = false;
 
     // Data
-    private final List<ColoredRect> allRects = new ArrayList<>(N_RECTS);
+    private List<ColoredRect> allRects = new ArrayList<>(N_RECTS);
     private List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>(N_RECTS);
     private List<QuadTree.Entry<ColoredRect>> selectedEntries = new ArrayList<>(N_RECTS);
     private List<ColoredRect> visibleRects = new ArrayList<>(N_RECTS);
@@ -131,7 +130,7 @@ public class QuadTreeViewer extends AbstractViewer {
 
     private void regenerate() {
         allRects.clear();
-        quadTree = new QuadTree<>(worldBounds, MAX_DEPTH);
+        quadTree = new QuadTree<>(0, 0, WORLD_W, WORLD_H, MAX_DEPTH);
 
         Random rng = new Random();
         Color[] palette = {
@@ -408,7 +407,7 @@ public class QuadTreeViewer extends AbstractViewer {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        int d = 4;
+        int d = 8;
         switch (e.getKeyCode()) {
             case KeyEvent.VK_R -> regenerate();
             case KeyEvent.VK_W -> selectionMode = !selectionMode;

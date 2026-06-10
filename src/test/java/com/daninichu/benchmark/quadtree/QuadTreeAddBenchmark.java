@@ -12,50 +12,31 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode({
-        Mode.AverageTime,
-//        Mode.SampleTime,
+//        Mode.AverageTime,
+        Mode.SampleTime,
 })
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(iterations = 5, time = 1900, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 4, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class QuadTreeAddBenchmark{
+    public int n = 1000000;
 
-    // -------------------------------------------------------------------------
-    // Parameters
-    // -------------------------------------------------------------------------
-
-    public int elementCount = 1000000
-//            /2
-            ;
-
-    // -------------------------------------------------------------------------
-    // World geometry
-    // -------------------------------------------------------------------------
-
-    private static final double WORLD = 10000.0;
+    private static final int WORLD = 100000;
     private static final double ELEMENT_SIZE = 0;
 
-    // -------------------------------------------------------------------------
-    // State
-    // -------------------------------------------------------------------------
-
     private Rectangle2D worldBounds = new Rectangle2D.Double(0, 0, WORLD, WORLD);
-    private QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds);
+    private QuadTree<Integer> QuadTree = new QuadTree<>(worldBounds, 16);
     private List<Rectangle2D> linearStore;
-
-    // -------------------------------------------------------------------------
-    // Setup
-    // -------------------------------------------------------------------------
 
     @Setup(Level.Trial)
     public void setUp() {
-        linearStore  = new ArrayList<>(elementCount);
+        linearStore  = new ArrayList<>(n);
 
-        Random rng = new Random(42);   // fixed seed for reproducible layout
+        Random rng = new Random(42);
 
-        for (int i = 0; i < elementCount; i++) {
+        for (int i = 0; i < n; i++) {
             double x = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             double y = rng.nextDouble() * (WORLD - ELEMENT_SIZE);
             Rectangle2D bounds = new Rectangle2D.Double(x, y, ELEMENT_SIZE, ELEMENT_SIZE);
@@ -69,21 +50,13 @@ public class QuadTreeAddBenchmark{
         QuadTree = new QuadTree<>(worldBounds);
     }
 
-    // -------------------------------------------------------------------------
-    // Benchmarks
-    // -------------------------------------------------------------------------
-
     @Benchmark
     public void QuadTree(Blackhole bh) {
-        for (int i = 0; i < elementCount; i++) {
+        for (int i = 0; i < n; i++) {
             QuadTree.add(i, linearStore.get(i));
         }
         bh.consume(QuadTree);
     }
-
-    // -------------------------------------------------------------------------
-    // IDE entry point (quick smoke-run, not for real measurements)
-    // -------------------------------------------------------------------------
 
     public static void main(String[] args) throws Exception{
         Main.benchmark(QuadTreeAddBenchmark.class);

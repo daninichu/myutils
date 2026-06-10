@@ -8,9 +8,9 @@ import java.awt.geom.Rectangle2D;
 public class AbstractViewer extends JPanel implements MouseListener,
         MouseMotionListener, MouseWheelListener, KeyListener {
 
-    AbstractViewer(int width, int height){
+    AbstractViewer(String title, int width, int height){
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame();
+            JFrame frame = new JFrame(title);
             frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
             frame.setSize(width, height);
             frame.setLocationRelativeTo(null);

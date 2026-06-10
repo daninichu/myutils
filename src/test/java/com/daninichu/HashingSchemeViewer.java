@@ -2,7 +2,6 @@ package com.daninichu;
 
 import com.daninichu.util.*;
 
-import javax.swing.*;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -21,9 +20,10 @@ public class HashingSchemeViewer extends AbstractViewer {
     }
 
     HashingSchemeViewer(){
-        super(SCREEN_W, SCREEN_H);
+        super("Hashing Scheme Viewer", SCREEN_W, SCREEN_H);
         minZoom = 750f / Math.max(MAX_X - MIN_X, MAX_Y - MIN_Y);
         maxZoom = 150.0f;
+        zoom = minZoom;
 
         regenerate();
     }
@@ -31,26 +31,47 @@ public class HashingSchemeViewer extends AbstractViewer {
     private static final int SCREEN_W = 1120;
     private static final int SCREEN_H = 810;
 
-    private static final int MIN_X = 0;
-    private static final int MIN_Y = 0;
-    private static final int MAX_X = 10000;
-    private static final int MAX_Y = 10000;
+    private static final int MIN_X = -1000;
+    private static final int MIN_Y = -1000;
+    private static final int MAX_X = 1000;
+    private static final int MAX_Y = 1000;
 
     // Data
     private Grid<Integer> grid = new HashGrid<>();
-    private int highlightedHash;
+    private int mask = (Integer.highestOneBit((MAX_X - MIN_X) * (MAX_Y - MIN_Y) - 1) << 1) - 1;
+    private int highlightedHash, rightHandHash;
     private int highlightedCellX = MIN_X;
     private int highlightedCellY = MIN_Y;
     private int collisions;
 
     private int schemeIndex = 0;
     private HashingScheme[] schemes = new HashingScheme[]{
-            new LinearHashingScheme((1 << 16) + 1),
+            new HashingScheme(){
+                @Override
+                public int hashCode(int x, int y){
+                    long key = (long) x << 32 | y & 0xFFFFFFFFL;
+//                    key ^= key >>> 33;
+                    key *= 0xff51afd7ed558ccdL;
+//                    key ^= key >>> 33;
+                    return (int) (key ^ (key >>> 32));
+                }
+
+                @Override
+                public String toString(){
+                    return "HashGrid";
+                }
+            },
+            new LinearHashingScheme(31),
             new Point2DHashingScheme(),
             new CantorHashingScheme(),
             new SzudzikHashingScheme(),
             new FnvHashingScheme(),
     };
+
+    private String binaryString32(int i){
+        String bits = Integer.toBinaryString(i);
+        return "0".repeat(32 - bits.length()) + bits;
+    }
 
     // Colors
     private static final Color CELL_LINE_COLOR = new Color(90, 90, 120, 100);
@@ -64,13 +85,15 @@ public class HashingSchemeViewer extends AbstractViewer {
     private void regenerate(){
         HashingScheme scheme = schemes[schemeIndex];
         highlightedHash = scheme.hashCode(highlightedCellX, highlightedCellY);
+        rightHandHash = highlightedHash & mask;
 
         collisions = 0;
         final Grid<Integer> grid = this.grid = new HashGrid<>();
         IntStream.rangeClosed(MIN_Y, MAX_Y).parallel().forEach(y -> {
             for (int x = MIN_X; x <= MAX_X; x++){
                 int hash = scheme.hashCode(x, y);
-                if (hash == highlightedHash){
+                hash = hash & mask;
+                if (hash == rightHandHash){
                     synchronized(grid){
                         collisions++;
                         grid.set(x, y, hash);
@@ -111,6 +134,11 @@ public class HashingSchemeViewer extends AbstractViewer {
                 g2.drawRect(sx, sy, cellSize, cellSize);
                 g2.setColor(HIGHLIGHT_COLOR);
                 g2.fillRect(sx, sy, cellSize, cellSize);
+                for(int i = 20; i < 40; i += 10){
+                    g2.setColor(new Color(100, 255, 100, 10));
+                    int r = toScreenLen(i);
+                    g2.fillOval(sx + cellSize/2 - r, sy + cellSize/2 - r, 2 * r, 2 * r);
+                }
             }
         }
 
@@ -153,7 +181,7 @@ public class HashingSchemeViewer extends AbstractViewer {
 
     private void drawHud(Graphics2D g2){
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        List<String> lines = new ArrayList<>(Arrays.asList(
+        List<String> leftHud = new ArrayList<>(Arrays.asList(
                 String.format("zoom   %.3fx", zoom),
                 String.format("cam    (%.0f, %.0f)", camX, camY),
                 "",
@@ -172,14 +200,22 @@ public class HashingSchemeViewer extends AbstractViewer {
         ));
 
         for(int i = 0; i < schemes.length; i++){
-            lines.add(i+8, (i == schemeIndex? "> " : "  ") + schemes[i].toString());
+            leftHud.add(i+8, (i == schemeIndex? "> " : "  ") + schemes[i].toString());
         }
+
+        List<String> rightHud = new ArrayList<>(Arrays.asList(
+                binaryString32(highlightedHash),
+                "&",
+                binaryString32(mask),
+                "=",
+                binaryString32(rightHandHash)
+        ));
 
         int lineH = 17;
         int padX = 14;
         int padY = 14;
         int boxW = 220;
-        int boxH = lines.size() * lineH + 12;
+        int boxH = leftHud.size() * lineH + 12;
 
         g2.setColor(new Color(0, 0, 0, 160));
         g2.fillRoundRect(padX, padY, boxW, boxH, 8, 8);
@@ -188,8 +224,22 @@ public class HashingSchemeViewer extends AbstractViewer {
 
         g2.setColor(TEXT_COLOR);
         int ty = padY + lineH;
-        for (String line : lines){
+        for (String line : leftHud){
             g2.drawString(line, padX + 10, ty);
+            ty += lineH;
+        }
+
+        boxW = 240;
+        boxH = rightHud.size() * lineH + 12;
+        g2.setColor(new Color(0, 0, 0, 160));
+        g2.fillRoundRect(SCREEN_W - boxW - padX, padY, boxW, boxH, 8, 8);
+        g2.setColor(new Color(255, 255, 255, 30));
+        g2.drawRoundRect(SCREEN_W - boxW - padX, padY, boxW, boxH, 8, 8);
+
+        g2.setColor(TEXT_COLOR);
+        ty = padY + lineH;
+        for (String line : rightHud){
+            g2.drawString(line, SCREEN_W - boxW - padX + 10, ty);
             ty += lineH;
         }
     }
@@ -211,6 +261,8 @@ public class HashingSchemeViewer extends AbstractViewer {
         switch (e.getKeyCode()){
             case KeyEvent.VK_UP -> schemeIndex = (schemeIndex + schemes.length - 1) % schemes.length;
             case KeyEvent.VK_DOWN -> schemeIndex = (schemeIndex + 1) % schemes.length;
+            case KeyEvent.VK_RIGHT -> mask = mask == 0? -1 : (mask >>> 1);
+            case KeyEvent.VK_LEFT -> mask = mask == -1? 0 : (mask << 1) + 1;
         }
         regenerate();
     }
@@ -260,8 +312,8 @@ public class HashingSchemeViewer extends AbstractViewer {
     }
     static class Point2DHashingScheme extends HashingScheme{
         public int hashCode(int x, int y){
-            long bits = java.lang.Double.doubleToLongBits(x);
-            bits ^= java.lang.Double.doubleToLongBits(y) * 31;
+            long bits = Double.doubleToLongBits(x);
+            bits ^= Double.doubleToLongBits(y) * 31;
             return (((int) bits) ^ ((int) (bits >> 32)));
         }
         public String toString(){
