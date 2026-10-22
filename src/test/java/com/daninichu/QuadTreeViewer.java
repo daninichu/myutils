@@ -83,17 +83,16 @@ public class QuadTreeViewer extends AbstractViewer {
     private static final int MAX_RECT_SIZE = 50;
     private static final int MAX_SPEED = 0;
     private static final int RECT_CURSOR_SIZE = 1000;
+    private float[] vx, vy;
 
     private boolean delete = false;
 
     // Data
-    private List<ColoredRect> allRects = new ArrayList<>(N_RECTS);
-    private List<QuadTree.Entry<ColoredRect>> visibleEntries = new ArrayList<>(N_RECTS);
-    private List<QuadTree.Entry<ColoredRect>> selectedEntries = new ArrayList<>(N_RECTS);
-    private List<ColoredRect> visibleRects = new ArrayList<>(N_RECTS);
-    private List<ColoredRect> selectedRects = new ArrayList<>(N_RECTS);
+    private List<QuadTree.Entry<Integer>> allEntries = new ArrayList<>(N_RECTS);
+    private List<QuadTree.Entry<Integer>> visibleEntries = new ArrayList<>(N_RECTS);
+    private List<QuadTree.Entry<Integer>> selectedEntries = new ArrayList<>(N_RECTS);
 
-    private QuadTree<ColoredRect> quadTree;
+    private QuadTree<Integer> quadTree;
     private final Rectangle2D.Float rectCursor = new Rectangle2D.Float(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
 
     // Options
@@ -129,7 +128,7 @@ public class QuadTreeViewer extends AbstractViewer {
     // -----------------------------------------------------------------
 
     private void regenerate() {
-        allRects.clear();
+        allEntries.clear();
         quadTree = new QuadTree<>(0, 0, WORLD_W, WORLD_H, MAX_DEPTH);
 
         Random rng = new Random();
@@ -147,14 +146,18 @@ public class QuadTreeViewer extends AbstractViewer {
             float h = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
             float x = rng.nextFloat() * (WORLD_W - w);
             float y = rng.nextFloat() * (WORLD_H - h);
-            float vx = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-            float vy = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
             Color color = palette[rng.nextInt(palette.length)];
-            ColoredRect rect = new ColoredRect(x, y, w, h, vx, vy, color.getRGB());
-            allRects.add(rect);
-            quadTree.add(rect, x, y, w, h);
+            allEntries.add(quadTree.add(color.getRGB(), x, y, w, h));
         }
-        allRects.sort(Comparator.comparingDouble(rect -> rect.y));
+        if(MAX_SPEED != 0){
+            vx = new float[N_RECTS];
+            vy = new float[N_RECTS];
+            for (int i = 0; i < N_RECTS; i++) {
+                vx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                vy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+            }
+        }
+        allEntries.sort(Comparator.comparingDouble(QuadTree.Entry::getY));
 
         repaint();
     }
@@ -196,13 +199,11 @@ public class QuadTreeViewer extends AbstractViewer {
             quadTree.searchEntries(rectCursor).forEach(entry -> quadTree.removeAndCollapse(entry));
         }
 
+        visibleEntries.clear();
+        selectedEntries.clear();
         if (quadTreeMode){
-            visibleEntries.clear();
-            selectedEntries.clear();
             searchQuadTree(viewRect, selectionRect);
         } else{
-            visibleRects.clear();
-            selectedRects.clear();
             searchBruteForce(viewRect, selectionRect);
         }
 
@@ -219,21 +220,14 @@ public class QuadTreeViewer extends AbstractViewer {
                 throw new RuntimeException(e);
             }
         }
-        if(quadTreeMode){
-            if(selectionMode){
-                visibleEntries.parallelStream().forEach(
-                        e -> drawRect(e.getX(), e.getY(), e.getWidth(), e.getHeight(), FADED_RECT_COLOR)
-                );
-            }
-            selectedEntries.parallelStream().forEach(
-                    e -> drawRect(e.getX(), e.getY(), e.getWidth(), e.getHeight(), e.value.color)
+        if(selectionMode){
+            visibleEntries.parallelStream().forEach(
+                    e -> drawRect(e.getX(), e.getY(), e.getWidth(), e.getHeight(), FADED_RECT_COLOR)
             );
-        } else {
-            if(selectionMode){
-                visibleRects.parallelStream().forEach(r -> drawRect(r.x, r.y, r.w, r.h, FADED_RECT_COLOR));
-            }
-            selectedRects.parallelStream().forEach(r -> drawRect(r.x, r.y, r.w, r.h, r.color));
         }
+        selectedEntries.parallelStream().forEach(
+                e -> drawRect(e.getX(), e.getY(), e.getWidth(), e.getHeight(), e.value)
+        );
         drawRect(0, 0, WORLD_W, WORLD_H, BORDER_COLOR);
         if(selectionMode){
             drawRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height, -1);
@@ -253,12 +247,7 @@ public class QuadTreeViewer extends AbstractViewer {
         totalTime += drawTime = timer.seconds();
 
         // HUD
-
-        if(quadTreeMode){
-            drawHud(g2, selectedEntries.size(), quadTree.size());
-        } else {
-            drawHud(g2, selectedRects.size(), allRects.size());
-        }
+        drawHud(g2, selectedEntries.size(), quadTree.size());
     }
 
     private void searchQuadTree(Rectangle2D viewRect, Rectangle2D selectionRect) {
@@ -269,12 +258,12 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     private void searchBruteForce(Rectangle2D viewRect, Rectangle2D selectionRect) {
-        for(ColoredRect r : allRects) {
-            if(selectionMode && viewRect.intersects(r.x, r.y, r.w, r.h)){
-                visibleRects.add(r);
+        for(QuadTree.Entry<Integer> e : allEntries) {
+            if(selectionMode && viewRect.intersects(e.getX(), e.getY(), e.getWidth(), e.getHeight())){
+                visibleEntries.add(e);
             }
-            if(selectionRect.intersects(r.x, r.y, r.w, r.h)) {
-                selectedRects.add(r);
+            if(selectionRect.intersects(e.getX(), e.getY(), e.getWidth(), e.getHeight())) {
+                selectedEntries.add(e);
             }
         }
     }
@@ -423,44 +412,27 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     private void update(){
-        for(QuadTree.Entry<ColoredRect> e : quadTree.entryList()){
-            ColoredRect r = e.value;
-            float maxX;
-            float maxY;
-            float x = r.x + r.vx;
-            float y = r.y + r.vy;
+        for(int i = 0; i < allEntries.size(); i++){
+            QuadTree.Entry<Integer> e = allEntries.get(i);
+            double maxX;
+            double maxY;
+            double x = e.getX() + vx[i];
+            double y = e.getY() + vy[i];
             if(x < 0){
                 x = 0;
-                r.vx = -r.vx;
-            } else if(x > (maxX = WORLD_W - r.w)){
+                vx[i] = -vx[i];
+            } else if(x > (maxX = WORLD_W - e.getWidth())){
                 x = maxX;
-                r.vx = -r.vx;
+                vx[i] = -vx[i];
             }
             if(y < 0){
                 y = 0;
-                r.vy = -r.vy;
-            } else if(y > (maxY = WORLD_H - r.h)){
+                vy[i] = -vy[i];
+            } else if(y > (maxY = WORLD_H - e.getHeight())){
                 y = maxY;
-                r.vy = -r.vy;
+                vy[i] = -vy[i];
             }
-            r.x = x;
-            r.y = y;
-            quadTree.move(e, r.x, r.y, r.w, r.h);
-        }
-    }
-
-    static final class ColoredRect{
-        float x, y, w, h, vx, vy;
-        int color;
-
-        ColoredRect(float x, float y, float w, float h, float vx, float vy, int color){
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-            this.vx = vx;
-            this.vy = vy;
-            this.color = color;
+            quadTree.move(e, x, y, e.getWidth(), e.getHeight());
         }
     }
 }
