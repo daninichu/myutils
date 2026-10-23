@@ -13,12 +13,12 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.List;
 
-public class QuadTreeViewer extends AbstractViewer {
-    public static void main(String[] args) {
+public class QuadTreeViewer extends AbstractViewer{
+    public static void main(String[] args){
         SwingUtilities.invokeLater(QuadTreeViewer::new);
     }
 
-    QuadTreeViewer() {
+    QuadTreeViewer(){
         super("Quad Tree Viewer", SCREEN_W, SCREEN_H);
         minZoom = 750f / Math.max(WORLD_W, WORLD_H);
         maxZoom = 10;
@@ -28,20 +28,20 @@ public class QuadTreeViewer extends AbstractViewer {
         canvas = new BufferedImage(SCREEN_W, SCREEN_H, BufferedImage.TYPE_INT_RGB);
         pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
-        try {
+        try{
             // QuadTree.root  (private field)
             fRoot = QuadTree.class.getDeclaredField("root");
             fRoot.setAccessible(true);
 
             // Quadrant is a private static nested class — get it by name
             Class<?> quadrantClass = null;
-            for (Class<?> c : QuadTree.class.getDeclaredClasses()) {
-                if (c.getSimpleName().equals("Quadrant")) {
+            for(Class<?> c : QuadTree.class.getDeclaredClasses()){
+                if(c.getSimpleName().equals("Quadrant")){
                     quadrantClass = c;
                     break;
                 }
             }
-            if (quadrantClass == null)
+            if(quadrantClass == null)
                 throw new IllegalStateException("Could not find Quadrant class");
 
             fX = quadrantClass.getDeclaredField("x");
@@ -56,7 +56,7 @@ public class QuadTreeViewer extends AbstractViewer {
             fChildH  .setAccessible(true);
             fChildren.setAccessible(true);
 
-        } catch (NoSuchFieldException e) {
+        } catch (NoSuchFieldException e){
             throw new IllegalStateException(
                     "QuadTreePanel reflection setup failed — did QuadTree's " +
                             "internal field names change?", e);
@@ -78,7 +78,7 @@ public class QuadTreeViewer extends AbstractViewer {
     // Rectangles
     private float viewBorderW = 400;
     private float viewBorderH = 400;
-    private static final int N_RECTS = 2000000;
+    private static final int N_RECTS = 10000000;
     private static final int MIN_RECT_SIZE = 10;
     private static final int MAX_RECT_SIZE = 50;
     private static final int MAX_SPEED = 0;
@@ -127,7 +127,7 @@ public class QuadTreeViewer extends AbstractViewer {
     // Data generation
     // -----------------------------------------------------------------
 
-    private void regenerate() {
+    private void regenerate(){
         allEntries.clear();
         quadTree = new QuadTree<>(0, 0, WORLD_W, WORLD_H, MAX_DEPTH);
 
@@ -141,7 +141,7 @@ public class QuadTreeViewer extends AbstractViewer {
             new Color(255, 120, 180),  // pink
         };
 
-        for (int i = 0; i < N_RECTS; i++) {
+        for(int i = 0; i < N_RECTS; i++){
             float w = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
             float h = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
             float x = rng.nextFloat() * (WORLD_W - w);
@@ -152,7 +152,7 @@ public class QuadTreeViewer extends AbstractViewer {
         if(MAX_SPEED != 0){
             vx = new float[N_RECTS];
             vy = new float[N_RECTS];
-            for (int i = 0; i < N_RECTS; i++) {
+            for(int i = 0; i < N_RECTS; i++){
                 vx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                 vy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
             }
@@ -163,7 +163,7 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     @Override
-    protected void paintComponent(Graphics g) {
+    protected void paintComponent(Graphics g){
         updateTime = drawTime = searchTime = totalTime = 0;
         Timer timer = new Timer();
         if(MAX_SPEED != 0){
@@ -196,12 +196,12 @@ public class QuadTreeViewer extends AbstractViewer {
         timer.reset();
 
         if(showRectCursor && delete){
-            quadTree.searchEntries(rectCursor).forEach(entry -> quadTree.removeAndCollapse(entry));
+            quadTree.searchEntries(rectCursor).forEach(e -> quadTree.removeAndCollapse(e));
         }
 
         visibleEntries.clear();
         selectedEntries.clear();
-        if (quadTreeMode){
+        if(quadTreeMode){
             searchQuadTree(viewRect, selectionRect);
         } else{
             searchBruteForce(viewRect, selectionRect);
@@ -213,7 +213,7 @@ public class QuadTreeViewer extends AbstractViewer {
         timer.reset();
 
         Arrays.fill(pixels, getBackground().getRGB());
-        if (showQuadCells) {
+        if(showQuadCells){
             try{
                 drawQuadCells(viewRect, fRoot.get(quadTree));
             } catch(IllegalAccessException e){
@@ -250,25 +250,25 @@ public class QuadTreeViewer extends AbstractViewer {
         drawHud(g2, selectedEntries.size(), quadTree.size());
     }
 
-    private void searchQuadTree(Rectangle2D viewRect, Rectangle2D selectionRect) {
+    private void searchQuadTree(Rectangle2D viewRect, Rectangle2D selectionRect){
         if(selectionMode){
             quadTree.searchEntries(viewRect, visibleEntries);
         }
         quadTree.searchEntries(selectionRect, selectedEntries);
     }
 
-    private void searchBruteForce(Rectangle2D viewRect, Rectangle2D selectionRect) {
-        for(QuadTree.Entry<Integer> e : allEntries) {
+    private void searchBruteForce(Rectangle2D viewRect, Rectangle2D selectionRect){
+        for(QuadTree.Entry<Integer> e : allEntries){
             if(selectionMode && viewRect.intersects(e.getX(), e.getY(), e.getWidth(), e.getHeight())){
                 visibleEntries.add(e);
             }
-            if(selectionRect.intersects(e.getX(), e.getY(), e.getWidth(), e.getHeight())) {
+            if(selectionRect.intersects(e.getX(), e.getY(), e.getWidth(), e.getHeight())){
                 selectedEntries.add(e);
             }
         }
     }
 
-    private void drawRect(double x, double y, double w, double h, int color) {
+    private void drawRect(double x, double y, double w, double h, int color){
         int sx = toScreenX(x);
         int sy = toScreenY(y);
         int sw = toScreenLen(w);
@@ -278,41 +278,41 @@ public class QuadTreeViewer extends AbstractViewer {
         int y2 = sy + sh;
 
         // Top and bottom edges
-        for (int i = sx; i <= x2; i++) {
-            setPixel(i, sy,  color);
+        for(int i = sx; i <= x2; i++){
+            setPixel(i, sy, color);
             setPixel(i, y2, color);
         }
         // Left and right edges
-        for (int j = sy; j <= y2; j++) {
-            setPixel(sx,  j, color);
+        for(int j = sy; j <= y2; j++){
+            setPixel(sx, j, color);
             setPixel(x2, j, color);
         }
     }
 
-    private void setPixel(int x, int y, int color) {
-        if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
+    private void setPixel(int x, int y, int color){
+        if(x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H){
             pixels[y * SCREEN_W + x] = color;
         }
     }
 
     private void drawQuadCells(Rectangle2D viewRect, Object node) throws IllegalAccessException{
-        if (node == null) {
+        if(node == null){
             return;
         }
         double x = (double) fX.get(node);
         double y = (double) fY.get(node);
         double w = (double) fChildW.get(node) * 2;
         double h = (double) fChildH.get(node) * 2;
-        if(!viewRect.intersects(x, y, w, h)) {
+        if(!viewRect.intersects(x, y, w, h)){
             return;
         }
         drawRect(x, y, w, h, QUAD_CELL_COLOR);
-        for (Object child : (Object[]) fChildren.get(node)) {
+        for(Object child : (Object[]) fChildren.get(node)){
             drawQuadCells(viewRect, child);
         }
     }
 
-    private void drawHud(Graphics2D g2, int visibleCount, int allCount) {
+    private void drawHud(Graphics2D g2, int visibleCount, int allCount){
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         String[] lines = {
             String.format("zoom   %.3fx", zoom),
@@ -347,14 +347,14 @@ public class QuadTreeViewer extends AbstractViewer {
 
         g2.setColor(new Color(180, 220, 255, 200));
         int ty = padY + lineH;
-        for (String line : lines) {
+        for(String line : lines){
             g2.drawString(line, padX + 10, ty);
             ty += lineH;
         }
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {
+    public void mousePressed(MouseEvent e){
         super.mousePressed(e);
         delete = true;
 
@@ -366,13 +366,13 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     @Override
-    public void mouseReleased(MouseEvent e) {
+    public void mouseReleased(MouseEvent e){
         delete = false;
         repaint();
     }
 
     @Override
-    public void mouseDragged(MouseEvent e) {
+    public void mouseDragged(MouseEvent e){
         if(!showRectCursor){
             float dx = (e.getX() - dragStartX) / zoom;
             float dy = (e.getY() - dragStartY) / zoom;
@@ -386,7 +386,7 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     @Override
-    public void mouseMoved(MouseEvent e) {
+    public void mouseMoved(MouseEvent e){
         if(showRectCursor){
             rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
             rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
@@ -395,9 +395,9 @@ public class QuadTreeViewer extends AbstractViewer {
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
+    public void keyPressed(KeyEvent e){
         int d = 8;
-        switch (e.getKeyCode()) {
+        switch (e.getKeyCode()){
             case KeyEvent.VK_R -> regenerate();
             case KeyEvent.VK_W -> selectionMode = !selectionMode;
             case KeyEvent.VK_Q -> showQuadCells = !showQuadCells;
@@ -436,4 +436,3 @@ public class QuadTreeViewer extends AbstractViewer {
         }
     }
 }
-
