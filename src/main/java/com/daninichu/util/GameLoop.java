@@ -1,19 +1,19 @@
 package com.daninichu.util;
 
 import java.util.Objects;
-import java.util.concurrent.locks.LockSupport;
+import java.util.function.DoubleConsumer;
 
 public class GameLoop implements Runnable{
-    private final int fps;
-    private final Runnable runnable;
+    private final double frameTime;
+    private final DoubleConsumer runnable;
     private Thread thread;
     private volatile boolean running;
 
-    public GameLoop(int fps, Runnable runnable){
+    public GameLoop(int fps, DoubleConsumer update){
         if(fps <= 0)
             throw new IllegalArgumentException("fps must be positive");
-        this.fps = fps;
-        this.runnable = Objects.requireNonNull(runnable);
+        frameTime = 1_000_000_000.0 / fps;
+        this.runnable = Objects.requireNonNull(update);
     }
 
     public synchronized void start(){
@@ -26,19 +26,25 @@ public class GameLoop implements Runnable{
 
     @Override
     public void run(){
-        double frameTime = 1_000_000_000.0 / fps;
-        double accumulator = 0;
         long last = System.nanoTime();
         while(running){
             long now = System.nanoTime();
-            accumulator += now - last;
+            double deltaTime = (now - last) / 1_000_000_000.0;
             last = now;
-            if(accumulator >= frameTime){
-                accumulator -= frameTime;
-                runnable.run();
+
+            runnable.accept(deltaTime);
+
+            while(System.nanoTime() - last < frameTime){
+                Thread.onSpinWait();
             }
-            if(accumulator < frameTime)
-                LockSupport.parkNanos((long) (frameTime - accumulator));
         }
+    }
+
+    public static void main(String[] args){
+        new GameLoop(60, dt -> {
+            System.out.println("dt = "+dt);
+            System.out.println("fps = " + 1/dt);
+            System.out.println();
+        }).start();
     }
 }
