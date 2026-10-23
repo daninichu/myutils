@@ -19,6 +19,7 @@ public class GameLoop implements Runnable{
     public synchronized void start(){
         if(thread != null)
             throw new IllegalStateException("GameLoop already started");
+        running = true;
         thread = new Thread(this, "GameLoop");
         thread.start();
     }
