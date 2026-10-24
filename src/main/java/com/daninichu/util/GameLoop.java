@@ -27,15 +27,28 @@ public class GameLoop implements Runnable{
     @Override
     public void run(){
         long last = System.nanoTime();
+        long targetNextFrame = last;
         while(running){
-            long now = System.nanoTime();
+            int i=0;
+            long now;
+            while((now = System.nanoTime()) < targetNextFrame){
+                Thread.onSpinWait();
+                i++;
+            }
+            System.out.println(i);
             double deltaTime = (now - last) / 1_000_000_000.0;
             last = now;
 
             runnable.accept(deltaTime);
 
-            while(System.nanoTime() - last < frameTime){
-                Thread.onSpinWait();
+            targetNextFrame = last + (long) frameTime;
+            while(targetNextFrame - System.nanoTime() > 2_000_000){
+                try{
+                    Thread.sleep(1);
+                } catch(InterruptedException e){
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
         }
     }
