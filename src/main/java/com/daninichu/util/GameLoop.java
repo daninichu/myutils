@@ -79,12 +79,4 @@ public class GameLoop{
             update.accept(deltaTime);
         }
     }
-
-    public static void main(String[] args){
-        new GameLoop(60, dt -> {
-            System.out.println("dt = "+dt);
-            System.out.println("fps = " + 1/dt);
-            System.out.println();
-        }).start();
-    }
 }
