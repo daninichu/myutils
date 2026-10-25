@@ -24,7 +24,7 @@ public class GameLoop{
     public GameLoop(int fps, DoubleConsumer update){
         if(fps <= 0)
             throw new IllegalArgumentException("fps must be positive");
-        frameTime = 1_000_000_000 / fps;
+        this.frameTime = 1_000_000_000 / fps;
         this.update = Objects.requireNonNull(update);
     }
 
