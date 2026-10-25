@@ -7,7 +7,7 @@ import java.util.function.DoubleConsumer;
  * Runs a game update callback at a target frequency,
  * providing the elapsed time between consecutive updates in seconds.
  */
-public class GameLoop implements Runnable{
+public class GameLoop{
     private final long frameTime;
     private final DoubleConsumer update;
     private Thread thread;
@@ -28,16 +28,39 @@ public class GameLoop implements Runnable{
         this.update = Objects.requireNonNull(update);
     }
 
+    /**
+     * Starts the game loop on a dedicated thread.
+     * @throws IllegalStateException if the loop has already started.
+     */
     public synchronized void start(){
         if(thread != null)
             throw new IllegalStateException("GameLoop already started");
         running = true;
-        thread = new Thread(this, "GameLoop");
+        thread = new Thread(this::run, "GameLoop");
         thread.start();
     }
 
-    @Override
-    public void run(){
+    /**
+     * Stops the game loop and terminates this object's thread.
+     * If this method is called during an update,
+     * the update will finish before the thread gets terminated.
+     * <p>
+     * Additional calls to this method will have no effect.
+     */
+    public void stop(){
+        running = false;
+        if(thread != null){
+            thread.interrupt();
+            while(true){
+                try{
+                    thread.join();
+                    return;
+                } catch(InterruptedException e){}
+            }
+        }
+    }
+
+    private void run(){
         long last = System.nanoTime();
         while(running){
             long nextFrame = last + frameTime;
@@ -45,7 +68,6 @@ public class GameLoop implements Runnable{
                 try{
                     Thread.sleep(1);
                 } catch(InterruptedException e){
-                    Thread.currentThread().interrupt();
                     return;
                 }
             }
