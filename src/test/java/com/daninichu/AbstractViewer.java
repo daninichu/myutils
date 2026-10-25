@@ -1,5 +1,7 @@
 package com.daninichu;
 
+import com.daninichu.util.Camera;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -26,42 +28,25 @@ public class AbstractViewer extends JPanel implements MouseListener,
         });
     }
 
-    protected float camX, camY;
-    protected float zoom = 0.35f;
+    protected Camera camera = new Camera();
     protected float zoomSpeed = 1.03f;
     protected float minZoom = 1;
     protected float maxZoom = 100;
 
     protected int dragStartX, dragStartY;
-    protected float camXAtDrag, camYAtDrag;
-
-    protected float toWorldX(int sx){
-        return camX + sx / zoom;
-    }
-
-    protected float toWorldY(int sy){
-        return camY + sy / zoom;
-    }
-
-    protected int toScreenX(double wx){
-        return (int) Math.round((wx - camX) * zoom);
-    }
-
-    protected int toScreenY(double wy){
-        return (int) Math.round((wy - camY) * zoom);
-    }
+    protected double camXAtDrag, camYAtDrag;
 
     protected int toScreenLen(double wl){
-        return Math.max(1, (int) Math.round(wl * zoom));
+        return Math.max(1, (int) Math.round(wl * camera.getZoom()));
     }
 
-    protected Rectangle2D.Float viewRect(){
-        return new Rectangle2D.Float(camX, camY, getWidth() / zoom, getHeight() / zoom);
+    protected Rectangle2D.Double viewRect(){
+        return new Rectangle2D.Double(camera.x, camera.y, getWidth() / camera.getZoom(), getHeight() / camera.getZoom());
     }
 
     protected void drawCenteredString(Graphics2D g2, String str, double x, double y, double w, double h){
-        int sx = toScreenX(x);
-        int sy = toScreenY(y);
+        int sx = camera.toScreenX(x);
+        int sy = camera.toScreenY(y);
         int sw = toScreenLen(w);
         int sh = toScreenLen(h);
 
@@ -80,30 +65,28 @@ public class AbstractViewer extends JPanel implements MouseListener,
     public void mousePressed(MouseEvent e){
         dragStartX = e.getX();
         dragStartY = e.getY();
-        camXAtDrag = camX;
-        camYAtDrag = camY;
+        camXAtDrag = camera.x;
+        camYAtDrag = camera.y;
     }
 
     @Override
     public void mouseDragged(MouseEvent e){
-        float dx = (e.getX() - dragStartX) / zoom;
-        float dy = (e.getY() - dragStartY) / zoom;
-        camX = camXAtDrag - dx;
-        camY = camYAtDrag - dy;
+        double dx = (e.getX() - dragStartX) / camera.getZoom();
+        double dy = (e.getY() - dragStartY) / camera.getZoom();
+        camera.setPosition(camXAtDrag - dx, camYAtDrag - dy);
         repaint();
     }
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e){
-        float mx = toWorldX(e.getX());
-        float my = toWorldY(e.getY());
+        double mx = camera.toWorldX(e.getX());
+        double my = camera.toWorldY(e.getY());
 
         int rotation = e.getWheelRotation();
         float factor = rotation == 0? 1 : rotation < 0 ? zoomSpeed : 1 / zoomSpeed;
-        zoom = Math.max(minZoom, Math.min(zoom * factor, maxZoom));
+        camera.setZoom(Math.max(minZoom, Math.min(camera.getZoom() * factor, maxZoom)));
 
-        camX = mx - e.getX() / zoom;
-        camY = my - e.getY() / zoom;
+        camera.setPosition(mx - e.getX() / camera.getZoom(), my - e.getY() / camera.getZoom());
         repaint();
     }
 

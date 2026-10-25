@@ -23,7 +23,7 @@ public class HashingSchemeViewer extends AbstractViewer {
         super("Hashing Scheme Viewer", SCREEN_W, SCREEN_H);
         minZoom = 750f / Math.max(MAX_X - MIN_X, MAX_Y - MIN_Y);
         maxZoom = 150.0f;
-        zoom = minZoom;
+        camera.setZoom(minZoom);
 
         regenerate();
     }
@@ -111,24 +111,24 @@ public class HashingSchemeViewer extends AbstractViewer {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        int x0 = toScreenX(0);
-        int y0 = toScreenY(0);
+        int x0 = camera.toScreenX(0);
+        int y0 = camera.toScreenY(0);
         g2.setColor(new Color(255, 255, 255, 100));
         g2.drawLine(x0, 0, x0, SCREEN_H);
         g2.drawLine(0, y0, SCREEN_W, y0);
 
         g2.setColor(new Color(255, 255, 255));
-        g2.drawRect(toScreenX(MIN_X), toScreenY(MIN_Y), toScreenLen(MAX_X - MIN_X + 1), toScreenLen(MAX_Y - MIN_Y + 1));
+        g2.drawRect(camera.toScreenX(MIN_X), camera.toScreenY(MIN_Y), toScreenLen(MAX_X - MIN_X + 1), toScreenLen(MAX_Y - MIN_Y + 1));
 
-        Rectangle2D.Float viewRect = viewRect();
+        Rectangle2D.Double viewRect = viewRect();
 
         int cellSize = toScreenLen(1);
         for(Grid.Point point : grid.points()){
             int x = point.x;
             int y = point.y;
             if(viewRect.intersects(x, y, 1, 1)){
-                int sx = toScreenX(x);
-                int sy = toScreenY(y);
+                int sx = camera.toScreenX(x);
+                int sy = camera.toScreenY(y);
 
                 g2.setColor(CELL_LINE_COLOR);
                 g2.drawRect(sx, sy, cellSize, cellSize);
@@ -156,8 +156,8 @@ public class HashingSchemeViewer extends AbstractViewer {
             int maxY = (int) Math.min(Math.ceil(viewRect.y + viewRect.height), MAX_Y);
             for(int y = minY; y <= maxY; y++){
                 for(int x = minX; x <= maxX; x++){
-                    int sx = toScreenX(x);
-                    int sy = toScreenY(y);
+                    int sx = camera.toScreenX(x);
+                    int sy = camera.toScreenY(y);
                     g2.drawRect(sx, sy, cellSize, cellSize);
                 }
             }
@@ -182,8 +182,8 @@ public class HashingSchemeViewer extends AbstractViewer {
     private void drawHud(Graphics2D g2){
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         List<String> leftHud = new ArrayList<>(Arrays.asList(
-                String.format("zoom   %.3fx", zoom),
-                String.format("cam    (%.0f, %.0f)", camX, camY),
+                String.format("zoom   %.3fx", camera.getZoom()),
+                String.format("cam    (%.0f, %.0f)", camera.x, camera.y),
                 "",
                 "grid dimensions",
                 "x [%d,%d]".formatted(MIN_X, MAX_X),
@@ -246,8 +246,8 @@ public class HashingSchemeViewer extends AbstractViewer {
 
     @Override
     public void mouseClicked(MouseEvent e){
-        int cellX = (int) Math.floor(toWorldX(e.getX()));
-        int cellY = (int) Math.floor(toWorldY(e.getY()));
+        int cellX = (int) Math.floor(camera.toWorldX(e.getX()));
+        int cellY = (int) Math.floor(camera.toWorldY(e.getY()));
         if(MIN_X <= cellX && cellX <= MAX_X && MIN_Y <= cellY && cellY <= MAX_Y){
             highlightedHash = schemes[schemeIndex].hashCode(cellX, cellY);
             highlightedCellX = cellX;

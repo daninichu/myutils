@@ -63,37 +63,50 @@ public class QuadTreeViewer extends AbstractViewer{
         }
 
         if(MAX_SPEED != 0){
-            new GameLoop(60, this::repaint).start();
+            loop=new GameLoop(30, dt -> {
+                System.out.println("dt = "+dt);
+                System.out.println("fps = " + 1/dt);
+                System.out.println();
+                synchronized(lock){
+                    Timer timer = new Timer();
+                    update(60*dt);
+                    updateTime = timer.seconds();
+                }
+                repaint();
+            });
+            loop.start();
         }
     }
+
+    private GameLoop loop;
+
+    // Rectangles
+    private float viewBorderW = 400;
+    private float viewBorderH = 400;
+    private static final int N_RECTS = 100000;
+    private static final int MIN_RECT_SIZE = 10;
+    private static final int MAX_RECT_SIZE = 50;
+    private static final int MAX_SPEED = 8;
+    private static final int CURSOR_SIZE = 1000;
+    private float[] vx, vy;
 
     private static final int SCREEN_W = 1120;
     private static final int SCREEN_H = 810;
 
     // World dimensions
-    private static final int WORLD_W = 200000;
-    private static final int WORLD_H = 200000;
-    private static final int MAX_DEPTH = 9;
-
-    // Rectangles
-    private float viewBorderW = 400;
-    private float viewBorderH = 400;
-    private static final int N_RECTS = 10000000;
-    private static final int MIN_RECT_SIZE = 10;
-    private static final int MAX_RECT_SIZE = 50;
-    private static final int MAX_SPEED = 0;
-    private static final int RECT_CURSOR_SIZE = 1000;
-    private float[] vx, vy;
+    private static final int WORLD_W = (int) Math.sqrt(N_RECTS) * 200;
+    private static final int WORLD_H = (int) Math.sqrt(N_RECTS) * 200;
+    private static final int MAX_DEPTH = 8;
 
     private boolean delete = false;
 
     // Data
-    private List<QuadTree.Entry<Integer>> allEntries = new ArrayList<>(N_RECTS);
+    private QuadTree.Entry<Integer>[] allEntries = new QuadTree.Entry[N_RECTS];
     private List<QuadTree.Entry<Integer>> visibleEntries = new ArrayList<>(N_RECTS);
     private List<QuadTree.Entry<Integer>> selectedEntries = new ArrayList<>(N_RECTS);
 
-    private QuadTree<Integer> quadTree;
-    private final Rectangle2D.Float rectCursor = new Rectangle2D.Float(-RECT_CURSOR_SIZE, -RECT_CURSOR_SIZE, RECT_CURSOR_SIZE, RECT_CURSOR_SIZE);
+    private QuadTree<Integer> quadTree = new QuadTree<>(0, 0, WORLD_W, WORLD_H, MAX_DEPTH);
+    private final Rectangle2D.Double rectCursor = new Rectangle2D.Double(0,0, CURSOR_SIZE, CURSOR_SIZE);
 
     // Options
     private boolean showQuadCells = false;
@@ -110,12 +123,14 @@ public class QuadTreeViewer extends AbstractViewer{
     private static final int FADED_RECT_COLOR = new Color(55, 55, 88).getRGB();
 
     // Times
+    private double generationTime = 0;
     private double updateTime = 0;
     private double searchTime = 0;
     private double drawTime = 0;
     private double totalTime = 0;
 
-    // ── reflected fields, resolved once at construction ───────────────────────
+    private final Object lock = new Object();
+
     private Field fRoot;
     private Field fX;
     private Field fY;
@@ -123,72 +138,75 @@ public class QuadTreeViewer extends AbstractViewer{
     private Field fChildH;
     private Field fChildren;
 
-    // -----------------------------------------------------------------
-    // Data generation
-    // -----------------------------------------------------------------
-
     private void regenerate(){
-        allEntries.clear();
-        quadTree = new QuadTree<>(0, 0, WORLD_W, WORLD_H, MAX_DEPTH);
+        synchronized(lock){
+            Timer timer = new Timer();
 
-        Random rng = new Random();
-        Color[] palette = {
-            new Color(255, 80,  60),   // red-orange
-            new Color(255, 180, 40),   // amber
-            new Color(60,  210, 160),  // teal
-            new Color(80,  160, 255),  // sky blue
-            new Color(200, 100, 255),  // violet
-            new Color(255, 120, 180),  // pink
-        };
+            quadTree.clear();
 
-        for(int i = 0; i < N_RECTS; i++){
-            float w = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-            float h = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
-            float x = rng.nextFloat() * (WORLD_W - w);
-            float y = rng.nextFloat() * (WORLD_H - h);
-            Color color = palette[rng.nextInt(palette.length)];
-            allEntries.add(quadTree.add(color.getRGB(), x, y, w, h));
-        }
-        if(MAX_SPEED != 0){
-            vx = new float[N_RECTS];
-            vy = new float[N_RECTS];
+            Random rng = new Random();
+            Color[] palette = {
+                    new Color(255, 80, 60),   // red-orange
+                    new Color(255, 180, 40),   // amber
+                    new Color(60, 210, 160),  // teal
+                    new Color(80, 160, 255),  // sky blue
+                    new Color(200, 100, 255),  // violet
+                    new Color(255, 120, 180),  // pink
+            };
+
             for(int i = 0; i < N_RECTS; i++){
-                vx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
-                vy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                float w = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                float h = MIN_RECT_SIZE + rng.nextFloat() * (MAX_RECT_SIZE - MIN_RECT_SIZE);
+                float x = rng.nextFloat() * (WORLD_W - w);
+                float y = rng.nextFloat() * (WORLD_H - h);
+                Color color = palette[rng.nextInt(palette.length)];
+                allEntries[i] = (quadTree.add(color.getRGB(), x, y, w, h));
             }
-        }
-        allEntries.sort(Comparator.comparingDouble(QuadTree.Entry::getY));
+            if(MAX_SPEED != 0){
+                vx = new float[N_RECTS];
+                vy = new float[N_RECTS];
+                for(int i = 0; i < N_RECTS; i++){
+                    vx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                    vy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
+                }
+            }
+            Arrays.parallelSort(allEntries, Comparator.comparingDouble(QuadTree.Entry::getY));
 
+            generationTime = timer.seconds();
+        }
         repaint();
     }
 
     @Override
     protected void paintComponent(Graphics g){
-        updateTime = drawTime = searchTime = totalTime = 0;
-        Timer timer = new Timer();
-        if(MAX_SPEED != 0){
-            update();
-            totalTime += updateTime = timer.seconds();
-        }
-
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
+        synchronized(lock){
+            render((Graphics2D) g);
+        }
+    }
+
+    private void render(Graphics2D g2){
+        drawTime = searchTime = totalTime = 0;
+        totalTime += updateTime;
+
+        Timer timer = new Timer();
+
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // Viewport in world space
-        Rectangle2D.Float viewRect = new Rectangle2D.Float(
-                camX,
-                camY,
-                getWidth() / zoom,
-                getHeight() / zoom
+        Rectangle2D.Double viewRect = new Rectangle2D.Double(
+                camera.x,
+                camera.y,
+                getWidth() / camera.getZoom(),
+                getHeight() / camera.getZoom()
         );
-        Rectangle2D.Float selectionRect = viewRect;
+        Rectangle2D.Double selectionRect = viewRect;
         if(selectionMode){
-            selectionRect = new Rectangle2D.Float(
-                    camX + viewBorderW / zoom / 2,
-                    camY + viewBorderH / zoom / 2,
-                    (getWidth() - viewBorderW) / zoom,
-                    (getHeight() - viewBorderH) / zoom
+            selectionRect = new Rectangle2D.Double(
+                    camera.x + viewBorderW / camera.getZoom() / 2,
+                    camera.y + viewBorderH / camera.getZoom() / 2,
+                    (getWidth() - viewBorderW) / camera.getZoom(),
+                    (getHeight() - viewBorderH) / camera.getZoom()
             );
         }
 
@@ -237,8 +255,8 @@ public class QuadTreeViewer extends AbstractViewer{
         if(showRectCursor){
             g2.setColor(new Color(255, 255, 255, 40));
             g2.fillRect(
-                    toScreenX(rectCursor.x),
-                    toScreenY(rectCursor.y),
+                    camera.toScreenX(rectCursor.x),
+                    camera.toScreenY(rectCursor.y),
                     toScreenLen(rectCursor.width),
                     toScreenLen(rectCursor.height)
             );
@@ -269,8 +287,8 @@ public class QuadTreeViewer extends AbstractViewer{
     }
 
     private void drawRect(double x, double y, double w, double h, int color){
-        int sx = toScreenX(x);
-        int sy = toScreenY(y);
+        int sx = camera.toScreenX(x);
+        int sy = camera.toScreenY(y);
         int sw = toScreenLen(w);
         int sh = toScreenLen(h);
 
@@ -315,11 +333,12 @@ public class QuadTreeViewer extends AbstractViewer{
     private void drawHud(Graphics2D g2, int visibleCount, int allCount){
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         String[] lines = {
-            String.format("zoom   %.3fx", zoom),
-            String.format("cam    (%.0f, %.0f)", camX, camY),
+            String.format("camera.getZoom()   %.3fx", camera.getZoom()),
+            String.format("cam    (%.0f, %.0f)", camera.x, camera.y),
             String.format("drawn  %d/%d rects", visibleCount, allCount),
             String.format("mode   %s", quadTreeMode? "quadtree" : "brute force"),
             "",
+            String.format("generation time %f", generationTime),
             "TIME (seconds)",
             String.format("update %f", updateTime),
             String.format("search %f", searchTime),
@@ -327,7 +346,7 @@ public class QuadTreeViewer extends AbstractViewer{
             String.format("total  %f", totalTime),
             "",
             "drag   pan",
-            "wheel  zoom",
+            "wheel  camera.getZoom()",
             "R      regenerate",
             "W      show selection",
             "Q      show quad cells (%s)".formatted(showQuadCells? "ON" : "OFF"),
@@ -359,8 +378,8 @@ public class QuadTreeViewer extends AbstractViewer{
         delete = true;
 
         if(showRectCursor){
-            rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
-            rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
+            rectCursor.x = camera.toWorldX(e.getX()) - CURSOR_SIZE /2;
+            rectCursor.y = camera.toWorldY(e.getY()) - CURSOR_SIZE /2;
         }
         repaint();
     }
@@ -374,13 +393,12 @@ public class QuadTreeViewer extends AbstractViewer{
     @Override
     public void mouseDragged(MouseEvent e){
         if(!showRectCursor){
-            float dx = (e.getX() - dragStartX) / zoom;
-            float dy = (e.getY() - dragStartY) / zoom;
-            camX = camXAtDrag - dx;
-            camY = camYAtDrag - dy;
+            double dx = (e.getX() - dragStartX) / camera.getZoom();
+            double dy = (e.getY() - dragStartY) / camera.getZoom();
+            camera.setPosition(camXAtDrag - dx, camYAtDrag - dy);
         } else{
-            rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
-            rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
+            rectCursor.x = camera.toWorldX(e.getX()) - CURSOR_SIZE /2;
+            rectCursor.y = camera.toWorldY(e.getY()) - CURSOR_SIZE /2;
         }
         repaint();
     }
@@ -388,8 +406,8 @@ public class QuadTreeViewer extends AbstractViewer{
     @Override
     public void mouseMoved(MouseEvent e){
         if(showRectCursor){
-            rectCursor.x = toWorldX(e.getX()) - RECT_CURSOR_SIZE/2;
-            rectCursor.y = toWorldY(e.getY()) - RECT_CURSOR_SIZE/2;
+            rectCursor.x = camera.toWorldX(e.getX()) - CURSOR_SIZE /2;
+            rectCursor.y = camera.toWorldY(e.getY()) - CURSOR_SIZE /2;
             repaint();
         }
     }
@@ -411,13 +429,13 @@ public class QuadTreeViewer extends AbstractViewer{
         repaint();
     }
 
-    private void update(){
-        for(int i = 0; i < allEntries.size(); i++){
-            QuadTree.Entry<Integer> e = allEntries.get(i);
+    private void update(double dt){
+        for(int i = 0; i < N_RECTS; i++){
+            QuadTree.Entry<Integer> e = allEntries[i];
             double maxX;
             double maxY;
-            double x = e.getX() + vx[i];
-            double y = e.getY() + vy[i];
+            double x = e.getX() + vx[i]*dt;
+            double y = e.getY() + vy[i]*dt;
             if(x < 0){
                 x = 0;
                 vx[i] = -vx[i];
