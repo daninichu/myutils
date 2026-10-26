@@ -63,13 +63,13 @@ public class QuadTreeViewer extends AbstractViewer{
         }
 
         if(MAX_SPEED != 0){
-            loop = new GameLoop(30, dt -> {
+            loop = new GameLoop(FPS, dt -> {
                 System.out.println("dt = "+dt);
                 System.out.println("fps = " + 1/dt);
                 System.out.println();
                 synchronized(lock){
                     Timer timer = new Timer();
-                    update(60*dt);
+                    update(dt);
                     updateTime = timer.seconds();
                 }
                 repaint();
@@ -78,6 +78,7 @@ public class QuadTreeViewer extends AbstractViewer{
     }
 
     private GameLoop loop;
+    private static final int FPS = 30;
 
     // Rectangles
     private float viewBorderW = 400;
@@ -85,7 +86,7 @@ public class QuadTreeViewer extends AbstractViewer{
     private static final int N_RECTS = 100000;
     private static final int MIN_RECT_SIZE = 10;
     private static final int MAX_RECT_SIZE = 50;
-    private static final int MAX_SPEED = 8;
+    private static final int MAX_SPEED = 400;
     private static final int CURSOR_SIZE = 1000;
     private float[] vx, vy;
 
