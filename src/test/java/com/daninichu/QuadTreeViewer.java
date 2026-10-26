@@ -63,7 +63,7 @@ public class QuadTreeViewer extends AbstractViewer{
         }
 
         if(MAX_SPEED != 0){
-            loop=new GameLoop(30, dt -> {
+            loop = new GameLoop(30, dt -> {
                 System.out.println("dt = "+dt);
                 System.out.println("fps = " + 1/dt);
                 System.out.println();

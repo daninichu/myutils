@@ -1,6 +1,5 @@
 package com.daninichu.util;
 
-import java.util.Objects;
 import java.util.function.DoubleConsumer;
 
 /**
@@ -23,9 +22,10 @@ public class GameLoop{
     public GameLoop(int fps, DoubleConsumer update){
         if(fps <= 0)
             throw new IllegalArgumentException("fps must be positive");
-        int frameTime = 1_000_000_000 / fps;
-        Objects.requireNonNull(update);
+        if(update == null)
+            throw new NullPointerException("update is null");
 
+        int frameTime = 1_000_000_000 / fps;
         this.thread = new Thread(() -> run(frameTime, update), "GameLoop");
         this.thread.start();
     }
