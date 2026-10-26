@@ -57,9 +57,9 @@ public class GameLoop{
         long last = System.nanoTime();
         while(running){
             long nextFrame = last + frameTime;
-            while(nextFrame - System.nanoTime() > 2_000_000){
+            while(nextFrame - System.nanoTime() > 1_500_000){
                 try{
-                    Thread.sleep(1);
+                    Thread.sleep(0, 1000);
                 } catch(InterruptedException e){
                     return;
                 }
