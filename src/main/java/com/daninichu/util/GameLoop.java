@@ -8,13 +8,12 @@ import java.util.function.DoubleConsumer;
  * providing the elapsed time between consecutive updates in seconds.
  */
 public class GameLoop{
-    private final long frameTime;
-    private final DoubleConsumer update;
-    private Thread thread;
-    private volatile boolean running;
+    private final Thread thread;
+    private volatile boolean running = true;
 
     /**
      * Creates a game loop with the specified target update frequency.
+     * Upon construction, the game loop immediately starts on a dedicated thread.
      * @param fps target number of updates per second.
      * @param update callback executed on each update,
      *        receiving the elapsed time in seconds since the previous update.
@@ -24,20 +23,11 @@ public class GameLoop{
     public GameLoop(int fps, DoubleConsumer update){
         if(fps <= 0)
             throw new IllegalArgumentException("fps must be positive");
-        this.frameTime = 1_000_000_000 / fps;
-        this.update = Objects.requireNonNull(update);
-    }
+        int frameTime = 1_000_000_000 / fps;
+        Objects.requireNonNull(update);
 
-    /**
-     * Starts the game loop on a dedicated thread.
-     * @throws IllegalStateException if the loop has already started.
-     */
-    public synchronized void start(){
-        if(thread != null)
-            throw new IllegalStateException("GameLoop already started");
-        running = true;
-        thread = new Thread(this::run, "GameLoop");
-        thread.start();
+        this.thread = new Thread(() -> run(frameTime, update), "GameLoop");
+        this.thread.start();
     }
 
     /**
@@ -46,21 +36,24 @@ public class GameLoop{
      * the update will finish before the thread gets terminated.
      * <p>
      * Additional calls to this method will have no effect.
+     * @throws IllegalStateException if this method is called from this game loop's thread,
+     *         which only happens if this method is called from inside the update callback.
      */
     public void stop(){
         running = false;
-        if(thread != null){
-            thread.interrupt();
-            while(true){
-                try{
-                    thread.join();
-                    return;
-                } catch(InterruptedException e){}
-            }
+        thread.interrupt();
+
+        if(Thread.currentThread() == thread)
+            throw new IllegalStateException("Cannot stop GameLoop from its own thread");
+        while(true){
+            try{
+                thread.join();
+                return;
+            } catch(InterruptedException e){}
         }
     }
 
-    private void run(){
+    private void run(int frameTime, DoubleConsumer update){
         long last = System.nanoTime();
         while(running){
             long nextFrame = last + frameTime;

@@ -74,7 +74,6 @@ public class QuadTreeViewer extends AbstractViewer{
                 }
                 repaint();
             });
-            loop.start();
         }
     }
 
