@@ -1,8 +1,5 @@
 package com.daninichu.util;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.function.DoubleConsumer;
 
 /**
@@ -59,53 +56,20 @@ public class GameLoop{
     private void run(int frameTime, DoubleConsumer update){
         long last = System.nanoTime();
         while(running){
-            int cycles = 0;
             long nextFrame = last + frameTime;
             while(nextFrame - System.nanoTime() > 1_000_000){
-                cycles++;
                 try{
                     Thread.sleep(0, 1000);
                 } catch(InterruptedException e){
                     return;
                 }
             }
-            System.out.println("sleep cycles: " + cycles);
-            System.out.printf("excess time: %fms%n", (nextFrame-System.nanoTime())/1_000_000.);
-            cycles = 0;
             long now;
-            while((now = System.nanoTime()) < nextFrame){
-                cycles++;
-            }
-            System.out.println("100% cycles: " + cycles);
-            System.out.println();
+            while((now = System.nanoTime()) < nextFrame);
 
             double deltaTime = (now - last) / 1_000_000_000.0;
             last = now;
             update.accept(deltaTime);
         }
-    }
-
-    public static void main(String[] args) throws InterruptedException{
-        new GameLoop(60, System.out::println);
-//        measureOversleep(100000,0,1000);
-    }
-
-    private static void measureOversleep(int n, int ms, int ns) throws InterruptedException{
-        var oversleep = new double[n];
-
-        for(int i = 0; i < n; i++){
-            long start = System.nanoTime();
-            Thread.sleep(ms, ns);
-            oversleep[i] = (System.nanoTime() - start - ms*1000000 - ns)/1000000.0;
-            if(oversleep[i] >= 1){
-                System.out.printf("i = %d, overslept by %sms%n", i, oversleep[i]);
-            }
-        }
-
-        Map<String, Integer> oversleepMap = new TreeMap<>();
-        for(int i = 0; i < oversleep.length; i++){
-            oversleepMap.merge("%.2fms".formatted(oversleep[i]), 1, Integer::sum);
-        }
-        System.out.println(oversleepMap);
     }
 }
