@@ -24,8 +24,7 @@ public class Stopwatch{
 	 * @param elapsedNanos the initial elapsed time in nanoseconds
 	 */
 	public Stopwatch(long elapsedNanos){
-		lapStart = nanoTime();
-		start = lapStart - elapsedNanos;
+		start = -elapsedNanos + (lapStart = nanoTime());
 	}
 
 	/**
@@ -34,7 +33,8 @@ public class Stopwatch{
 	 *               {@code false} to create it running
 	 */
 	public Stopwatch(boolean paused){
-		this(0, paused);
+		this.paused = paused;
+		start = lapStart = pauseTime = nanoTime();
 	}
 
 	/**
@@ -45,8 +45,7 @@ public class Stopwatch{
 	 */
 	public Stopwatch(long elapsedNanos, boolean paused){
 		this.paused = paused;
-		lapStart = pauseTime = nanoTime();
-		start = lapStart - elapsedNanos;
+		start = -elapsedNanos + (lapStart = pauseTime = nanoTime());
 	}
 
 	public void reset(){
@@ -160,8 +159,8 @@ public class Stopwatch{
 	@Override
 	public String toString(){
 		long x = paused? pauseTime : nanoTime();
-        double time = (x - start) / 1_000_000.0;
-        double lap = (x - lapStart) / 1_000_000.0;
+        double time = (x - start) / 1_000_000_000.0;
+        double lap = (x - lapStart) / 1_000_000_000.0;
 		return "Stopwatch[time=" + time + "s, lap=" + lap + "s]";
 	}
 }

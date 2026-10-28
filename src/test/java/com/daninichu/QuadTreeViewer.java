@@ -1,7 +1,6 @@
 package com.daninichu;
 
 import com.daninichu.util.*;
-import com.daninichu.util.Timer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,11 +28,9 @@ public class QuadTreeViewer extends AbstractViewer{
         pixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
 
         try{
-            // QuadTree.root  (private field)
             fRoot = QuadTree.class.getDeclaredField("root");
             fRoot.setAccessible(true);
 
-            // Quadrant is a private static nested class — get it by name
             Class<?> quadrantClass = null;
             for(Class<?> c : QuadTree.class.getDeclaredClasses()){
                 if(c.getSimpleName().equals("Quadrant")){
@@ -58,8 +55,7 @@ public class QuadTreeViewer extends AbstractViewer{
 
         } catch (NoSuchFieldException e){
             throw new IllegalStateException(
-                    "QuadTreePanel reflection setup failed — did QuadTree's " +
-                            "internal field names change?", e);
+                    "QuadTreePanel reflection setup failed — did QuadTree's internal field names change?", e);
         }
 
         if(MAX_SPEED != 0){
@@ -68,9 +64,9 @@ public class QuadTreeViewer extends AbstractViewer{
                 System.out.println("fps = " + 1/dt);
                 System.out.println();
                 synchronized(lock){
-                    Timer timer = new Timer();
+                    Stopwatch timer = new Stopwatch();
                     update(dt);
-                    updateTime = timer.seconds();
+                    updateTime = timer.sec();
                 }
                 repaint();
             });
@@ -140,7 +136,7 @@ public class QuadTreeViewer extends AbstractViewer{
 
     private void regenerate(){
         synchronized(lock){
-            Timer timer = new Timer();
+            Stopwatch stopwatch = new Stopwatch();
 
             quadTree.clear();
 
@@ -169,10 +165,11 @@ public class QuadTreeViewer extends AbstractViewer{
                     vx[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                     vy[i] = (rng.nextFloat() * 2 - 1) * MAX_SPEED;
                 }
+            } else{
+                Arrays.parallelSort(allEntries, Comparator.comparingDouble(QuadTree.Entry::getY));
             }
-            Arrays.parallelSort(allEntries, Comparator.comparingDouble(QuadTree.Entry::getY));
 
-            generationTime = timer.seconds();
+            generationTime = stopwatch.sec();
         }
         repaint();
     }
@@ -188,8 +185,6 @@ public class QuadTreeViewer extends AbstractViewer{
     private void render(Graphics2D g2){
         drawTime = searchTime = totalTime = 0;
         totalTime += updateTime;
-
-        Timer timer = new Timer();
 
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -210,8 +205,7 @@ public class QuadTreeViewer extends AbstractViewer{
             );
         }
 
-        // Gather values
-        timer.reset();
+        Stopwatch stopwatch = new Stopwatch();
 
         if(showRectCursor && delete){
             quadTree.searchEntries(rectCursor).forEach(e -> quadTree.removeAndCollapse(e));
@@ -225,10 +219,7 @@ public class QuadTreeViewer extends AbstractViewer{
             searchBruteForce(viewRect, selectionRect);
         }
 
-        totalTime += searchTime = timer.seconds();
-
-        // Drawing
-        timer.reset();
+        totalTime += searchTime = stopwatch.newLapSec();
 
         Arrays.fill(pixels, getBackground().getRGB());
         if(showQuadCells){
@@ -262,7 +253,7 @@ public class QuadTreeViewer extends AbstractViewer{
             );
         }
 
-        totalTime += drawTime = timer.seconds();
+        totalTime += drawTime = stopwatch.newLapSec();
 
         // HUD
         drawHud(g2, selectedEntries.size(), quadTree.size());
@@ -295,12 +286,10 @@ public class QuadTreeViewer extends AbstractViewer{
         int x2 = sx + sw;
         int y2 = sy + sh;
 
-        // Top and bottom edges
         for(int i = sx; i <= x2; i++){
             setPixel(i, sy, color);
             setPixel(i, y2, color);
         }
-        // Left and right edges
         for(int j = sy; j <= y2; j++){
             setPixel(sx, j, color);
             setPixel(x2, j, color);
@@ -333,7 +322,7 @@ public class QuadTreeViewer extends AbstractViewer{
     private void drawHud(Graphics2D g2, int visibleCount, int allCount){
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         String[] lines = {
-            String.format("camera.getZoom()   %.3fx", camera.getZoom()),
+            String.format("zoom   %.3fx", camera.getZoom()),
             String.format("cam    (%.0f, %.0f)", camera.x, camera.y),
             String.format("drawn  %d/%d rects", visibleCount, allCount),
             String.format("mode   %s", quadTreeMode? "quadtree" : "brute force"),
@@ -346,7 +335,7 @@ public class QuadTreeViewer extends AbstractViewer{
             String.format("total  %f", totalTime),
             "",
             "drag   pan",
-            "wheel  camera.getZoom()",
+            "wheel  zoom",
             "R      regenerate",
             "W      show selection",
             "Q      show quad cells (%s)".formatted(showQuadCells? "ON" : "OFF"),
