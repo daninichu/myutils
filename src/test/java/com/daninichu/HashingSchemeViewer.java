@@ -2,11 +2,7 @@ package com.daninichu;
 
 import com.daninichu.util.*;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
@@ -123,7 +119,7 @@ public class HashingSchemeViewer extends AbstractViewer {
         Rectangle2D.Double viewRect = viewRect();
 
         int cellSize = toScreenLen(1);
-        for(Grid.Point point : grid.points()){
+        for(Point point : grid.points()){
             int x = point.x;
             int y = point.y;
             if(viewRect.intersects(x, y, 1, 1)){

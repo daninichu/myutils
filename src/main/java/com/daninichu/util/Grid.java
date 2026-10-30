@@ -1,5 +1,6 @@
 package com.daninichu.util;
 
+import java.awt.Point;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
@@ -7,7 +8,7 @@ import java.util.function.UnaryOperator;
  * Grid points are in (x,y) coordinates.
  * @param <E>
  */
-public interface Grid<E> extends Iterable<E> {
+public interface Grid<E> extends Iterable<E>{
 	/**
 	 * @return The number of values in this grid.
 	 */
@@ -151,30 +152,6 @@ public interface Grid<E> extends Iterable<E> {
 	 * @return An Iterable of all point and value pairs in the grid.
 	 */
 	Iterable<Cell<E>> cells();
-
-	final class Point{
-		public final int x, y;
-
-		public Point(int x, int y){
-			this.x = x;
-			this.y = y;
-		}
-
-		@Override
-		public boolean equals(Object obj){
-			return obj == this || obj instanceof Point p && x == p.x && y == p.y;
-		}
-
-		@Override
-		public int hashCode(){
-			return 65537 * x + y;
-		}
-
-		@Override
-		public String toString(){
-			return "(" + x + ',' + y + ')';
-		}
-	}
 
 	final class Cell<E>{
 		public final int x;

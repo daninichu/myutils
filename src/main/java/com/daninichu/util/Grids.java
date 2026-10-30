@@ -1,5 +1,6 @@
 package com.daninichu.util;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -8,11 +9,11 @@ import java.util.function.UnaryOperator;
 public final class Grids{
     private Grids(){}
 
-    public static List<Grid.Point> getPoints(double x, double y, double w, double h, double cellSize){
+    public static List<Point> getPoints(double x, double y, double w, double h, double cellSize){
         return getPoints(x, y, w, h, cellSize, cellSize);
     }
 
-    public static List<Grid.Point> getPoints(
+    public static List<Point> getPoints(
             double x, double y, double w, double h,
             double cellWidth, double cellHeight
     ){
@@ -21,12 +22,12 @@ public final class Grids{
         int x2 = (int) Math.ceil((x + w) / cellWidth);
         int y2 = (int) Math.ceil((y + h) / cellHeight);
 
-        List<Grid.Point> points = new ArrayList<>((x2 - x1) * (y2 - y1));
+        List<Point> points = new ArrayList<>((x2 - x1) * (y2 - y1));
         int startX = x1;
         while(y1 < y2){
             x1 = startX;
             while(x1 < x2){
-                points.add(new Grid.Point(x1, y1));
+                points.add(new Point(x1, y1));
                 x1++;
             }
             y1++;
