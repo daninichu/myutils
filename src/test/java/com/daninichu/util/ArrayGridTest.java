@@ -2,6 +2,7 @@ package com.daninichu.util;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -128,11 +129,11 @@ public class ArrayGridTest {
 		grid.set(0, 1, "a");
 		grid.set(1, 2, "b");
 
-		Iterator<Grid.Point> pts = grid.points().iterator();
+		Iterator<Point> pts = grid.points().iterator();
 		Iterator<String> vals = grid.iterator();
 
 		while (pts.hasNext()) {
-			Grid.Point p = pts.next();
+			Point p = pts.next();
 			String v = vals.next();
 			assertEquals(v, grid.get(p.x, p.y));
 		}
