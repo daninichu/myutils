@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 import java.awt.Color;
 import java.util.ArrayList;

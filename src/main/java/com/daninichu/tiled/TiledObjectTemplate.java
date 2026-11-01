@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 import java.awt.geom.Point2D;
 import java.util.Collections;

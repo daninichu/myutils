@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 /**
  * <p>A TiledResource is an object of a type that can represent the "top-level"

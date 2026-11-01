@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 /**
  * <p>A TiledFile represents a file referenced as the value of one of a

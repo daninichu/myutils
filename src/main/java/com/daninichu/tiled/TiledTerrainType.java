@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 /**
  * <p>A TiledTerrainType represents a terrain type in a tileset. It corresponds

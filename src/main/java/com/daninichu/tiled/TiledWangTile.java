@@ -1,4 +1,4 @@
-package com.daninichu.tiledreader;
+package com.daninichu.tiled;
 
 /**
  * <p>A TiledWangTile represents a Wang tile. It corresponds to a
