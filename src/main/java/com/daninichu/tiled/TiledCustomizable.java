@@ -20,8 +20,8 @@ public interface TiledCustomizable {
      * the object property is unset, in which case the value is null).
      * @return This entity's custom properties
      */
-    Map<String,Object> getProperties();
-    
+    Map<String, Object> getProperties();
+
     /**
      * Returns the value of this entity's custom property with the specified
      * name, or null if no such property was specified. The type of the returned
@@ -34,6 +34,8 @@ public interface TiledCustomizable {
      * @return The value of this entity's custom property with the specified
      * name
      */
-    Object getProperty(String name);
-    
+    @SuppressWarnings("unchecked")
+    default <T> T getProperty(String name){
+        return (T) getProperties().get(name);
+    }
 }

@@ -63,7 +63,11 @@ public abstract class TiledTileLayer extends TiledLayer {
      * @return The tile at the specified location
      */
     public abstract TiledTile getTile(int x, int y);
-    
+
+    public TiledTile getTile(Point point) {
+        return getTile(point.x, point.y);
+    }
+
     /**
      * Returns whether the tile at the specified location in this tile layer's
      * grid is flipped horizontally, or false if there is no tile there.
