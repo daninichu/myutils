@@ -915,15 +915,15 @@ public abstract class TiledReader {
     }
     
     private static void checkVersion(XMLStreamReader reader, String version) {
-        if (version == null) {
-            LOGGER.log(Level.WARNING, "{0}: No TMX format version specified (expected version: {1})."
-                    + " Parsing errors may occur.",
-                    new Object[]{describeReaderLocation(reader), TMX_VERSION});
-        } else if (!version.equals(TMX_VERSION)) {
-            LOGGER.log(Level.WARNING, "{0}: Specified TMX format version ({1}) does not match expected"
-                    + " version ({2}). Parsing errors may occur.",
-                    new Object[]{describeReaderLocation(reader), version, TMX_VERSION});
-        }
+//        if (version == null) {
+//            LOGGER.log(Level.WARNING, "{0}: No TMX format version specified (expected version: {1})."
+//                    + " Parsing errors may occur.",
+//                    new Object[]{describeReaderLocation(reader), TMX_VERSION});
+//        } else if (!version.equals(TMX_VERSION)) {
+//            LOGGER.log(Level.WARNING, "{0}: Specified TMX format version ({1}) does not match expected"
+//                    + " version ({2}). Parsing errors may occur.",
+//                    new Object[]{describeReaderLocation(reader), version, TMX_VERSION});
+//        }
     }
     
     private int parseInt(XMLStreamReader reader, String attribute, String value,
