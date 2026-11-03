@@ -14,6 +14,7 @@ public class GameLoop{
      * Creates a game loop with the specified target update frequency.
      * Upon construction, the game loop immediately starts on a dedicated thread.
      * @param fps target number of updates per second.
+     *        If more than 1000000000, then the frame rate is uncapped.
      * @param update callback executed on each update,
      *        receiving the elapsed time in seconds since the previous update.
      * @throws IllegalArgumentException if {@code fps} is not positive.
@@ -59,7 +60,7 @@ public class GameLoop{
             long nextFrame = last + frameTime;
             while(nextFrame - System.nanoTime() > 1_000_000){
                 try{
-                    Thread.sleep(0, 1000);
+                    Thread.sleep(0, 10000);
                 } catch(InterruptedException e){
                     return;
                 }
