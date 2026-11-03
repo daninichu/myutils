@@ -15,9 +15,9 @@ public abstract class TiledTileLayer extends TiledLayer {
     static final byte FL_FLIPY = 1 << 1;
     static final byte FL_FLIPD = 1 << 2;
     
-    TiledTileLayer(String name, TiledGroupLayer parent, float relOpacity, boolean relVisible,
+    TiledTileLayer(String name, String classStr, TiledGroupLayer parent, float relOpacity, boolean relVisible,
             Color relTintColor, float relOffsetX, float relOffsetY) {
-        super(name, parent, relOpacity, relVisible, relTintColor, relOffsetX, relOffsetY);
+        super(name, classStr, parent, relOpacity, relVisible, relTintColor, relOffsetX, relOffsetY);
     }
     
     /**

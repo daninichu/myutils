@@ -25,10 +25,10 @@ public class ArrayTileLayer extends TiledTileLayer {
     private final int numNonNullTiles;
     private final byte[][] flags;
     
-    ArrayTileLayer(String name, TiledGroupLayer parent, float relOpacity, boolean relVisible,
+    ArrayTileLayer(String name, String classStr, TiledGroupLayer parent, float relOpacity, boolean relVisible,
             Color relTintColor, float relOffsetX, float relOffsetY, int x1, int y1, int x2, int y2,
             Map<Point,TiledTile> tiles, Map<Point,Integer> flags) {
-        super(name, parent, relOpacity, relVisible, relTintColor, relOffsetX, relOffsetY);
+        super(name, classStr, parent, relOpacity, relVisible, relTintColor, relOffsetX, relOffsetY);
         this.x1 = x1;
         this.y1 = y1;
         int numColumns = x2 - x1 + 1;

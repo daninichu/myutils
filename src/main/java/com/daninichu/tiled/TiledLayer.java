@@ -18,16 +18,17 @@ import java.util.Map;
  */
 public abstract class TiledLayer extends TiledCustomizable{
     
-    private final String name;
+    private final String name, classStr;
     private final TiledGroupLayer parent;
     private final float relOpacity, absOpacity;
     private final boolean relVisible, absVisible;
     private final Color relTintColor, absTintColor;
     private final float relOffsetX, absOffsetX, relOffsetY, absOffsetY;
     
-    TiledLayer(String name, TiledGroupLayer parent, float relOpacity, boolean relVisible,
-            Color relTintColor, float relOffsetX, float relOffsetY) {
+    TiledLayer(String name, String classStr, TiledGroupLayer parent, float relOpacity, boolean relVisible,
+               Color relTintColor, float relOffsetX, float relOffsetY) {
         this.name = name;
+        this.classStr = classStr;
         this.parent = parent;
         this.relOpacity = relOpacity;
         this.relVisible = relVisible;
@@ -67,7 +68,15 @@ public abstract class TiledLayer extends TiledCustomizable{
     public final String getName() {
         return name;
     }
-    
+
+    /**
+     * Returns this layer's class, or null if none was specified.
+     * @return This layer's class
+     */
+    public String getType(){
+        return classStr;
+    }
+
     /**
      * Returns the group layer that this layer is a child of, or null if this
      * layer is not contained in a group layer.

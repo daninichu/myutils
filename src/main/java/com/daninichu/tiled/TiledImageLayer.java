@@ -11,9 +11,9 @@ public class TiledImageLayer extends TiledLayer {
     
     private final TiledImage image;
     
-    TiledImageLayer(String name, TiledGroupLayer parent, float relOpacity, boolean relVisible,
+    TiledImageLayer(String name, String classStr, TiledGroupLayer parent, float relOpacity, boolean relVisible,
             Color relTintColor, float relOffsetX, float relOffsetY, TiledImage image) {
-        super(name, parent, relOpacity, relVisible, relTintColor, relOffsetX, relOffsetY);
+        super(name, classStr, parent, relOpacity, relVisible, relTintColor, relOffsetX, relOffsetY);
         this.image = image;
     }
     

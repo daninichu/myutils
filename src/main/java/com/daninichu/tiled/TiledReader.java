@@ -143,6 +143,7 @@ public abstract class TiledReader {
     static {
         MAP_ATTRIBUTES.put("version", false);
         MAP_ATTRIBUTES.put("tiledversion", false);
+        MAP_ATTRIBUTES.put("class", false);
         MAP_ATTRIBUTES.put("orientation", true);
         MAP_ATTRIBUTES.put("renderorder", false);
         MAP_ATTRIBUTES.put("compressionlevel", false);
@@ -259,6 +260,7 @@ public abstract class TiledReader {
     static {
         LAYER_ATTRIBUTES.put("id", true);
         LAYER_ATTRIBUTES.put("name", true);
+        LAYER_ATTRIBUTES.put("class", false);
         LAYER_ATTRIBUTES.put("x", false);
         LAYER_ATTRIBUTES.put("y", false);
         LAYER_ATTRIBUTES.put("width", true);
@@ -293,6 +295,7 @@ public abstract class TiledReader {
     static {
         MAP_OBJECTGROUP_ATTRIBUTES.put("id", true);
         MAP_OBJECTGROUP_ATTRIBUTES.put("name", true);
+        MAP_OBJECTGROUP_ATTRIBUTES.put("class", false);
         MAP_OBJECTGROUP_ATTRIBUTES.put("color", false);
         MAP_OBJECTGROUP_ATTRIBUTES.put("x", false);
         MAP_OBJECTGROUP_ATTRIBUTES.put("y", false);
@@ -354,6 +357,7 @@ public abstract class TiledReader {
     static {
         IMAGELAYER_ATTRIBUTES.put("id", true);
         IMAGELAYER_ATTRIBUTES.put("name", true);
+        IMAGELAYER_ATTRIBUTES.put("class", false);
         IMAGELAYER_ATTRIBUTES.put("x", false);
         IMAGELAYER_ATTRIBUTES.put("y", false);
         IMAGELAYER_ATTRIBUTES.put("opacity", false);
@@ -367,6 +371,7 @@ public abstract class TiledReader {
     static {
         GROUP_ATTRIBUTES.put("id", true);
         GROUP_ATTRIBUTES.put("name", true);
+        GROUP_ATTRIBUTES.put("class", false);
         GROUP_ATTRIBUTES.put("opacity", false);
         GROUP_ATTRIBUTES.put("visible", false);
         GROUP_ATTRIBUTES.put("tintcolor", false);
@@ -1314,7 +1319,8 @@ public abstract class TiledReader {
         
         String version = attributeValues.get("version");
         checkVersion(reader, version);
-        
+
+        String classStr = attributeValues.get("class");
         TiledMap.Orientation orientation = parseEnumValue(TiledMap.Orientation.class,
                 reader, "orientation", attributeValues.get("orientation"));
         
@@ -1442,7 +1448,7 @@ public abstract class TiledReader {
             data.properties.put(data.propertyName, object);
         }
         
-        return new TiledMap(this, path, orientation, renderOrder, width, height,
+        return new TiledMap(this, path, classStr, orientation, renderOrder, width, height,
                 tileWidth, tileHeight, hexSideLength, staggerAxis, staggerIndex, backgroundColor,
                 mapTilesets, topLevelLayers, nonGroupLayers, properties);
     }
@@ -2131,6 +2137,7 @@ public abstract class TiledReader {
         }
         
         String name = attributeValues.get("name");
+        String classStr = attributeValues.get("class");
         int x = parseInt(reader, "x", attributeValues.get("x"), true, 0);
         int y = parseInt(reader, "y", attributeValues.get("y"), true, 0);
         int width = parseInt(reader, "width", attributeValues.get("width"));
@@ -2224,11 +2231,11 @@ public abstract class TiledReader {
         TiledTileLayer layer;
         if (tiles != null && tiles.size() < ((double)layerArea)/4) {
             //Layer's tiles are sparse; represent it with a HashTileLayer
-            layer = new HashTileLayer(name, parent, opacity, visible, tintColor, offsetX, offsetY,
+            layer = new HashTileLayer(name, classStr, parent, opacity, visible, tintColor, offsetX, offsetY,
                     x1, y1, x2, y2, tiles, flags);
         } else {
             //Layer's tiles are dense; represent it with an ArrayTileLayer
-            layer = new ArrayTileLayer(name, parent, opacity, visible, tintColor, offsetX, offsetY,
+            layer = new ArrayTileLayer(name, classStr, parent, opacity, visible, tintColor, offsetX, offsetY,
                     x1, y1, x2, y2, tiles, flags);
         }
         layer.setProperties(properties);
@@ -2534,6 +2541,7 @@ public abstract class TiledReader {
         }
         
         String name = attributeValues.get("name");
+        String classStr = attributeValues.get("class");
         Color color = parseColor(reader, "color", attributeValues.get("color"),
                 true, new Color(160, 160, 164));
         int x = parseInt(reader, "x", attributeValues.get("x"), true, 0);
@@ -2580,7 +2588,7 @@ public abstract class TiledReader {
         }
         
         TiledObjectLayer layer = new TiledObjectLayer(
-                name, parent, opacity, visible, tintColor, offsetX, offsetY, color, objects);
+                name, classStr, parent, opacity, visible, tintColor, offsetX, offsetY, color, objects);
         layer.setProperties(properties);
         nonGroupLayers.add(layer);
         return layer;
@@ -2938,6 +2946,7 @@ public abstract class TiledReader {
         }
         
         String name = attributeValues.get("name");
+        String classStr = attributeValues.get("class");
         int x = parseInt(reader, "x", attributeValues.get("x"), true, 0);
         int y = parseInt(reader, "y", attributeValues.get("y"), true, 0);
         float opacity = parseFloat(reader, "opacity", attributeValues.get("opacity"), true, 1);
@@ -2983,7 +2992,7 @@ public abstract class TiledReader {
         }
         
         TiledImageLayer layer = new TiledImageLayer(
-                name, parent, opacity, visible, tintColor, offsetX, offsetY, image);
+                name, classStr, parent, opacity, visible, tintColor, offsetX, offsetY, image);
         layer.setProperties(properties);
         nonGroupLayers.add(layer);
         return layer;
@@ -3002,6 +3011,7 @@ public abstract class TiledReader {
         }
         
         String name = attributeValues.get("name");
+        String classStr = attributeValues.get("classStr");
         float opacity = parseFloat(reader, "opacity", attributeValues.get("opacity"), true, 1);
         boolean visible = parseBooleanFromInt(reader, "visible", attributeValues.get("visible"), true, true);
         Color tintColor = parseColor(reader, "tintcolor", attributeValues.get("tintcolor"),
@@ -3010,7 +3020,7 @@ public abstract class TiledReader {
         float offsetY = parseFloat(reader, "offsety", attributeValues.get("offsety"), true, 0);
         
         TiledGroupLayer group = new TiledGroupLayer(
-                name, parent, opacity, visible, tintColor, offsetX, offsetY);
+                name, classStr, parent, opacity, visible, tintColor, offsetX, offsetY);
         
         Map<String,Object> properties = null;
         OUTER: while (true) {

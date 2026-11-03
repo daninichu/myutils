@@ -42,7 +42,8 @@ public class TiledMap extends TiledResource{
     public enum StaggerIndex {
         EVEN, ODD
     }
-    
+
+    private final String classStr;
     private final Orientation orientation;
     private final RenderOrder renderOrder;
     private final int width, height, tileWidth, tileHeight, hexSideLength;
@@ -52,12 +53,13 @@ public class TiledMap extends TiledResource{
     private final List<TiledTileset> tilesets;
     private final List<TiledLayer> topLevelLayers, nonGroupLayers;
     
-    TiledMap(TiledReader reader, String path, Orientation orientation, RenderOrder renderOrder,
-            int width, int height, int tileWidth, int tileHeight, int hexSideLength,
-            StaggerAxis staggerAxis, StaggerIndex staggerIndex, Color backgroundColor,
-            List<TiledTileset> tilesets, List<TiledLayer> topLevelLayers, List<TiledLayer> nonGroupLayers,
-            Map<String,Object> properties) {
+    TiledMap(TiledReader reader, String path, String classStr, Orientation orientation, RenderOrder renderOrder,
+             int width, int height, int tileWidth, int tileHeight, int hexSideLength,
+             StaggerAxis staggerAxis, StaggerIndex staggerIndex, Color backgroundColor,
+             List<TiledTileset> tilesets, List<TiledLayer> topLevelLayers, List<TiledLayer> nonGroupLayers,
+             Map<String,Object> properties) {
         super(reader, path);
+        this.classStr = classStr;
         this.orientation = orientation;
         this.renderOrder = renderOrder;
         this.width = width;
@@ -73,6 +75,14 @@ public class TiledMap extends TiledResource{
         this.nonGroupLayers = Collections.unmodifiableList(nonGroupLayers);
         this.properties = (properties == null ?
                 Collections.emptyMap() : Collections.unmodifiableMap(properties));
+    }
+
+    /**
+     * Returns this map's class, or null if none was specified.
+     * @return This map's class
+     */
+    public String getType(){
+        return classStr;
     }
     
     /**
