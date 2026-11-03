@@ -11,7 +11,7 @@ import java.util.Map;
  * tile implicitly declared by the attributes of a &lt;tileset&gt; tag.</p>
  * @author Alex Heyman
  */
-public class TiledTile implements TiledCustomizable {
+public class TiledTile extends TiledCustomizable{
     
     TiledTileset tileset = null;
     private final int id;
@@ -26,7 +26,6 @@ public class TiledTile implements TiledCustomizable {
     private List<TiledTile> frames = Collections.emptyList();
     private List<Integer> frameDurations = Collections.emptyList();
     private Map<String,Object> nonDefaultProperties = Collections.emptyMap();
-    private Map<String,Object> properties = Collections.emptyMap();
     
     TiledTile(int id) {
         this.id = id;
@@ -220,17 +219,7 @@ public class TiledTile implements TiledCustomizable {
         }
         return frameDurations.get(index);
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
+
     /**
      * Returns an unmodifiable Map view of this tile's custom properties that
      * were specified by the tile itself, rather than as defaults via its object

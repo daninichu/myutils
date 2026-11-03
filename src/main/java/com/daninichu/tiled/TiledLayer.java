@@ -16,7 +16,7 @@ import java.util.Map;
  * visibility, etc.</p>
  * @author Alex Heyman
  */
-public abstract class TiledLayer implements TiledCustomizable {
+public abstract class TiledLayer extends TiledCustomizable{
     
     private final String name;
     private final TiledGroupLayer parent;
@@ -24,7 +24,6 @@ public abstract class TiledLayer implements TiledCustomizable {
     private final boolean relVisible, absVisible;
     private final Color relTintColor, absTintColor;
     private final float relOffsetX, absOffsetX, relOffsetY, absOffsetY;
-    private Map<String,Object> properties = Collections.emptyMap();
     
     TiledLayer(String name, TiledGroupLayer parent, float relOpacity, boolean relVisible,
             Color relTintColor, float relOffsetX, float relOffsetY) {
@@ -162,15 +161,4 @@ public abstract class TiledLayer implements TiledCustomizable {
     public final float getAbsOffsetY() {
         return absOffsetY;
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
 }

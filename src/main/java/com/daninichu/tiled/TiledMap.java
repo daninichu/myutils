@@ -10,12 +10,12 @@ import java.util.Map;
  * &lt;map&gt; tag in a Tiled XML file.</p>
  * @author Alex Heyman
  */
-public class TiledMap extends TiledResource implements TiledCustomizable {
+public class TiledMap extends TiledResource{
     
     /**
      * <p>Represents an orientation that a Tiled map can have.</p>
      */
-    public static enum Orientation {
+    public enum Orientation {
         ORTHOGONAL, ISOMETRIC, STAGGERED, HEXAGONAL
     }
     
@@ -23,7 +23,7 @@ public class TiledMap extends TiledResource implements TiledCustomizable {
      * <p>Represents an order in which the tiles in a Tiled map's tile layers
      * can be rendered.</p>
      */
-    public static enum RenderOrder {
+    public enum RenderOrder {
         RIGHT_DOWN, RIGHT_UP, LEFT_DOWN, LEFT_UP
     }
     
@@ -31,7 +31,7 @@ public class TiledMap extends TiledResource implements TiledCustomizable {
      * <p>Represents an axis that can be staggered in a Tiled map with a
      * staggered or hexagonal orientation.</p>
      */
-    public static enum StaggerAxis {
+    public enum StaggerAxis {
         X, Y
     }
     
@@ -39,7 +39,7 @@ public class TiledMap extends TiledResource implements TiledCustomizable {
      * <p>Represents a category of indices that can be shifted in a Tiled map
      * with a staggered or hexagonal orientation.</p>
      */
-    public static enum StaggerIndex {
+    public enum StaggerIndex {
         EVEN, ODD
     }
     
@@ -51,7 +51,6 @@ public class TiledMap extends TiledResource implements TiledCustomizable {
     private final Color backgroundColor;
     private final List<TiledTileset> tilesets;
     private final List<TiledLayer> topLevelLayers, nonGroupLayers;
-    private final Map<String,Object> properties;
     
     TiledMap(TiledReader reader, String path, Orientation orientation, RenderOrder renderOrder,
             int width, int height, int tileWidth, int tileHeight, int hexSideLength,
@@ -199,15 +198,4 @@ public class TiledMap extends TiledResource implements TiledCustomizable {
     public final List<TiledLayer> getNonGroupLayers() {
         return nonGroupLayers;
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
 }

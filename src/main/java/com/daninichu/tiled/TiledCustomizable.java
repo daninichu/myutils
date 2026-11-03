@@ -8,8 +8,9 @@ import java.util.Map;
  * &lt;properties&gt; tag inside the entity's tag in a Tiled XML file.</p>
  * @author Alex Heyman
  */
-public interface TiledCustomizable {
-    
+public abstract class TiledCustomizable {
+    Map<String, Object> properties;
+
     /**
      * Returns an unmodifiable Map view of this entity's custom properties. Each
      * key in the Map is the name of a property, and its corresponding value is
@@ -20,7 +21,9 @@ public interface TiledCustomizable {
      * the object property is unset, in which case the value is null).
      * @return This entity's custom properties
      */
-    Map<String, Object> getProperties();
+    public Map<String, Object> getProperties(){
+        return properties;
+    }
 
     /**
      * Returns the value of this entity's custom property with the specified
@@ -35,7 +38,7 @@ public interface TiledCustomizable {
      * name
      */
     @SuppressWarnings("unchecked")
-    default <T> T getProperty(String name){
-        return (T) getProperties().get(name);
+    public <T> T getProperty(String name){
+        return (T) properties.get(name);
     }
 }

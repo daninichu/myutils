@@ -11,20 +11,20 @@ import java.util.SortedMap;
  * tag in a Tiled XML file.</p>
  * @author Alex Heyman
  */
-public class TiledTileset extends TiledResource implements TiledCustomizable {
+public class TiledTileset extends TiledResource{
     
     /**
      * <p>Represents an alignment that tile objects using a tileset's tiles can
      * have.</p>
      */
-    public static enum ObjectAlignment {
+    public enum ObjectAlignment {
         UNSPECIFIED, TOPLEFT, TOP, TOPRIGHT, LEFT, CENTER, RIGHT, BOTTOMLEFT, BOTTOM, BOTTOMRIGHT;
     }
     
     /**
      * <p>Represents an orientation that a tileset's tile grid can have.</p>
      */
-    public static enum GridOrientation {
+    public enum GridOrientation {
         ORTHOGONAL, ISOMETRIC
     }
     
@@ -40,7 +40,6 @@ public class TiledTileset extends TiledResource implements TiledCustomizable {
     private final TiledImage image;
     private final List<TiledTerrainType> terrainTypes;
     private final List<TiledWangSet> wangSets;
-    private final Map<String,Object> properties;
     
     TiledTileset(TiledReader reader, String path, String name, int tileWidth, int tileHeight, int spacing,
             int margin, SortedMap<Integer,TiledTile> idTiles, int columns, int tileOffsetX, int tileOffsetY,
@@ -277,15 +276,4 @@ public class TiledTileset extends TiledResource implements TiledCustomizable {
     public final List<TiledWangSet> getWangSets() {
         return wangSets;
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
 }

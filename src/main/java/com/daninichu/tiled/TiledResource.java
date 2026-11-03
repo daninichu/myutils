@@ -10,7 +10,7 @@ package com.daninichu.tiled;
  * file.</p>
  * @author Alex Heyman
  */
-public class TiledResource {
+public class TiledResource extends TiledCustomizable{
     
     private final TiledReader reader;
     private final String path;

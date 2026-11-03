@@ -12,13 +12,13 @@ import java.util.Map;
  * &lt;object&gt; tag inside an &lt;objectgroup&gt; tag in a Tiled XML file.</p>
  * @author Alex Heyman
  */
-public class TiledObject implements TiledCustomizable {
+public class TiledObject extends TiledCustomizable{
     
     /**
      * <p>Represents a shape that a Tiled object can take, such as an ellipse or
      * polygon.</p>
      */
-    public static enum Shape {
+    public enum Shape {
         ELLIPSE, POINT, POLYGON, POLYLINE, RECTANGLE, TEXT
     }
     
@@ -31,7 +31,7 @@ public class TiledObject implements TiledCustomizable {
     private final Shape shape;
     private final List<Point2D> points;
     private final TiledText text;
-    private final Map<String,Object> nonDefaultProperties, properties;
+    private final Map<String,Object> nonDefaultProperties;
     private final TiledObjectTemplate template;
     
     TiledObject(String name, String type, TiledObjectType typeInfo, float x, float y,
@@ -211,17 +211,7 @@ public class TiledObject implements TiledCustomizable {
     public final TiledText getText() {
         return text;
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
+
     /**
      * Returns an unmodifiable Map view of this object's custom properties that
      * were specified by the object itself, rather than as defaults via its

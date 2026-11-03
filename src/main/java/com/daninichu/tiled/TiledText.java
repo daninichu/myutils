@@ -13,7 +13,7 @@ public class TiledText {
      * <p>Represents a horizontal alignment that text can have within a text
      * object.</p>
      */
-    public static enum HAlign {
+    public enum HAlign {
         LEFT, CENTER, RIGHT, JUSTIFY
     }
     
@@ -21,7 +21,7 @@ public class TiledText {
      * <p>Represents a vertical alignment that text can have within a text
      * object.</p>
      */
-    public static enum VAlign {
+    public enum VAlign {
         TOP, CENTER, BOTTOM
     }
     

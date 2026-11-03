@@ -11,7 +11,7 @@ import java.util.Map;
  * a Tiled XML file.</p>
  * @author Alex Heyman
  */
-public class TiledObjectTemplate extends TiledResource implements TiledCustomizable {
+public class TiledObjectTemplate extends TiledResource{
     
     private final String name, type;
     private final float width, height, rotation;
@@ -21,7 +21,6 @@ public class TiledObjectTemplate extends TiledResource implements TiledCustomiza
     private final TiledObject.Shape shape;
     private final List<Point2D> points;
     private final TiledText text;
-    private final Map<String,Object> properties;
     
     TiledObjectTemplate(TiledReader reader, String path, String name, String type, float width, float height,
             float rotation, TiledTile tile, int tileFlags, boolean visible, TiledObject.Shape shape,
@@ -163,15 +162,4 @@ public class TiledObjectTemplate extends TiledResource implements TiledCustomiza
     public final TiledText getText() {
         return text;
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
 }

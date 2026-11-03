@@ -10,11 +10,10 @@ import java.util.Map;
  * </p>
  * @author Alex Heyman
  */
-public class TiledObjectType implements TiledCustomizable {
+public class TiledObjectType extends TiledCustomizable{
     
     private final String name;
     private final Color color;
-    private final Map<String,Object> properties;
     
     TiledObjectType(String name, Color color, Map<String,Object> properties) {
         this.name = name;
@@ -38,15 +37,4 @@ public class TiledObjectType implements TiledCustomizable {
     public final Color getColor() {
         return color;
     }
-    
-    @Override
-    public final Map<String,Object> getProperties() {
-        return properties;
-    }
-    
-    @Override
-    public final Object getProperty(String name) {
-        return properties.get(name);
-    }
-    
 }
