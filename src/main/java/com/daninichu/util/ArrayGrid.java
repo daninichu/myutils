@@ -17,20 +17,16 @@ import java.util.function.UnaryOperator;
 @SuppressWarnings("unchecked")
 public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	private final Object[][] data;
-	private int size;
 
 	/**
 	 * Constructs an empty {@code ArrayGrid} with the given width and height.
 	 * @param width The width of this grid.
 	 * @param height The height of this grid.
 	 * @throws IllegalArgumentException if {@code width} or {@code height} are less than 1.
-	 * @throws OutOfMemoryError if {@code width * height} exceeds {@link  Integer#MAX_VALUE}.
 	 */
     public ArrayGrid(int width, int height){
 		if(width < 1 || height < 1)
             throw new IllegalArgumentException("width and height must be 1 or greater");
-		if((long) width * height > Integer.MAX_VALUE)
-			throw new OutOfMemoryError("width * height exceeds maximum size");
         data = new Object[height][width];
     }
 
@@ -42,7 +38,6 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	 */
     public ArrayGrid(ArrayGrid<? extends E> grid){
 		data = grid.toArray();
-		size = grid.size();
     }
 
 	/**
@@ -82,25 +77,10 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
 	private void checkInBounds(int x, int y){
 		if(!inBounds(x, y)){
-			throw new IndexOutOfBoundsException(
-					"Point (%d,%d) out of bounds for dimensions [%d,%d]".formatted(x, y, width(), height())
+			throw new IndexOutOfBoundsException("Point (" + x + "," + y
+					+ ") out of bounds for dimensions " + width() + "x" + height()
 			);
 		}
-	}
-
-	private static void checkRowInBounds(int y, int height){
-		if(y < 0 || height <= y)
-			throw new IndexOutOfBoundsException("Row " + y + " out of bounds for height " + height);
-	}
-
-	private static void checkColInBounds(int x, int width){
-		if(x < 0 || width <= x)
-            throw new IndexOutOfBoundsException("Column " + x + " out of bounds for width " + width);
-	}
-
-	@Override
-	public int size(){
-		return size;
 	}
 
 	@Override
@@ -109,45 +89,20 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return (E) data[y][x];
     }
 
-	@Override
-	public E get(Point p){
-		return get(p.x, p.y);
-	}
-
     @Override
     public E set(int x, int y, E e){
 		checkInBounds(x, y);
 		E oldValue = (E) data[y][x];
 		data[y][x] = Objects.requireNonNull(e);
-		if(oldValue == null)
-            size++;
 		return oldValue;
     }
-
-	@Override
-	public E set(Point p, E e){
-		return set(p.x, p.y, e);
-	}
-
-	@Override
-	public void setAll(Grid<? extends E> grid){
-		for(Cell<? extends E> cell : grid.cells())
-            set(cell.x, cell.y, cell.value);
-	}
 
     @Override
     public E removePoint(int x, int y){
 		checkInBounds(x, y);
         E oldValue = (E) data[y][x];
 		data[y][x] = null;
-		if(oldValue != null)
-			size--;
 		return oldValue;
-    }
-
-    @Override
-    public E removePoint(Point p){
-        return removePoint(p.x, p.y);
     }
 
 	@Override
@@ -162,7 +117,6 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 					Object o = row[x];
                     if(o != null && e.equals(o)){
                         row[x] = null;
-						size--;
                         return true;
                     }
                 }
@@ -175,11 +129,6 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     public boolean containsPoint(int x, int y){
 		checkInBounds(x, y);
 		return data[y][x] != null;
-    }
-
-    @Override
-    public boolean containsPoint(Point p){
-        return containsPoint(p.x, p.y);
     }
 
 	@Override
@@ -227,94 +176,16 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		Objects.requireNonNull(e);
 		Object[][] data = this.data;
 		int height = data.length;
-		int width = data[0].length;
 		for(int y = 0; y < height; y++){
 			Arrays.fill(data[y], e);
         }
-		size = width * height;
-	}
-
-	/**
-	 * Sets every point in row {@code y} to {@code e}.
-	 * @param y The row index.
-	 * @param e The value to fill with.
-	 * @throws IndexOutOfBoundsException if {@code y} is out of bounds.
-	 * @throws NullPointerException if {@code e} is null.
-	 */
-	public void fillRow(int y, E e){
-		Objects.requireNonNull(e);
-		Object[][] data = this.data;
-		checkRowInBounds(y, data.length);
-
-		Object[] row = data[y];
-		for(int x = 0, width = row.length; x < width; x++){
-			if(row[x] == null)
-                size++;
-			row[x] = e;
-		}
-	}
-
-	/**
-	 * Sets every point in column {@code x} to {@code e}.
-	 * @param x The column index.
-	 * @param e The value to fill with.
-	 * @throws IndexOutOfBoundsException if {@code x} is out of bounds.
-	 * @throws NullPointerException if {@code e} is null.
-	 */
-	public void fillCol(int x, E e){
-		Objects.requireNonNull(e);
-		Object[][] data = this.data;
-		checkColInBounds(x, data[0].length);
-
-		for(int y = 0, height = data.length; y < height; y++){
-			Object[] row = data[y];
-			if(row[x] == null)
-                size++;
-			row[x] = e;
-		}
 	}
 
 	@Override
 	public void clear(){
 		Object[][] data = this.data;
-		for(int y = size = 0, height = data.length; y < height; y++)
+		for(int y = 0, height = data.length; y < height; y++)
             Arrays.fill(data[y], null);
-	}
-
-	/**
-	 * Removes all values in row {@code y}, leaving every point vacant.
-	 * @param y The row index.
-	 * @throws IndexOutOfBoundsException if {@code y} is out of bounds.
-	 */
-	public void clearRow(int y){
-		Object[][] data = this.data;
-		checkRowInBounds(y, data.length);
-
-		Object[] row = data[y];
-		for(int x = 0, width = row.length; x < width; x++){
-			if(row[x] != null){
-				row[x] = null;
-                size--;
-            }
-		}
-	}
-
-	/**
-	 * Removes all values in column {@code x}, leaving every point vacant.
-	 * @param x The column index.
-	 * @throws IndexOutOfBoundsException if {@code x} is out of bounds.
-	 */
-	public void clearCol(int x){
-		Object[][] data = this.data;
-		checkColInBounds(x, data[0].length);
-
-		for(int y = 0, height = data.length; y < height; y++){
-			Object[] row = data[y];
-			if(row[x] != null){
-				row[x] = null;
-                size--;
-            }
-		}
 	}
 
 	@Override
@@ -360,7 +231,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		public boolean hasNext(){
 			Object[][] data = ArrayGrid.this.data;
 			int height = data.length;
-			int width = data[y].length;
+			int width = data[0].length;
 			while(y < height){
 				Object[] row = data[y];
 				while(x < width){
@@ -379,7 +250,6 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 			if(lastY == -1)
 				throw new IllegalStateException();
 			data[lastY][lastX] = null;
-			size--;
 			lastY = -1;
 		}
 	}
@@ -388,14 +258,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	public void compute(int x, int y, UnaryOperator<E> operator){
 		checkInBounds(x, y);
 		Object[] row = data[y];
-		E e = (E) row[x];
-		E result = operator.apply(e);
-		row[x] = result;
-		if(e == null){
-			if(result != null)
-                size++;
-		} else if(result == null)
-            size--;
+		row[x] = operator.apply((E) row[x]);
 	}
 
 	/**

@@ -10,16 +10,6 @@ import java.util.function.UnaryOperator;
  */
 public interface Grid<E> extends Iterable<E>{
 	/**
-	 * @return The number of values in this grid.
-	 */
-	int size();
-
-	/**
-	 * @return {@code true} if this grid contains no values.
-	 */
-	boolean isEmpty();
-
-	/**
 	 * @param x The x coordinate.
 	 * @param y The y coordinate.
      * @return The value at the given point, or null if there is none.
@@ -181,4 +171,6 @@ public interface Grid<E> extends Iterable<E>{
 	}
 
 	void compute(int x, int y, UnaryOperator<E> operator);
+
+	void compute(Point p, UnaryOperator<E> operator);
 }

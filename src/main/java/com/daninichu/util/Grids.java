@@ -42,9 +42,6 @@ public final class Grids{
             this.grid = grid;
         }
 
-        public int size(){return grid.size();}
-        public boolean isEmpty(){return grid.isEmpty();}
-
         public E get(int x, int y){return grid.get(x, y);}
         public E get(Point p){return grid.get(p);}
 
@@ -75,46 +72,52 @@ public final class Grids{
         public Iterator<E> iterator(){return grid.iterator();}
 
         public void compute(int x, int y, UnaryOperator<E> operator){grid.compute(x, y, operator);}
+        public void compute(Point p, UnaryOperator<E> operator){grid.compute(p.x, p.y, operator);}
     }
 
     private static final class TranslatedGrid<E> extends BackedGrid<E>{
-        private int originX, originY;
+        private int dx, dy;
 
-        public TranslatedGrid(Grid<E> grid, int originX, int originY){
+        public TranslatedGrid(Grid<E> grid, int dx, int dy){
             super(grid);
-            this.originX = originX;
-            this.originY = originY;
+            this.dx = dx;
+            this.dy = dy;
         }
 
         public E get(int x, int y){
-            return grid.get(x - originX, y - originY);
+            return grid.get(x - dx, y - dy);
         }
         public E get(Point p){
-            return grid.get(p.x - originX, p.y - originY);
+            return grid.get(p.x - dx, p.y - dy);
         }
         public E getOrDefault(int x, int y, E defaultValue){
-            return grid.getOrDefault(x - originX, y - originY, defaultValue);
+            return grid.getOrDefault(x - dx, y - dy, defaultValue);
         }
         public E getOrDefault(Point p, E defaultValue){
-            return grid.getOrDefault(p.x - originX, p.y - originY, defaultValue);
+            return grid.getOrDefault(p.x - dx, p.y - dy, defaultValue);
         }
         public E set(int x, int y, E e){
-            return grid.set(x - originX, y - originY, e);
+            return grid.set(x - dx, y - dy, e);
         }
         public E set(Point p, E e){
-            return grid.set(p.x - originX, p.y - originY, e);
+            return grid.set(p.x - dx, p.y - dy, e);
         }
         public E removePoint(int x, int y){
-            return grid.removePoint(x - originX, y - originY);
+            return grid.removePoint(x - dx, y - dy);
         }
         public E removePoint(Point p){
-            return grid.removePoint(p.x - originX, p.y - originY);
+            return grid.removePoint(p.x - dx, p.y - dy);
         }
         public boolean containsPoint(int x, int y){
-            return grid.containsPoint(x - originX, y - originY);
+            return grid.containsPoint(x - dx, y - dy);
         }
         public boolean containsPoint(Point p){
-            return grid.containsPoint(p.x - originX, p.y - originY);
+            return grid.containsPoint(p.x - dx, p.y - dy);
+        }
+        public Point pointOf(E e){
+            Point p = grid.pointOf(e);
+            p.translate(dx, dy);
+            return p;
         }
 
         public Iterable<Point> points(){
@@ -125,23 +128,23 @@ public final class Grids{
                 }
                 public Point next(){
                     Point p = it.next();
-                    return new Point(p.x + originX, p.y + originY);
+                    return new Point(p.x + dx, p.y + dy);
                 }
             };
         }
 
         public void compute(int x, int y, UnaryOperator<E> operator){
-            grid.compute(x - originX, y - originY, operator);
+            grid.compute(x - dx, y - dy, operator);
         }
     }
 
-    public static <E> Grid<E> translatedGrid(Grid<E> grid, int originX, int originY){
+    public static <E> Grid<E> translatedGrid(Grid<E> grid, int dx, int dy){
         if(grid instanceof TranslatedGrid<E> translatedGrid){
-            originX += translatedGrid.originX;
-            originY += translatedGrid.originY;
+            dx += translatedGrid.dx;
+            dy += translatedGrid.dy;
             grid = translatedGrid.grid;
         }
-        return new TranslatedGrid<>(grid, originX, originY);
+        return new TranslatedGrid<>(grid, dx, dy);
     }
 
     static final class UnmodifiableGrid<E> extends BackedGrid<E>{

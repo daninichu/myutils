@@ -67,15 +67,10 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
      * hold the entries of the given {@code Grid}.
      * @param grid The grid to copy from.
      * @throws NullPointerException if {@code grid} is null.
-     * @throws OutOfMemoryError if this grid cannot hold all entries from the given {@code Grid}.
      */
-    public HashGrid(Grid<? extends E> grid){
-        int s = grid.size();
-        int n = Math.max(2, (int) Math.ceil(s / (double) (loadFactor = 0.75f)));
-        int capacity = Integer.highestOneBit(n - 1) << 1;
-        if(capacity < 0)
-            throw new OutOfMemoryError("Cannot hold all entries from grid of size " + s);
-        init(capacity);
+    public HashGrid(HashGrid<? extends E> grid){
+        this.loadFactor = 0.75f;
+        init(grid.occupied.length);
         setAll(grid);
     }
 
@@ -212,29 +207,14 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public int size(){
-        return size;
-    }
-
-    @Override
     public E get(int x, int y){
         int i = findSlot(pack(x, y));
         return i >= 0? (E) values[i] : null;
     }
 
     @Override
-    public E get(Point p){
-        return get(p.x, p.y);
-    }
-
-    @Override
     public E set(int x, int y, E e){
         return rawPut(pack(x, y), e);
-    }
-
-    @Override
-    public E set(Point p, E e){
-        return rawPut(pack(p.x, p.y), e);
     }
 
     @Override
@@ -257,11 +237,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public E removePoint(int x, int y){
         return rawRemove(pack(x, y));
-    }
-
-    @Override
-    public E removePoint(Point p){
-        return rawRemove(pack(p.x, p.y));
     }
 
     @Override
@@ -292,11 +267,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public boolean containsPoint(int x, int y){
         return findSlot(pack(x, y)) >= 0;
-    }
-
-    @Override
-    public boolean containsPoint(Point p){
-        return findSlot(pack(p.x, p.y)) >= 0;
     }
 
     @Override

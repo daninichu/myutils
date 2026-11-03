@@ -6,16 +6,6 @@ import java.util.function.UnaryOperator;
 
 public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
-    public int size(){
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isEmpty(){
-        return size() == 0;
-    }
-
-    @Override
     public E get(Point p){
         return get(p.x, p.y);
     }
@@ -72,6 +62,11 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
     public void compute(int x, int y, UnaryOperator<E> operator){
         set(x, y, operator.apply(get(x, y)));
+    }
+
+    @Override
+    public void compute(Point p, UnaryOperator<E> operator){
+        set(p.x, p.y, operator.apply(get(p.x, p.y)));
     }
 
     @Override
