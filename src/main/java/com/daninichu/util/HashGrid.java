@@ -346,9 +346,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return () -> new HashGridIterator<Point>(){
             @Override
             public Point next(){
-                if(!hasNext())
-                    throw new NoSuchElementException();
-                long key = keys[lastSlot = cursor++];
+                long key = keys[nextSlot()];
                 return new Point(unpackX(key), unpackY(key));
             }
         };
@@ -359,10 +357,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return () -> new HashGridIterator<Cell<E>>(){
             @Override
             public Cell<E> next(){
-                if(!hasNext())
-                    throw new NoSuchElementException();
-                long key = keys[lastSlot = cursor++];
-                return new Cell<>(unpackX(key), unpackY(key), (E) values[lastSlot]);
+                int i = nextSlot();
+                long key = keys[i];
+                return new Cell<>(unpackX(key), unpackY(key), (E) values[i]);
             }
         };
     }
@@ -372,33 +369,48 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return new HashGridIterator<E>(){
             @Override
             public E next(){
-                if(!hasNext())
-                    throw new NoSuchElementException();
-                return (E) values[lastSlot = cursor++];
+                return (E) values[nextSlot()];
             }
         };
     }
 
     private abstract class HashGridIterator<T> implements Iterator<T>{
+        final int start, mask;
         int cursor, lastSlot = -1;
+
+        HashGridIterator(){
+            boolean[] occupied = HashGrid.this.occupied;
+            int i = 0;
+            while(occupied[i])
+                i++;
+            start = i;
+            mask = occupied.length - 1;
+        }
 
         @Override
         public boolean hasNext(){
             boolean[] occupied = HashGrid.this.occupied;
             int n = occupied.length;
             while(cursor < n){
-                if(occupied[cursor])
+                if(occupied[(start + cursor) & mask])
                     return true;
                 cursor++;
             }
             return false;
         }
 
+        final int nextSlot(){
+            if(!hasNext())
+                throw new NoSuchElementException();
+            return lastSlot = (start + cursor++) & mask;
+        }
+
         @Override
         public void remove(){
             if(lastSlot < 0)
                 throw new IllegalStateException();
-            shiftDelete(cursor = lastSlot);
+            shiftDelete(lastSlot);
+            cursor = (lastSlot - start) & mask;
             size--;
             lastSlot = -1;
         }
