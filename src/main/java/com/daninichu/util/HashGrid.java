@@ -8,7 +8,8 @@ import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
- * A hash-based Grid backed by a custom open-addressing hash table with linear probing.
+ * A hash-based Grid backed by a custom open-addressing hash table using
+ * Robin Hood hashing with linear probing and backward-shift deletion.
  * <p>
  * Keys are stored as packed {@code long}s (x in the high 32 bits, y in the low 32 bits),
  * avoiding {@link Point} allocation on lookups.
@@ -62,9 +63,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Constructs a new {@code HashGrid} with the same entries as the given {@code Grid}
+     * Constructs a new {@code HashGrid} with the same entries as the given {@code HashGrid}
      * with a default load factor of 0.75 and an initial capacity sufficient to
-     * hold the entries of the given {@code Grid}.
+     * hold the entries of the given grid.
      * @param grid The grid to copy from.
      * @throws NullPointerException if {@code grid} is null.
      */
@@ -99,9 +100,17 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
+     * Returns how far {@code key}, sitting in slot {@code slot}, is from its home slot.
+     */
+    private static int distance(long key, int slot, int mask){
+        return (slot - hash(key)) & mask;
+    }
+
+    /**
      * Returns the slot index of {@code key} if present,
      * or {@code ~insertSlot} (a negative value) if absent.
-     * The insert slot is the first empty slot.
+     * The insert slot is the first slot that is empty or holds an entry
+     * closer to its home than {@code key} would be at that slot.
      */
     private int findSlot(long key){
         boolean[] occupied = this.occupied;
@@ -109,13 +118,50 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
         int mask = occupied.length - 1;
         int i = hash(key) & mask;
+        int d = 0;
         while(true){
             if(!occupied[i])
                 return ~i;
-            if(keys[i] == key)
+            long k = keys[i];
+            if(k == key)
                 return i;
+            if(distance(k, i, mask) < d)
+                return ~i;
             i = (i + 1) & mask;
+            d++;
         }
+    }
+
+    /**
+     * Inserts an entry known to be absent, starting at {@code i}, the insert slot
+     * returned by {@link #findSlot}. Entries that are closer to their home than the
+     * carried entry are displaced forward ("steal from the rich").
+     * Does not check the threshold or modify {@code size}.
+     */
+    private void insertAt(int i, long key, Object value){
+        boolean[] occupied = this.occupied;
+        long[] keys = this.keys;
+        Object[] values = this.values;
+
+        int mask = occupied.length - 1;
+        int d = distance(key, i, mask);
+        while(occupied[i]){
+            long k = keys[i];
+            int residentDist = distance(k, i, mask);
+            if(residentDist < d){
+                Object v = values[i];
+                keys[i] = key;
+                values[i] = value;
+                key = k;
+                value = v;
+                d = residentDist;
+            }
+            i = (i + 1) & mask;
+            d++;
+        }
+        occupied[i] = true;
+        keys[i] = key;
+        values[i] = value;
     }
 
     private E rawPut(long key, Object value){
@@ -125,35 +171,24 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             values[i] = value;
             return oldValue;
         }
-        i = ~i;
         if(size >= threshold){
             resize();
-            i = ~findSlot(key);
+            i = findSlot(key);
         }
-        occupied[i] = true;
-        keys[i] = key;
-        values[i] = value;
+        i = ~i;
+        insertAt(i, key, value);
         size++;
         return null;
     }
 
     private E rawRemove(long key){
-        boolean[] occupied = this.occupied;
-        long[] keys = this.keys;
-
-        int mask = occupied.length - 1;
-        int i = hash(key) & mask;
-        while(true){
-            if(!occupied[i])
-                return null;
-            if(keys[i] == key){
-                E oldValue = (E) values[i];
-                shiftDelete(i);
-                size--;
-                return oldValue;
-            }
-            i = (i + 1) & mask;
-        }
+        int i = findSlot(key);
+        if(i < 0)
+            return null;
+        E oldValue = (E) values[i];
+        shiftDelete(i);
+        size--;
+        return oldValue;
     }
 
     private void shiftDelete(int deleted){
@@ -163,13 +198,10 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
         int mask = occupied.length - 1;
         int next = (deleted + 1) & mask;
-        while(occupied[next]){
-            int home = hash(keys[next]) & mask;
-            if(((next - home) & mask) > ((deleted - home) & mask)){
-                keys[deleted] = keys[next];
-                values[deleted] = values[next];
-                deleted = next;
-            }
+        while(occupied[next] && distance(keys[next], next, mask) > 0){
+            keys[deleted] = keys[next];
+            values[deleted] = values[next];
+            deleted = next;
             next = (next + 1) & mask;
         }
         occupied[deleted] = false;
@@ -186,22 +218,13 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         if(newCap < 0){
             throw new OutOfMemoryError("Capacity cannot grow any further");
         }
-        boolean[] occupied = this.occupied = new boolean[newCap];
-        long[] keys = this.keys = new long[newCap];
-        Object[] values = this.values = new Object[newCap];
-        threshold = (int) (newCap * loadFactor);
+        init(newCap);
 
         int mask = newCap - 1;
         for(int i = 0; i < oldCap; i++){
             if(oldOccupied[i]){
                 long k = oldKeys[i];
-                int j = hash(k) & mask;
-                while(occupied[j]){
-                    j = (j + 1) & mask;
-                }
-                occupied[j] = true;
-                keys[j] = k;
-                values[j] = oldValues[i];
+                insertAt(hash(k) & mask, k, oldValues[i]);
             }
         }
     }
@@ -382,6 +405,31 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
+    public void compute(int x, int y, UnaryOperator<E> operator){
+        long key = pack(x, y);
+        int i = findSlot(key);
+        if(i >= 0){
+            E e = operator.apply((E) values[i]);
+            if(e == null){
+                shiftDelete(i);
+                size--;
+            } else
+                values[i] = e;
+        } else{
+            E e = operator.apply(null);
+            if(e != null){
+                if(size >= threshold){
+                    resize();
+                    i = findSlot(key);
+                }
+                i = ~i;
+                insertAt(i, key, e);
+                size++;
+            }
+        }
+    }
+
+    @Override
     public boolean equals(Object obj){
         if(this == obj){
             return true;
@@ -419,32 +467,5 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             }
         }
         return h;
-    }
-
-    @Override
-    public void compute(int x, int y, UnaryOperator<E> operator){
-        long key = pack(x, y);
-        int i = findSlot(key);
-        if(i >= 0){
-            E e = operator.apply((E) values[i]);
-            if(e == null){
-                shiftDelete(i);
-                size--;
-            } else
-                values[i] = e;
-        } else{
-            E e = operator.apply(null);
-            if(e != null){
-                i = ~i;
-                if(size >= threshold){
-                    resize();
-                    i = ~findSlot(key);
-                }
-                keys[i] = key;
-                values[i] = e;
-                occupied[i] = true;
-                size++;
-            }
-        }
     }
 }
