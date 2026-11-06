@@ -93,6 +93,14 @@ public abstract class Vector2D{
         setY(y);
     }
 
+    public void addX(double dx){
+        setX(getX() + dx);
+    }
+
+    public void addY(double dy){
+        setY(getY() + dy);
+    }
+
     public void add(double dx, double dy){
         setX(getX() + dx);
         setY(getY() + dy);
@@ -100,6 +108,14 @@ public abstract class Vector2D{
 
     public void add(Vector2D vector){
         add(vector.getX(), vector.getY());
+    }
+
+    public void subX(double dx){
+        setX(getX() - dx);
+    }
+
+    public void subY(double dy){
+        setY(getY() - dy);
     }
 
     public void sub(double dx, double dy){
@@ -111,9 +127,30 @@ public abstract class Vector2D{
         sub(vector.getX(), vector.getY());
     }
 
+    public void scaleX(double scalar){
+        setX(getX() * scalar);
+    }
+
+    public void scaleY(double scalar){
+        setY(getY() * scalar);
+    }
+
     public void scale(double scalar){
         setX(getX() * scalar);
         setY(getY() * scalar);
+    }
+
+    public void scale(double scalarX, double scalarY){
+        setX(getX() * scalarX);
+        setY(getY() * scalarY);
+    }
+
+    public void divX(double divisor){
+        setX(getX() / divisor);
+    }
+
+    public void divY(double divisor){
+        setY(getY() / divisor);
     }
 
     public void div(double divisor){
@@ -121,10 +158,23 @@ public abstract class Vector2D{
         setY(getY() / divisor);
     }
 
+    public void div(double divisorX, double divisorY){
+        setX(getX() / divisorX);
+        setY(getY() / divisorY);
+    }
+
     public void nor(){
         double len = len(getX(), getY());
         setX(getX() / len);
         setY(getY() / len);
+    }
+
+    public void reverseX(){
+        setX(-getX());
+    }
+
+    public void reverseY(){
+        setY(-getY());
     }
 
     public void reverse(){
