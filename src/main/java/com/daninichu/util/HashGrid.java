@@ -14,8 +14,6 @@ import java.util.function.UnaryOperator;
  * Keys are stored as packed {@code long}s (x in the high 32 bits, y in the low 32 bits),
  * avoiding {@link Point} allocation on lookups.
  * <p>
- * The table size is always a power of two so slot indices can be computed with a bitwise AND.
- * <p>
  * Null values are permitted.
  */
 @SuppressWarnings("unchecked")
@@ -112,7 +110,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         int mask = distances.length - 1;
         int i = hash(key) & mask;
         int d = 1;
-        p=0;
         while(true){
             int residentDist = distances[i];
             if(residentDist < d)
@@ -121,9 +118,8 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
                 return i;
             i = (i + 1) & mask;
             d++;
-            p++;
         }
-    }int p;
+    }
 
     /**
      * Inserts an entry known to be absent, starting at {@code i}, the insert slot
