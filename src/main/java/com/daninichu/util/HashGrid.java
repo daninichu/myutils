@@ -19,29 +19,29 @@ import java.util.function.UnaryOperator;
 @SuppressWarnings("unchecked")
 public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     private int[] distances;
-    public long[] keys;
+    private long[] keys;
     private Object[] values;
 
-    public int size, threshold;
+    private int size, threshold;
     private final float loadFactor;
 
     /**
      * Constructs an empty {@code HashGrid} with a default initial capacity of 16
-     * and a default load factor of 0.75.
+     * and a default load factor of 0.9.
      */
     public HashGrid(){
-        this.loadFactor = 0.75f;
+        this.loadFactor = 0.9f;
         init(16);
     }
 
     /**
      * Constructs an empty {@code HashGrid} with the given initial capacity
-     * and a default load factor of 0.75.
+     * and a default load factor of 0.9.
      * @param initialCapacity The number of entries this grid can initially hold.
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 2.
      */
     public HashGrid(int initialCapacity){
-        this(initialCapacity, 0.75f);
+        this(initialCapacity, 0.9f);
     }
 
     /**
@@ -62,13 +62,13 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
     /**
      * Constructs a new {@code HashGrid} with the same entries as the given {@code HashGrid}
-     * with a default load factor of 0.75 and an initial capacity sufficient to
+     * with a default load factor of 0.9 and an initial capacity sufficient to
      * hold the entries of the given grid.
      * @param grid The grid to copy from.
      * @throws NullPointerException if {@code grid} is null.
      */
     public HashGrid(HashGrid<? extends E> grid){
-        this.loadFactor = 0.75f;
+        this.loadFactor = 0.9f;
         init(grid.distances.length);
         setAll(grid);
     }
