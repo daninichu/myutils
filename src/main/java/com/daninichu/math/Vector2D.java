@@ -12,6 +12,11 @@ public abstract class Vector2D{
         }
 
         @Override
+        public Vector2D copy(){
+            return new Float(x, y);
+        }
+
+        @Override
         public double getX(){
             return x;
         }
@@ -48,6 +53,11 @@ public abstract class Vector2D{
         }
 
         @Override
+        public Vector2D copy(){
+            return new Double(x, y);
+        }
+
+        @Override
         public double getX(){
             return x;
         }
@@ -67,6 +77,8 @@ public abstract class Vector2D{
             this.y = y;
         }
     }
+
+    public abstract Vector2D copy();
 
     public abstract double getX();
 
@@ -184,20 +196,10 @@ public abstract class Vector2D{
         return x1*x2 + y1*y2;
     }
 
-    /**
-     * @return A positive number if the angle between {@code this} and the argument is less than 90 degrees. <br>
-     * A negative number if the angle between {@code this} and the argument is more than 90 degrees. <br>
-     * 0 if the angle between {@code this} and the argument is exactly 90 degrees. <br>
-     */
     public double dot(double x, double y){
         return getX() * x + getY() * y;
     }
 
-    /**
-     * @return A positive number if the angle between {@code this} and the argument is less than 90 degrees. <br>
-     * A negative number if the angle between {@code this} and the argument is more than 90 degrees. <br>
-     * 0 if the angle between {@code this} and the argument is exactly 90 degrees. <br>
-     */
     public double dot(Vector2D vector){
         return getX() * vector.getX() + getY() * vector.getY();
     }
@@ -218,8 +220,14 @@ public abstract class Vector2D{
         return getX() == 0 && getY() == 0;
     }
 
+    public static boolean equalsEpsilon(Vector2D a, Vector2D b, double epsilon){
+        if(a == null)
+            return b == null;
+        return b != null && distSq(a.getX(), a.getY(), b.getX(), b.getY()) <= epsilon * epsilon;
+    }
+
     public boolean equalsEpsilon(Vector2D vector, double epsilon){
-        return distSq(vector) <= epsilon;
+        return vector != null && distSq(vector) <= epsilon * epsilon;
     }
 
     @Override
@@ -227,8 +235,12 @@ public abstract class Vector2D{
         return obj instanceof Vector2D v && getX() == v.getX() && getY() == v.getY();
     }
 
+    public static String toString(double x, double y){
+        return "(" + x + ", " + y + ')';
+    }
+
     @Override
     public String toString(){
-        return "(" + getX() + ", " + getY() + ")";
+        return "(" + getX() + ", " + getY() + ')';
     }
 }
