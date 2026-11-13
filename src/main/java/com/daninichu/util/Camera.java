@@ -32,11 +32,11 @@ public class Camera{
     }
 
     public double toScreenX(double worldX){
-        return ((worldX - x) * zoom);
+        return (worldX - x) * zoom;
     }
 
     public double toScreenY(double worldY){
-        return (int) Math.floor((worldY - y) * zoom);
+        return (worldY - y) * zoom;
     }
 
     public Point2D.Double toScreen(double worldX, double worldY){
