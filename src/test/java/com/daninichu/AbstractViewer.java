@@ -6,6 +6,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class AbstractViewer extends JPanel implements MouseListener,
         MouseMotionListener, MouseWheelListener, KeyListener {
@@ -36,17 +39,19 @@ public class AbstractViewer extends JPanel implements MouseListener,
     protected int dragStartX, dragStartY;
     protected double camXAtDrag, camYAtDrag;
 
+    protected Font font = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+
     protected int toScreenLen(double wl){
         return Math.max(1, (int) Math.round(wl * camera.getZoom()));
     }
 
     protected Rectangle2D.Double viewRect(){
-        return new Rectangle2D.Double(camera.x, camera.y, getWidth() / camera.getZoom(), getHeight() / camera.getZoom());
+        return new Rectangle2D.Double(camera.getX(), camera.getY(), getWidth() / camera.getZoom(), getHeight() / camera.getZoom());
     }
 
     protected void drawCenteredString(Graphics2D g2, String str, double x, double y, double w, double h){
-        int sx = camera.toScreenX(x);
-        int sy = camera.toScreenY(y);
+        int sx = (int) camera.toScreenX(x);
+        int sy = (int) camera.toScreenY(y);
         int sw = toScreenLen(w);
         int sh = toScreenLen(h);
 
@@ -61,12 +66,34 @@ public class AbstractViewer extends JPanel implements MouseListener,
         g2.drawString(str, tx, ty);
     }
 
+    protected void drawHud(Graphics2D g2, String... lines){
+        g2.setFont(font);
+
+        int lineH = 17;
+        int padX = 14;
+        int padY = 14;
+        int boxW = 220;
+        int boxH = lines.length * lineH + 12;
+
+        g2.setColor(new Color(0, 0, 0, 160));
+        g2.fillRoundRect(padX, padY, boxW, boxH, 8, 8);
+        g2.setColor(new Color(255, 255, 255, 30));
+        g2.drawRoundRect(padX, padY, boxW, boxH, 8, 8);
+
+        g2.setColor(new Color(180, 220, 255, 200));
+        int ty = padY + lineH;
+        for(String line : lines){
+            g2.drawString(line, padX + 10, ty);
+            ty += lineH;
+        }
+    }
+
     @Override
     public void mousePressed(MouseEvent e){
         dragStartX = e.getX();
         dragStartY = e.getY();
-        camXAtDrag = camera.x;
-        camYAtDrag = camera.y;
+        camXAtDrag = camera.getX();
+        camYAtDrag = camera.getY();
     }
 
     @Override
@@ -82,8 +109,8 @@ public class AbstractViewer extends JPanel implements MouseListener,
         double mx = camera.toWorldX(e.getX());
         double my = camera.toWorldY(e.getY());
 
-        int rotation = e.getWheelRotation();
-        float factor = rotation == 0? 1 : rotation < 0 ? zoomSpeed : 1 / zoomSpeed;
+        double rotation = e.getPreciseWheelRotation();
+        double factor = rotation == 0? 1 : rotation < 0? zoomSpeed : 1 / zoomSpeed;
         camera.setZoom(Math.max(minZoom, Math.min(camera.getZoom() * factor, maxZoom)));
 
         camera.setPosition(mx - e.getX() / camera.getZoom(), my - e.getY() / camera.getZoom());

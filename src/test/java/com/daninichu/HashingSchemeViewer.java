@@ -107,14 +107,14 @@ public class HashingSchemeViewer extends AbstractViewer {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        int x0 = camera.toScreenX(0);
-        int y0 = camera.toScreenY(0);
+        int x0 = (int) camera.toScreenX(0);
+        int y0 = (int) camera.toScreenY(0);
         g2.setColor(new Color(255, 255, 255, 100));
         g2.drawLine(x0, 0, x0, SCREEN_H);
         g2.drawLine(0, y0, SCREEN_W, y0);
 
         g2.setColor(new Color(255, 255, 255));
-        g2.drawRect(camera.toScreenX(MIN_X), camera.toScreenY(MIN_Y), toScreenLen(MAX_X - MIN_X + 1), toScreenLen(MAX_Y - MIN_Y + 1));
+        g2.drawRect((int) camera.toScreenX(MIN_X), (int) camera.toScreenY(MIN_Y), toScreenLen(MAX_X - MIN_X + 1), toScreenLen(MAX_Y - MIN_Y + 1));
 
         Rectangle2D.Double viewRect = viewRect();
 
@@ -123,8 +123,8 @@ public class HashingSchemeViewer extends AbstractViewer {
             int x = point.x;
             int y = point.y;
             if(viewRect.intersects(x, y, 1, 1)){
-                int sx = camera.toScreenX(x);
-                int sy = camera.toScreenY(y);
+                int sx = (int) camera.toScreenX(x);
+                int sy = (int) camera.toScreenY(y);
 
                 g2.setColor(CELL_LINE_COLOR);
                 g2.drawRect(sx, sy, cellSize, cellSize);
@@ -152,8 +152,8 @@ public class HashingSchemeViewer extends AbstractViewer {
             int maxY = (int) Math.min(Math.ceil(viewRect.y + viewRect.height), MAX_Y);
             for(int y = minY; y <= maxY; y++){
                 for(int x = minX; x <= maxX; x++){
-                    int sx = camera.toScreenX(x);
-                    int sy = camera.toScreenY(y);
+                    int sx = (int) camera.toScreenX(x);
+                    int sy = (int) camera.toScreenY(y);
                     g2.drawRect(sx, sy, cellSize, cellSize);
                 }
             }
@@ -179,7 +179,7 @@ public class HashingSchemeViewer extends AbstractViewer {
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         List<String> leftHud = new ArrayList<>(Arrays.asList(
                 String.format("zoom   %.3fx", camera.getZoom()),
-                String.format("cam    (%.0f, %.0f)", camera.x, camera.y),
+                String.format("cam    (%.0f, %.0f)", camera.getX(), camera.getY()),
                 "",
                 "grid dimensions",
                 "x [%d,%d]".formatted(MIN_X, MAX_X),

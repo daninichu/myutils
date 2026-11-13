@@ -19,7 +19,7 @@ public class QuadTreeViewer extends AbstractViewer{
 
     QuadTreeViewer(){
         super("Quad Tree Viewer", SCREEN_W, SCREEN_H);
-        minZoom = 750f / Math.max(WORLD_W, WORLD_H);
+        minZoom = 700f / Math.max(WORLD_W, WORLD_H);
         maxZoom = 10;
 
         regenerate();
@@ -79,10 +79,10 @@ public class QuadTreeViewer extends AbstractViewer{
     // Rectangles
     private float viewBorderW = 400;
     private float viewBorderH = 400;
-    private static final int N_RECTS = 100000;
+    private static final int N_RECTS = 1000000;
     private static final int MIN_RECT_SIZE = 10;
     private static final int MAX_RECT_SIZE = 50;
-    private static final int MAX_SPEED = 400;
+    private static final int MAX_SPEED = 00;
     private static final int CURSOR_SIZE = 1000;
     private float[] vx, vy;
 
@@ -139,6 +139,9 @@ public class QuadTreeViewer extends AbstractViewer{
             Stopwatch stopwatch = new Stopwatch();
 
             quadTree.clear();
+            visibleEntries.clear();
+            selectedEntries.clear();
+            Arrays.fill(allEntries, null);
 
             Random rng = new Random();
             Color[] palette = {
@@ -156,7 +159,7 @@ public class QuadTreeViewer extends AbstractViewer{
                 float x = rng.nextFloat() * (WORLD_W - w);
                 float y = rng.nextFloat() * (WORLD_H - h);
                 Color color = palette[rng.nextInt(palette.length)];
-                allEntries[i] = (quadTree.add(color.getRGB(), x, y, w, h));
+                allEntries[i] = quadTree.add(color.getRGB(), x, y, w, h);
             }
             if(MAX_SPEED != 0){
                 vx = new float[N_RECTS];
@@ -190,16 +193,16 @@ public class QuadTreeViewer extends AbstractViewer{
 
         // Viewport in world space
         Rectangle2D.Double viewRect = new Rectangle2D.Double(
-                camera.x,
-                camera.y,
+                camera.getX(),
+                camera.getY(),
                 getWidth() / camera.getZoom(),
                 getHeight() / camera.getZoom()
         );
         Rectangle2D.Double selectionRect = viewRect;
         if(selectionMode){
             selectionRect = new Rectangle2D.Double(
-                    camera.x + viewBorderW / camera.getZoom() / 2,
-                    camera.y + viewBorderH / camera.getZoom() / 2,
+                    camera.getX() + viewBorderW / camera.getZoom() / 2,
+                    camera.getY() + viewBorderH / camera.getZoom() / 2,
                     (getWidth() - viewBorderW) / camera.getZoom(),
                     (getHeight() - viewBorderH) / camera.getZoom()
             );
@@ -245,9 +248,7 @@ public class QuadTreeViewer extends AbstractViewer{
 
         if(showRectCursor){
             g2.setColor(new Color(255, 255, 255, 40));
-            g2.fillRect(
-                    camera.toScreenX(rectCursor.x),
-                    camera.toScreenY(rectCursor.y),
+            g2.fillRect((int) camera.toScreenX(rectCursor.x), (int) camera.toScreenY(rectCursor.y),
                     toScreenLen(rectCursor.width),
                     toScreenLen(rectCursor.height)
             );
@@ -278,8 +279,8 @@ public class QuadTreeViewer extends AbstractViewer{
     }
 
     private void drawRect(double x, double y, double w, double h, int color){
-        int sx = camera.toScreenX(x);
-        int sy = camera.toScreenY(y);
+        int sx = (int) camera.toScreenX(x);
+        int sy = (int) camera.toScreenY(y);
         int sw = toScreenLen(w);
         int sh = toScreenLen(h);
 
@@ -323,7 +324,7 @@ public class QuadTreeViewer extends AbstractViewer{
         g2.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         String[] lines = {
             String.format("zoom   %.3fx", camera.getZoom()),
-            String.format("cam    (%.0f, %.0f)", camera.x, camera.y),
+            String.format("cam    (%.0f, %.0f)", camera.getX(), camera.getY()),
             String.format("drawn  %d/%d rects", visibleCount, allCount),
             String.format("mode   %s", quadTreeMode? "quadtree" : "brute force"),
             "",
