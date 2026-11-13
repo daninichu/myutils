@@ -26,7 +26,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	 */
     public ArrayGrid(int width, int height){
 		if(width < 1 || height < 1)
-            throw new IllegalArgumentException("width and height must be 1 or greater");
+            throw new IllegalArgumentException("width and height must be positive");
         data = new Object[height][width];
     }
 
@@ -77,9 +77,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
 	private void checkInBounds(int x, int y){
 		if(!inBounds(x, y)){
-			throw new IndexOutOfBoundsException("Point (" + x + "," + y
-					+ ") out of bounds for dimensions " + width() + "x" + height()
-			);
+			throw new IndexOutOfBoundsException("Point (" + x + ',' + y +
+					") out of bounds for dimensions " + width() + 'x' + height());
 		}
 	}
 
@@ -175,10 +174,8 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 	public void fill(E e){
 		Objects.requireNonNull(e);
 		Object[][] data = this.data;
-		int height = data.length;
-		for(int y = 0; y < height; y++){
+		for(int y = 0, height = data.length; y < height; y++)
 			Arrays.fill(data[y], e);
-        }
 	}
 
 	@Override
@@ -281,7 +278,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
 	@Override
 	public boolean equals(Object obj){
-        return this == obj || obj instanceof ArrayGrid<?> other && Arrays.deepEquals(data, other.data);
+        return this == obj || obj instanceof ArrayGrid<?> g && Arrays.deepEquals(data, g.data);
     }
 
 	@Override

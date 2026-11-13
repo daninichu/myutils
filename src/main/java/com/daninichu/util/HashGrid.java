@@ -220,6 +220,10 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         }
     }
 
+    public int size(){
+        return size;
+    }
+
     @Override
     public E get(int x, int y){
         int i = findSlot(pack(x, y));

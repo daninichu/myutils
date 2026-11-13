@@ -136,6 +136,9 @@ public final class Grids{
         public void compute(int x, int y, UnaryOperator<E> operator){
             grid.compute(x - dx, y - dy, operator);
         }
+        public void compute(Point p, UnaryOperator<E> operator){
+            grid.compute(p.x - dx, p.y - dy, operator);
+        }
     }
 
     public static <E> Grid<E> translatedGrid(Grid<E> grid, int dx, int dy){
@@ -160,6 +163,7 @@ public final class Grids{
         public boolean removeValue(E e){throw new UnsupportedOperationException();}
         public void clear(){throw new UnsupportedOperationException();}
         public void compute(int x, int y, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
+        public void compute(Point p, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
     }
 
     public static <E> Grid<E> unmodifiableGrid(Grid<E> grid){
