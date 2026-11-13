@@ -25,19 +25,19 @@ class StopwatchTest{
         assertEquals(0, stopwatch.nanosAsLong());
         assertEquals(0, stopwatch.lapNanosAsLong());
     }
-
-    @Test
-    void constructorSetsInitialElapsedTime(){
-        var stopwatch = new Stopwatch(1_000_000_000L, true);
-
-        assertEquals(1_000_000_000L, stopwatch.nanosAsLong());
-        assertEquals(0, stopwatch.lapNanosAsLong());
-
-        stopwatch = new Stopwatch(-5000, true);
-
-        assertEquals(-5000, stopwatch.nanosAsLong());
-        assertEquals(0, stopwatch.lapNanosAsLong());
-    }
+//
+//    @Test
+//    void constructorSetsInitialElapsedTime(){
+//        var stopwatch = new Stopwatch(1_000_000_000L, true);
+//
+//        assertEquals(1_000_000_000L, stopwatch.nanosAsLong());
+//        assertEquals(0, stopwatch.lapNanosAsLong());
+//
+//        stopwatch = new Stopwatch(-5000, true);
+//
+//        assertEquals(-5000, stopwatch.nanosAsLong());
+//        assertEquals(0, stopwatch.lapNanosAsLong());
+//    }
 
     @Test
     void lapSums() throws InterruptedException{
@@ -81,25 +81,25 @@ class StopwatchTest{
         assertEquals(0, stopwatch.lapNanosAsLong());
     }
 
-    @Test
-    void resetLapThenResetStopwatch(){
-        int nanos = 1_000_000_000;
-        var stopwatch = new Stopwatch(nanos);
-
-        assertTrue(stopwatch.lapNanosAsLong() > 0);
-
-        stopwatch.pause();
-        stopwatch.resetLap();
-
-        assertTrue(stopwatch.nanosAsLong() > nanos);
-        assertEquals(0, stopwatch.lapNanosAsLong());
-
-        stopwatch.reset();
-
-        assertTrue(stopwatch.isPaused());
-        assertEquals(0, stopwatch.nanosAsLong());
-        assertEquals(0, stopwatch.lapNanosAsLong());
-    }
+//    @Test
+//    void resetLapThenResetStopwatch(){
+//        int nanos = 1_000_000_000;
+//        var stopwatch = new Stopwatch(nanos);
+//
+//        assertTrue(stopwatch.lapNanosAsLong() > 0);
+//
+//        stopwatch.pause();
+//        stopwatch.resetLap();
+//
+//        assertTrue(stopwatch.nanosAsLong() > nanos);
+//        assertEquals(0, stopwatch.lapNanosAsLong());
+//
+//        stopwatch.reset();
+//
+//        assertTrue(stopwatch.isPaused());
+//        assertEquals(0, stopwatch.nanosAsLong());
+//        assertEquals(0, stopwatch.lapNanosAsLong());
+//    }
 
     @Test
     void newLapResetsLap() throws InterruptedException{

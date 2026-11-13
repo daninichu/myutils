@@ -1,12 +1,8 @@
 package com.daninichu.util;
 
-import static java.lang.System.nanoTime;
-
 /**
  * Measures elapsed time using {@link System#nanoTime()}.
  * Supports tracking total elapsed time, measuring laps, and pausing and resuming.
- * <p>
- * This class is not thread-safe. Concurrent access requires external synchronization.
  */
 public class Stopwatch{
 	private long start, lapStart, pauseTime;
@@ -16,15 +12,7 @@ public class Stopwatch{
 	 * Creates a stopwatch with zero elapsed time, initially running.
 	 */
 	public Stopwatch(){
-		start = lapStart = nanoTime();
-	}
-
-	/**
-	 * Creates a stopwatch with a specified elapsed time, initially running.
-	 * @param elapsedNanos the initial elapsed time in nanoseconds
-	 */
-	public Stopwatch(long elapsedNanos){
-		start = -elapsedNanos + (lapStart = nanoTime());
+		start = lapStart = System.nanoTime();
 	}
 
 	/**
@@ -34,39 +22,28 @@ public class Stopwatch{
 	 */
 	public Stopwatch(boolean paused){
 		this.paused = paused;
-		start = lapStart = pauseTime = nanoTime();
-	}
-
-	/**
-	 * Creates a stopwatch with a specified elapsed time and pause state.
-	 * @param elapsedNanos the initial elapsed time in nanoseconds
-	 * @param paused {@code true} to create the stopwatch paused;
-	 *               {@code false} to create it running
-	 */
-	public Stopwatch(long elapsedNanos, boolean paused){
-		this.paused = paused;
-		start = -elapsedNanos + (lapStart = pauseTime = nanoTime());
+		start = lapStart = pauseTime = System.nanoTime();
 	}
 
 	public void reset(){
-		start = lapStart = pauseTime = nanoTime();
+		start = lapStart = pauseTime = System.nanoTime();
 	}
 
 	public void resetLap(){
-		lapStart = paused? pauseTime : nanoTime();
+		lapStart = paused? pauseTime : System.nanoTime();
 	}
 
 	public void pause(){
 		if(!paused){
 			paused = true;
-			pauseTime = nanoTime();
+			pauseTime = System.nanoTime();
 		}
 	}
 
 	public void unpause(){
 		if(paused){
 			paused = false;
-			long x = nanoTime() - pauseTime;
+			long x = System.nanoTime() - pauseTime;
             start += x;
 			lapStart += x;
 		}
@@ -99,7 +76,7 @@ public class Stopwatch{
 		return nanosAsLong() / 1_000;
 	}
 	public long nanosAsLong(){
-		return (paused? pauseTime : nanoTime()) - start;
+		return (paused? pauseTime : System.nanoTime()) - start;
 	}
 
 	public double newLapSec(){
@@ -153,12 +130,12 @@ public class Stopwatch{
 		return lapNanosAsLong() / 1_000;
 	}
 	public long lapNanosAsLong(){
-		return (paused? pauseTime : nanoTime()) - lapStart;
+		return (paused? pauseTime : System.nanoTime()) - lapStart;
 	}
 
 	@Override
 	public String toString(){
-		long x = paused? pauseTime : nanoTime();
+		long x = paused? pauseTime : System.nanoTime();
         double time = (x - start) / 1_000_000_000.0;
         double lap = (x - lapStart) / 1_000_000_000.0;
 		return "Stopwatch[time=" + time + "s, lap=" + lap + "s]";
