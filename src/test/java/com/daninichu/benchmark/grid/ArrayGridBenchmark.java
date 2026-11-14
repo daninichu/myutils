@@ -2,6 +2,7 @@ package com.daninichu.benchmark.grid;
 
 import com.daninichu.benchmark.Main;
 import com.daninichu.util.ArrayGrid;
+import com.daninichu.util.FlatArrayGrid;
 import org.junit.jupiter.api.Assertions;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -15,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 })
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(		iterations = 2, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(	iterations = 4, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(	iterations = 3, 	time = 1000, 	timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 @State(Scope.Thread)
 public class ArrayGridBenchmark{
@@ -23,66 +24,49 @@ public class ArrayGridBenchmark{
 		Main.benchmark(ArrayGridBenchmark.class);
 	}
 
-	@Param("2000")
-	int width;
-	@Param("4000")
-	int height;
+	int width = 2000;
+	int height = 400;
 
 	ArrayGrid<Object> arrayGrid;
+	FlatArrayGrid<Object> flatArrayGrid;
 
 	@Setup(Level.Trial)
 	public void setup(){
 		arrayGrid = new ArrayGrid<>(width, height);
-	}
-
-	@Setup(Level.Invocation)
-	public void setup2(){
-//		setupForClear();
-		setupForFill();
-	}
-
-	public void setupForClear(){
-		for(int y = 0; y < height; y += 10){
-			for(int x = 0; x < width; x++){
-//				arrayGrid.set(x,y,x+y*width);
-			}
-		}
-	}
-	@Benchmark
-	public void clear(Blackhole bh){
-		bh.consume(arrayGrid.size());
-		arrayGrid.clear();
-		bh.consume(arrayGrid);
-		bh.consume(arrayGrid.size());
-	}
-
-	public void setupForFill(){
+		flatArrayGrid = new FlatArrayGrid<>(width, height);
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
-				arrayGrid.removePoint(x, y);
+				flatArrayGrid.set(x, y, x);
+				arrayGrid.set(x, y, x);
 			}
 		}
-//		Random rng = new Random();
-//		for(int y = 0; y < height; y++){
-//			for(int x = 0; x < width; x++){
-//				if(rng.nextInt(2) == 0)
-//                    arrayGrid.set(x, y, rng.nextInt(9));
-//			}
-//		}
-	}
-//	@Benchmark
-	public void fill(Blackhole bh){
-		bh.consume(arrayGrid.size());
-//		for(int y = 0; y < height; y++){
-//			arrayGrid.fillRow(y, 0);
-//		}
-		arrayGrid.fill(111);
-		bh.consume(arrayGrid);
-		bh.consume(arrayGrid.size());
 	}
 
-//	@Benchmark
-	public void containsValue(Blackhole bh){
-		bh.consume(arrayGrid.toArray());
+	@Benchmark
+	public void a(Blackhole bh){
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+//				bh.consume(arrayGrid.get(x, y));
+				bh.consume(arrayGrid.set(x, y, x));
+			}
+		}
+//		for(var e : arrayGrid){
+//			bh.consume(e);
+//		}
+		bh.consume(arrayGrid);
+	}
+
+	@Benchmark
+	public void fa(Blackhole bh){
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+//				bh.consume(flatArrayGrid.get(x, y));
+				bh.consume(flatArrayGrid.set(x, y, x));
+			}
+		}
+//		for(var e : flatArrayGrid){
+//			bh.consume(e);
+//		}
+		bh.consume(flatArrayGrid);
 	}
 }
