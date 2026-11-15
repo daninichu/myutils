@@ -34,6 +34,12 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         this.data = new Object[width * height];
     }
 
+    /**
+     * Creates a shallow copy of {@code grid}.
+     * The new grid has the same dimensions and contains the same element references.
+     * @param grid The grid to copy from.
+     * @throws NullPointerException if {@code grid} is {@code null}.
+     */
     public FlatArrayGrid(FlatArrayGrid<? extends E> grid){
         this.width = grid.width;
         this.height = grid.height;

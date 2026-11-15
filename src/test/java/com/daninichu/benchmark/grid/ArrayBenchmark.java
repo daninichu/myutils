@@ -20,28 +20,49 @@ public class ArrayBenchmark{
         Main.benchmark(ArrayBenchmark.class);
     }
 
-    int n = 2000000;
+    int width = 100;
+    int height = 1000;
+    int n = width * height;
     Object[] data;
+    Object[][] data2D;
 
-    @Setup(Level.Trial)
+    @Setup(Level.Iteration)
     public void setup(){
         data = new Object[n];
+        data2D = new Object[height][width];
     }
 
     @Benchmark
-    public void fillValue(Blackhole bh){
-        Object value = new Object();
+    public void fill_0(Blackhole bh){
         for(int i = 0; i < n; i++){
-            data[i] = value;
+            data[i] = 0;
         }
         bh.consume(data);
     }
     @Benchmark
-    public void fillValue2(Blackhole bh){
+    public void fill_128(Blackhole bh){
         for(int i = 0; i < n; i++){
-            Object value = new Object();
-            data[i] = value;
+            data[i] = 128;
         }
         bh.consume(data);
+    }
+
+    @Benchmark
+    public void fill2D_0(Blackhole bh){
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                data2D[y][x] = 0;
+            }
+        }
+        bh.consume(data2D);
+    }
+    @Benchmark
+    public void fill2D_128(Blackhole bh){
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                data2D[y][x] = 128;
+            }
+        }
+        bh.consume(data2D);
     }
 }

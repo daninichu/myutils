@@ -44,22 +44,6 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public Point pointOf(E e){
-        if(e == null){
-            for(Cell<E> cell : cells()){
-                if(cell.value == null)
-                    return new Point(cell.x, cell.y);
-            }
-        } else{
-            for(Cell<E> cell : cells()){
-                if(e.equals(cell.value))
-                    return new Point(cell.x, cell.y);
-            }
-        }
-        return null;
-    }
-
-    @Override
     public void compute(int x, int y, UnaryOperator<E> operator){
         set(x, y, operator.apply(get(x, y)));
     }
