@@ -21,16 +21,14 @@ public class ArrayGridBenchmark{
 		Main.benchmark(ArrayGridBenchmark.class);
 	}
 
-	int width = 2000;
-	int height = 400;
+	int width = 1000;
+	int height = 100;
 
 	ArrayGrid<Object> arrayGrid;
-	FlatArrayGrid<Object> flatArrayGrid;
 
 	@Setup(Level.Trial)
 	public void setup(){
 		arrayGrid = new ArrayGrid<>(width, height);
-		flatArrayGrid = new FlatArrayGrid<>(width, height);
 	}
 
 	@Benchmark
@@ -40,7 +38,6 @@ public class ArrayGridBenchmark{
 
 	@Benchmark
 	public void fa(Blackhole bh){
-		f(flatArrayGrid, bh);
 	}
 
 	void f(Grid<Object> grid, Blackhole bh){

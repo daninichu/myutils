@@ -10,279 +10,320 @@ import java.util.function.UnaryOperator;
 /**
  * A grid with a fixed size. (x,y) coordinates cannot be negative.
  * <p>
- * The internal 2D array of this class is row-major (y-major).
+ * Backed by a single flat {@code Object[]} in row-major (y-major) order.
+ * Index mapping: {@code index = y * width + x}.
  * <p>
  * Null values are not permitted in order to distinguish between vacant and occupied points.
  */
 @SuppressWarnings("unchecked")
 public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
-	private final Object[][] data;
+    private final Object[] data;
+    private final int width, height;
 
-	/**
-	 * Constructs an empty {@code ArrayGrid} with the given width and height.
-	 * @param width The width of this grid.
-	 * @param height The height of this grid.
-	 * @throws IllegalArgumentException if {@code width} or {@code height} are less than 1.
-	 */
+    /**
+     * Constructs an empty {@code ArrayGrid} with the given width and height.
+     * @param width The width of this grid.
+     * @param height The height of this grid.
+     * @throws IllegalArgumentException if {@code width} or {@code height} are less than 1.
+     */
     public ArrayGrid(int width, int height){
-		if(width < 1 || height < 1)
+        if(width < 1 || height < 1)
             throw new IllegalArgumentException("width and height must be positive");
-        data = new Object[height][width];
+        this.width = width;
+        this.height = height;
+        this.data = new Object[width * height];
     }
 
-	/**
-	 * Creates a shallow copy of {@code grid}.
-	 * The new grid has the same dimensions and contains the same element references.
-	 * @param grid The grid to copy from.
-	 * @throws NullPointerException if {@code grid} is {@code null}.
-	 */
+    /**
+     * Creates a shallow copy of {@code grid}.
+     * The new grid has the same dimensions and contains the same element references.
+     * @param grid The grid to copy from.
+     * @throws NullPointerException if {@code grid} is {@code null}.
+     */
     public ArrayGrid(ArrayGrid<? extends E> grid){
-		data = grid.toArray();
+        this.width = grid.width;
+        this.height = grid.height;
+        this.data = Arrays.copyOf(grid.data, grid.data.length);
     }
 
-	/**
-	 * @return The number of columns in this grid.
-	 */
-	public int width(){
-		return data[0].length;
-	}
+    /**
+     * @return The number of columns in this grid.
+     */
+    public int width(){
+        return width;
+    }
 
-	/**
-	 * @return The number of rows in this grid.
-	 */
-	public int height(){
-		return data.length;
-	}
+    /**
+     * @return The number of rows in this grid.
+     */
+    public int height(){
+        return height;
+    }
 
-	/**
-	 * Checks whether the given point is within the bounds of this grid.
-	 * @param x The x coordinate.
-	 * @param y The y coordinate.
-	 * @return {@code true} if {@code 0 <= x < width()} and {@code 0 <= y < height()}.
-	 */
-	public boolean inBounds(int x, int y){
-		Object[][] data = this.data;
-		return 0 <= x && x < data[0].length && 0 <= y && y < data.length;
-	}
+    /**
+     * @return The total number of cells in this grid, equal to {@code width() * height()}.
+     */
+    public int length(){
+        return data.length;
+    }
 
-	/**
-	 * Checks whether the given point is within the bounds of this grid.
-	 * @param p The point to check.
-	 * @return {@code true} if {@code p} is within bounds.
-	 * @throws NullPointerException if {@code p} is null.
-	 */
-	public boolean inBounds(Point p){
-		return inBounds(p.x, p.y);
-	}
+    /**
+     * Checks if the given point lies within the bounds of this grid.
+     * @param x The x coordinate.
+     * @param y The y coordinate.
+     * @return {@code true} if {@code 0 <= x < width()} and {@code 0 <= y < height()}.
+     */
+    public boolean inBounds(int x, int y){
+        return 0 <= x && x < width && 0 <= y && y < height;
+    }
 
-	private void checkInBounds(int x, int y){
-		if(!inBounds(x, y)){
-			throw new IndexOutOfBoundsException("Point (" + x + ',' + y +
-					") out of bounds for dimensions " + width() + 'x' + height());
-		}
-	}
+    /**
+     * Checks if the given point lies within the bounds of this grid.
+     * @param p The point to check.
+     * @return {@code true} if {@code p} is within the bounds of this grid.
+     * @throws NullPointerException if {@code p} is null.
+     */
+    public boolean inBounds(Point p){
+        return inBounds(p.x, p.y);
+    }
 
-	@Override
+    private void checkInBounds(int x, int y){
+        if(!inBounds(x, y)){
+            throw new IndexOutOfBoundsException("Point (" + x + ',' + y +
+                    ") out of bounds for dimensions " + width + 'x' + height);
+        }
+    }
+
+    private int index(int x, int y){
+        return y * width + x;
+    }
+
+    @Override
     public E get(int x, int y){
-		checkInBounds(x, y);
-		return (E) data[y][x];
+        checkInBounds(x, y);
+        return (E) data[index(x, y)];
+    }
+
+    /**
+     * Retrieves the value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @return The value at the given index, or null if there is none.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     */
+    public E get(int index){
+        return (E) data[index];
     }
 
     @Override
     public E set(int x, int y, E e){
-		checkInBounds(x, y);
-		E oldValue = (E) data[y][x];
-		data[y][x] = Objects.requireNonNull(e);
-		return oldValue;
+        checkInBounds(x, y);
+        int index = index(x, y);
+        E oldValue = (E) data[index];
+        data[index] = Objects.requireNonNull(e);
+        return oldValue;
+    }
+
+    /**
+     * Overwrites the value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @param e The new value.
+     * @return The value previously at the given index, or null if there was none.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     * @throws NullPointerException if {@code e} is null.
+     */
+    public E set(int index, E e){
+        E oldValue = (E) data[index];
+        data[index] = Objects.requireNonNull(e);
+        return oldValue;
     }
 
     @Override
     public E removePoint(int x, int y){
-		checkInBounds(x, y);
-        E oldValue = (E) data[y][x];
-		data[y][x] = null;
-		return oldValue;
+        checkInBounds(x, y);
+        int index = index(x, y);
+        E e = (E) data[index];
+        data[index] = null;
+        return e;
+    }
+
+    /**
+     * Removes the value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @return The value previously at the given index, or null if there was none.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     */
+    public E removePoint(int index){
+        E e = (E) data[index];
+        data[index] = null;
+        return e;
     }
 
     @Override
     public boolean containsPoint(int x, int y){
-		checkInBounds(x, y);
-		return data[y][x] != null;
+        checkInBounds(x, y);
+        return data[index(x, y)] != null;
     }
 
-	@Override
-	public boolean removeValue(E e){
-		if(e != null){
-			Object[][] data = this.data;
-			int height = data.length;
-			int width = data[0].length;
-			for(int y = 0; y < height; y++){
-				Object[] row = data[y];
-				for(int x = 0; x < width; x++){
-					Object o = row[x];
-					if(o != null && e.equals(o)){
-						row[x] = null;
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
+    /**
+     * Checks if there exists a value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @return {@code true} if there is a value.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     */
+    public boolean containsPoint(int index){
+        return data[index] != null;
+    }
 
-	@Override
-	public boolean containsValue(E e){
-		if(e != null){
-			Object[][] data = this.data;
-			int height = data.length;
-			int width = data[0].length;
-			for(int y = 0; y < height; y++){
-				Object[] row = data[y];
-				for(int x = 0; x < width; x++){
-					Object o = row[x];
-					if(o != null && e.equals(o))
-                        return true;
-				}
-			}
-		}
-		return false;
-	}
+    @Override
+    public boolean removeValue(E e){
+        if(e != null){
+            Object[] data = this.data;
+            for(int i = 0, n = data.length; i < n; i++){
+                Object o = data[i];
+                if(o != null && e.equals(o)){
+                    data[i] = null;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
-	@Override
-	public Point pointOf(E e){
-		if(e != null){
-			Object[][] data = this.data;
-			int height = data.length;
-			int width = data[0].length;
-			for(int y = 0; y < height; y++){
-				Object[] row = data[y];
-				for(int x = 0; x < width; x++){
-					Object o = row[x];
-                    if(o != null && e.equals(o))
-                        return new Point(x, y);
-				}
-			}
-		}
-		return null;
-	}
+    @Override
+    public boolean containsValue(E e){
+        if(e != null){
+            Object[] data = this.data;
+            for(int i = 0, n = data.length; i < n; i++){
+                Object o = data[i];
+                if(o != null && e.equals(o))
+                    return true;
+            }
+        }
+        return false;
+    }
 
-	/**
-	 * Sets every point in this grid to {@code e}.
-	 * @param e The value to fill with.
-	 * @throws NullPointerException if {@code e} is null.
-	 */
-	public void fill(E e){
-		Objects.requireNonNull(e);
-		Object[][] data = this.data;
-		for(int y = 0, height = data.length; y < height; y++)
-			Arrays.fill(data[y], e);
-	}
+    @Override
+    public Point pointOf(E e){
+        if(e != null){
+            Object[] data = this.data;
+            for(int i = 0, n = data.length; i < n; i++){
+                Object o = data[i];
+                if(o != null && e.equals(o))
+                    return new Point(i % width, i / width);
+            }
+        }
+        return null;
+    }
 
-	@Override
-	public void clear(){
-		Object[][] data = this.data;
-		for(int y = 0, height = data.length; y < height; y++)
-            Arrays.fill(data[y], null);
-	}
+    /**
+     * Sets every point in this grid to the given value.
+     * @param e The value to fill this grid with.
+     * @throws NullPointerException if {@code e} is null.
+     */
+    public void fill(E e){
+        Arrays.fill(data, Objects.requireNonNull(e));
+    }
 
-	@Override
-	public Iterable<Point> points(){
-		return () -> new ArrayGridIterator<Point>(){
-			@Override
-			public Point next(){
-				if(!hasNext())
-					throw new NoSuchElementException();
-				return new Point(lastX = x++, lastY = y);
-			}
-		};
-	}
+    @Override
+    public void clear(){
+        Arrays.fill(data, null);
+    }
+
+    @Override
+    public Iterable<Point> points(){
+        return () -> new ArrayGridIterator<Point>(){
+            @Override
+            public Point next(){
+                if(!hasNext())
+                    throw new NoSuchElementException();
+                return new Point(index % width, (lastIndex = index++) / width);
+            }
+        };
+    }
 
     @Override
     public Iterable<Cell<E>> cells(){
-		return () -> new ArrayGridIterator<Cell<E>>(){
-			@Override
-			public Cell<E> next(){
+        return () -> new ArrayGridIterator<Cell<E>>(){
+            @Override
+            public Cell<E> next(){
                 if(!hasNext())
                     throw new NoSuchElementException();
-                return new Cell<>(x, y, (E) data[lastY = y][lastX = x++]);
+                return new Cell<>(index % width, index / width, (E) data[lastIndex = index++]);
             }
-		};
-	}
+        };
+    }
 
     @Override
     public Iterator<E> iterator(){
-		return new ArrayGridIterator<E>(){
-			@Override
-			public E next(){
+        return new ArrayGridIterator<E>(){
+            @Override
+            public E next(){
                 if(!hasNext())
                     throw new NoSuchElementException();
-                return (E) data[lastY = y][lastX = x++];
+                return (E) data[lastIndex = index++];
             }
-		};
-	}
-
-    private abstract class ArrayGridIterator<T> implements Iterator<T>{
-		int x, y, lastX, lastY = -1;
-
-		@Override
-		public boolean hasNext(){
-			Object[][] data = ArrayGrid.this.data;
-			int height = data.length;
-			int width = data[0].length;
-			while(y < height){
-				Object[] row = data[y];
-				while(x < width){
-					if(row[x] != null)
-                        return true;
-					x++;
-				}
-				x = 0;
-				y++;
-			}
-			return false;
-		}
-
-		@Override
-		public void remove(){
-			if(lastY == -1)
-				throw new IllegalStateException();
-			data[lastY][lastX] = null;
-			lastY = -1;
-		}
-	}
-
-	@Override
-	public void compute(int x, int y, UnaryOperator<E> operator){
-		checkInBounds(x, y);
-		Object[] row = data[y];
-		row[x] = operator.apply((E) row[x]);
-	}
-
-	/**
-	 * Returns a shallow copy of the internal data as a new 2D array.
-	 * Vacant points are represented as {@code null}.
-	 * <p>
-	 * The array is row-major (y-major). {@code result[y][x]} holds the value at point (x,y).
-	 * @return A new {@code E[][]} of dimensions {@code [height()][width()]}.
-	 */
-	public E[][] toArray(){
-		Object[][] src = data;
-		int height = src.length;
-		int width = src[0].length;
-		Object[][] dst = new Object[height][];
-		for(int y = 0; y < height; y++){
-			dst[y] = Arrays.copyOf(src[y], width);
-		}
-		return (E[][]) dst;
-	}
-
-	@Override
-	public boolean equals(Object obj){
-        return this == obj || obj instanceof ArrayGrid<?> g && Arrays.deepEquals(data, g.data);
+        };
     }
 
-	@Override
-	public int hashCode(){
-		return Arrays.deepHashCode(data);
-	}
+    private abstract class ArrayGridIterator<T> implements Iterator<T>{
+        int index, lastIndex = -1;
+
+        @Override
+        public boolean hasNext(){
+            Object[] data = ArrayGrid.this.data;
+            while(index < data.length){
+                if(data[index] != null)
+                    return true;
+                index++;
+            }
+            return false;
+        }
+
+        @Override
+        public void remove(){
+            if(lastIndex == -1)
+                throw new IllegalStateException();
+            data[lastIndex] = null;
+            lastIndex = -1;
+        }
+    }
+
+    @Override
+    public void compute(int x, int y, UnaryOperator<E> operator){
+        checkInBounds(x, y);
+        int index = index(x, y);
+        data[index] = operator.apply((E) data[index]);
+    }
+
+    /**
+     * Replaces the value at the given flat index with the result of applying {@code operator} to it,
+     * where {@code index = y * width() + x}.
+     * The operator receives null if there is no value at the index.
+     * This method does not perform a 2D bounds check.
+     * <p>
+     * Unlike {@link #set(int, Object)}, the result is not null-checked,
+     * so an operator that returns null effectively removes the value.
+     * @param index The flat index in row-major (y-major) order.
+     * @param operator The function to apply to the current value.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     * @throws NullPointerException if {@code operator} is null.
+     */
+    public void compute(int index, UnaryOperator<E> operator){
+        data[index] = operator.apply((E) data[index]);
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        return this == obj || obj instanceof ArrayGrid<?> g
+                && width == g.width && Arrays.equals(data, g.data);
+    }
+
+    @Override
+    public int hashCode(){
+        return 31 * Arrays.hashCode(data) + width;
+    }
 }
