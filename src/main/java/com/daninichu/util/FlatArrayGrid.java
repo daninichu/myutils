@@ -12,9 +12,11 @@ import java.util.function.UnaryOperator;
  * <p>
  * Backed by a single flat {@code Object[]} in row-major (y-major) order.
  * Index mapping: {@code index = y * width + x}.
+ * <p>
+ * Null values are not permitted in order to distinguish between vacant and occupied points.
  */
 @SuppressWarnings("unchecked")
-public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
+public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     private final Object[] data;
     private final int width, height;
 
@@ -46,8 +48,8 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
         return height;
     }
 
-    private int index(int x, int y){
-        return y * width + x;
+    public int length(){
+        return data.length;
     }
 
     public boolean inBounds(int x, int y){
@@ -65,16 +67,30 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
         }
     }
 
+    private int index(int x, int y){
+        return y * width + x;
+    }
+
     @Override
     public E get(int x, int y){
         checkInBounds(x, y);
         return (E) data[index(x, y)];
     }
 
+    public E get(int index){
+        return (E) data[index];
+    }
+
     @Override
     public E set(int x, int y, E e){
         checkInBounds(x, y);
         int index = index(x, y);
+        E oldValue = (E) data[index];
+        data[index] = Objects.requireNonNull(e);
+        return oldValue;
+    }
+
+    public E set(int index, E e){
         E oldValue = (E) data[index];
         data[index] = Objects.requireNonNull(e);
         return oldValue;
@@ -87,6 +103,22 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
         E e = (E) data[index];
         data[index] = null;
         return e;
+    }
+
+    public E removePoint(int index){
+        E e = (E) data[index];
+        data[index] = null;
+        return e;
+    }
+
+    @Override
+    public boolean containsPoint(int x, int y){
+        checkInBounds(x, y);
+        return data[index(x, y)] != null;
+    }
+
+    public boolean containsPoint(int index){
+        return data[index] != null;
     }
 
     @Override
@@ -102,12 +134,6 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
             }
         }
         return false;
-    }
-
-    @Override
-    public boolean containsPoint(int x, int y){
-        checkInBounds(x, y);
-        return data[index(x, y)] != null;
     }
 
     @Override
@@ -147,7 +173,7 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     @Override
     public Iterable<Point> points(){
-        return () -> new FlatGridIterator<Point>(){
+        return () -> new ArrayGridIterator<Point>(){
             @Override
             public Point next(){
                 if(!hasNext())
@@ -159,7 +185,7 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     @Override
     public Iterable<Cell<E>> cells(){
-        return () -> new FlatGridIterator<Cell<E>>(){
+        return () -> new ArrayGridIterator<Cell<E>>(){
             @Override
             public Cell<E> next(){
                 if(!hasNext())
@@ -171,7 +197,7 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
 
     @Override
     public Iterator<E> iterator(){
-        return new FlatGridIterator<E>(){
+        return new ArrayGridIterator<E>(){
             @Override
             public E next(){
                 if(!hasNext())
@@ -181,11 +207,12 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
         };
     }
 
-    private abstract class FlatGridIterator<T> implements Iterator<T> {
+    private abstract class ArrayGridIterator<T> implements Iterator<T>{
         int index, lastIndex = -1;
 
         @Override
         public boolean hasNext(){
+            Object[] data = FlatArrayGrid.this.data;
             while(index < data.length){
                 if(data[index] != null)
                     return true;
@@ -207,6 +234,10 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E> {
     public void compute(int x, int y, UnaryOperator<E> operator){
         checkInBounds(x, y);
         int index = index(x, y);
+        data[index] = operator.apply((E) data[index]);
+    }
+
+    public void compute(int index, UnaryOperator<E> operator){
         data[index] = operator.apply((E) data[index]);
     }
 

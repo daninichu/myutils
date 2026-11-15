@@ -258,6 +258,11 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
+    public boolean containsPoint(int x, int y){
+        return findSlot(pack(x, y)) >= 0;
+    }
+
+    @Override
     public boolean removeValue(E e){
         int[] distances = this.distances;
         Object[] values = this.values;
@@ -280,11 +285,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             }
         }
         return false;
-    }
-
-    @Override
-    public boolean containsPoint(int x, int y){
-        return findSlot(pack(x, y)) >= 0;
     }
 
     @Override

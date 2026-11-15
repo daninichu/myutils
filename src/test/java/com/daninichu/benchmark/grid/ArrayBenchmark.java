@@ -4,53 +4,44 @@ import com.daninichu.benchmark.Main;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@BenchmarkMode({
+//		Mode.AverageTime,
+        Mode.SampleTime,
+})
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2, time = 1)
-@Measurement(iterations = 4, time = 1)
+@Measurement(iterations = 3, time = 1)
 @Fork(1)
 public class ArrayBenchmark{
     public static void main(String[] args) throws Exception{
         Main.benchmark(ArrayBenchmark.class);
     }
 
-    @Param("1000000")
-    int n;
-    Integer[] arr;
+    int n = 2000000;
+    Object[] data;
 
-    @Setup(Level.Invocation)
+    @Setup(Level.Trial)
     public void setup(){
-        arr = new Integer[n];
-        for (int i = 0; i < n; i++){
-            arr[i] = i;
-        }
+        data = new Object[n];
     }
 
     @Benchmark
-    public void fill(Blackhole bh){
-        var arr = this.arr;
-        Arrays.fill(arr, null);
-        bh.consume(arr);
+    public void fillValue(Blackhole bh){
+        Object value = new Object();
+        for(int i = 0; i < n; i++){
+            data[i] = value;
+        }
+        bh.consume(data);
     }
     @Benchmark
-    public void noNullCheck(Blackhole bh){
-        var arr = this.arr;
+    public void fillValue2(Blackhole bh){
         for(int i = 0; i < n; i++){
-            arr[i] = null;
+            Object value = new Object();
+            data[i] = value;
         }
-        bh.consume(arr);
-    }
-    @Benchmark
-    public void nullCheck(Blackhole bh){
-        var arr = this.arr;
-        for(int i = 0; i < n; i++){
-            if(arr[i] != null)
-                arr[i] = null;
-        }
-        bh.consume(arr);
+        bh.consume(data);
     }
 }

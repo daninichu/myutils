@@ -1,13 +1,10 @@
 package com.daninichu.benchmark.grid;
 
 import com.daninichu.benchmark.Main;
-import com.daninichu.util.ArrayGrid;
-import com.daninichu.util.FlatArrayGrid;
-import org.junit.jupiter.api.Assertions;
+import com.daninichu.util.*;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode({
@@ -34,39 +31,25 @@ public class ArrayGridBenchmark{
 	public void setup(){
 		arrayGrid = new ArrayGrid<>(width, height);
 		flatArrayGrid = new FlatArrayGrid<>(width, height);
-		for(int y = 0; y < height; y++){
-			for(int x = 0; x < width; x++){
-				flatArrayGrid.set(x, y, x);
-				arrayGrid.set(x, y, x);
-			}
-		}
 	}
 
 	@Benchmark
 	public void a(Blackhole bh){
-		for(int y = 0; y < height; y++){
-			for(int x = 0; x < width; x++){
-//				bh.consume(arrayGrid.get(x, y));
-				bh.consume(arrayGrid.set(x, y, x));
-			}
-		}
-//		for(var e : arrayGrid){
-//			bh.consume(e);
-//		}
-		bh.consume(arrayGrid);
+		f(arrayGrid, bh);
 	}
 
 	@Benchmark
 	public void fa(Blackhole bh){
+		f(flatArrayGrid, bh);
+	}
+
+	void f(Grid<Object> grid, Blackhole bh){
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
-//				bh.consume(flatArrayGrid.get(x, y));
-				bh.consume(flatArrayGrid.set(x, y, x));
+//				bh.consume(grid.get(x, y));
+				grid.set(x, y, 999);
 			}
 		}
-//		for(var e : flatArrayGrid){
-//			bh.consume(e);
-//		}
-		bh.consume(flatArrayGrid);
+		bh.consume(grid);
 	}
 }

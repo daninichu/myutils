@@ -104,9 +104,15 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 		return oldValue;
     }
 
+    @Override
+    public boolean containsPoint(int x, int y){
+		checkInBounds(x, y);
+		return data[y][x] != null;
+    }
+
 	@Override
 	public boolean removeValue(E e){
-        if(e != null){
+		if(e != null){
 			Object[][] data = this.data;
 			int height = data.length;
 			int width = data[0].length;
@@ -114,21 +120,15 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
 				Object[] row = data[y];
 				for(int x = 0; x < width; x++){
 					Object o = row[x];
-                    if(o != null && e.equals(o)){
-                        row[x] = null;
-                        return true;
-                    }
-                }
-            }
-        }
+					if(o != null && e.equals(o)){
+						row[x] = null;
+						return true;
+					}
+				}
+			}
+		}
 		return false;
-    }
-
-    @Override
-    public boolean containsPoint(int x, int y){
-		checkInBounds(x, y);
-		return data[y][x] != null;
-    }
+	}
 
 	@Override
 	public boolean containsValue(E e){

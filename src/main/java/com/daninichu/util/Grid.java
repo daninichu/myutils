@@ -66,7 +66,6 @@ public interface Grid<E> extends Iterable<E>{
 	E set(Point p, E e);
 
 	/**
-	 *
 	 * @param grid The grid to set points from.
 	 * @throws IndexOutOfBoundsException if any point in {@code grid} is out of bounds of this grid.
 	 * @throws NullPointerException if {@code grid} is null,
@@ -93,12 +92,6 @@ public interface Grid<E> extends Iterable<E>{
 	E removePoint(Point p);
 
 	/**
-	 * @param e The value to be removed.
-	 * @return {@code true} if the value was in this grid.
-	 */
-	boolean removeValue(E e);
-
-	/**
 	 * Checks if there exists a value at the given point.
 	 * @param x The x coordinate.
 	 * @param y The y coordinate.
@@ -115,6 +108,12 @@ public interface Grid<E> extends Iterable<E>{
 	 * @throws NullPointerException if {@code p} is null.
 	 */
 	boolean containsPoint(Point p);
+
+	/**
+	 * @param e The value to be removed.
+	 * @return {@code true} if the value was in this grid.
+	 */
+	boolean removeValue(E e);
 
 	/***
 	 * @param e The value whose presence in this grid is to be tested.
