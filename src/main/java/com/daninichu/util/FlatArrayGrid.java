@@ -1,10 +1,7 @@
 package com.daninichu.util;
 
 import java.awt.Point;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.UnaryOperator;
 
 /**
@@ -46,22 +43,43 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         this.data = Arrays.copyOf(grid.data, grid.data.length);
     }
 
+    /**
+     * @return The number of columns in this grid.
+     */
     public int width(){
         return width;
     }
 
+    /**
+     * @return The number of rows in this grid.
+     */
     public int height(){
         return height;
     }
 
+    /**
+     * @return The total number of cells in this grid, equal to {@code width() * height()}.
+     */
     public int length(){
         return data.length;
     }
 
+    /**
+     * Checks if the given point lies within the bounds of this grid.
+     * @param x The x coordinate.
+     * @param y The y coordinate.
+     * @return {@code true} if {@code 0 <= x < width()} and {@code 0 <= y < height()}.
+     */
     public boolean inBounds(int x, int y){
         return 0 <= x && x < width && 0 <= y && y < height;
     }
 
+    /**
+     * Checks if the given point lies within the bounds of this grid.
+     * @param p The point to check.
+     * @return {@code true} if {@code p} is within the bounds of this grid.
+     * @throws NullPointerException if {@code p} is null.
+     */
     public boolean inBounds(Point p){
         return inBounds(p.x, p.y);
     }
@@ -83,6 +101,13 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return (E) data[index(x, y)];
     }
 
+    /**
+     * Retrieves the value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @return The value at the given index, or null if there is none.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     */
     public E get(int index){
         return (E) data[index];
     }
@@ -96,6 +121,15 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return oldValue;
     }
 
+    /**
+     * Overwrites the value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @param e The new value.
+     * @return The value previously at the given index, or null if there was none.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     * @throws NullPointerException if {@code e} is null.
+     */
     public E set(int index, E e){
         E oldValue = (E) data[index];
         data[index] = Objects.requireNonNull(e);
@@ -111,6 +145,13 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return e;
     }
 
+    /**
+     * Removes the value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @return The value previously at the given index, or null if there was none.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     */
     public E removePoint(int index){
         E e = (E) data[index];
         data[index] = null;
@@ -123,6 +164,13 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return data[index(x, y)] != null;
     }
 
+    /**
+     * Checks if there exists a value at the given flat index, where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @return {@code true} if there is a value.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     */
     public boolean containsPoint(int index){
         return data[index] != null;
     }
@@ -168,6 +216,11 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return null;
     }
 
+    /**
+     * Sets every point in this grid to the given value.
+     * @param e The value to fill this grid with.
+     * @throws NullPointerException if {@code e} is null.
+     */
     public void fill(E e){
         Arrays.fill(data, Objects.requireNonNull(e));
     }
@@ -243,16 +296,21 @@ public class FlatArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         data[index] = operator.apply((E) data[index]);
     }
 
+    /**
+     * Replaces the value at the given flat index with the result of applying {@code operator} to it,
+     * where {@code index = y * width() + x}.
+     * The operator receives null if there is no value at the index.
+     * This method does not perform a 2D bounds check.
+     * <p>
+     * Unlike {@link #set(int, Object)}, the result is not null-checked,
+     * so an operator that returns null effectively removes the value.
+     * @param index The flat index in row-major (y-major) order.
+     * @param operator The function to apply to the current value.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     * @throws NullPointerException if {@code operator} is null.
+     */
     public void compute(int index, UnaryOperator<E> operator){
         data[index] = operator.apply((E) data[index]);
-    }
-
-    /**
-     * Returns a copy of the backing flat array.
-     * Index mapping: {@code index = y * width + x}.
-     */
-    public E[] toArray(){
-        return (E[]) Arrays.copyOf(data, data.length);
     }
 
     @Override
