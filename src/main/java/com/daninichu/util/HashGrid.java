@@ -93,7 +93,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     private static int hash(long key){
-        key *= 0xff51afd7ed558ccdL;
+        key *= 0xff57afd7ed558ccdL;
         return (int) (key ^ (key >>> 32));
     }
 
