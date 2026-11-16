@@ -2,7 +2,7 @@ package com.daninichu.util;
 
 import java.awt.Point;
 import java.util.Iterator;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
@@ -28,9 +28,8 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public void setAll(Grid<? extends E> grid){
-        for(Cell<? extends E> cell : grid.cells())
-            set(cell.x, cell.y, cell.value);
+    public E getOrSet(Point p, E e){
+        return getOrSet(p.x, p.y, e);
     }
 
     @Override
@@ -44,8 +43,14 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public E compute(Point p, UnaryOperator<E> operator){
-        return compute(p.x, p.y, operator);
+    public E compute(Point p, Function<? super E, ? extends E> function){
+        return compute(p.x, p.y, function);
+    }
+
+    @Override
+    public void setAll(Grid<? extends E> grid){
+        for(Cell<? extends E> cell : grid.cells())
+            set(cell.x, cell.y, cell.value);
     }
 
     @Override

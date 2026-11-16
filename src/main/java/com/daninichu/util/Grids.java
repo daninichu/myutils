@@ -4,7 +4,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 public final class Grids{
     private Grids(){}
@@ -35,7 +35,7 @@ public final class Grids{
         return points;
     }
 
-    private static class BackedGrid<E> implements Grid<E>{
+    private static class BackedGrid<E> extends AbstractGrid<E>{
         final Grid<E> grid;
 
         public BackedGrid(Grid<E> grid){
@@ -43,36 +43,18 @@ public final class Grids{
         }
 
         public E get(int x, int y){return grid.get(x, y);}
-        public E get(Point p){return grid.get(p);}
-
-        public E getOrDefault(int x, int y, E defaultValue){return grid.getOrDefault(x, y, defaultValue);}
-        public E getOrDefault(Point p, E defaultValue){return grid.getOrDefault(p, defaultValue);}
-
         public E set(int x, int y, E e){return grid.set(x, y, e);}
-        public E set(Point p, E e){return grid.set(p, e);}
-
-        public void setAll(Grid<? extends E> grid){this.grid.setAll(grid);}
-
+        public E getOrSet(int x, int y, E e){return grid.getOrSet(x, y, e);}
+        public E compute(int x, int y, Function<? super E, ? extends E> function){return grid.compute(x, y, function);}
         public E removePoint(int x, int y){return grid.removePoint(x, y);}
-        public E removePoint(Point p){return grid.removePoint(p);}
-
         public boolean removeValue(E e){return grid.removeValue(e);}
-
         public boolean containsPoint(int x, int y){return grid.containsPoint(x, y);}
-        public boolean containsPoint(Point p){return grid.containsPoint(p);}
-
         public boolean containsValue(E e){return grid.containsValue(e);}
-
         public Point pointOf(E e){return grid.pointOf(e);}
-
         public void clear(){grid.clear();}
-
         public Iterable<Point> points(){return grid.points();}
         public Iterable<Cell<E>> cells(){return grid.cells();}
         public Iterator<E> iterator(){return grid.iterator();}
-
-        public E compute(int x, int y, UnaryOperator<E> operator){return grid.compute(x, y, operator);}
-        public E compute(Point p, UnaryOperator<E> operator){return grid.compute(p.x, p.y, operator);}
     }
 
     private static final class TranslatedGrid<E> extends BackedGrid<E>{
@@ -84,42 +66,17 @@ public final class Grids{
             this.dy = dy;
         }
 
-        public E get(int x, int y){
-            return grid.get(x - dx, y - dy);
-        }
-        public E get(Point p){
-            return grid.get(p.x - dx, p.y - dy);
-        }
-        public E getOrDefault(int x, int y, E defaultValue){
-            return grid.getOrDefault(x - dx, y - dy, defaultValue);
-        }
-        public E getOrDefault(Point p, E defaultValue){
-            return grid.getOrDefault(p.x - dx, p.y - dy, defaultValue);
-        }
-        public E set(int x, int y, E e){
-            return grid.set(x - dx, y - dy, e);
-        }
-        public E set(Point p, E e){
-            return grid.set(p.x - dx, p.y - dy, e);
-        }
-        public E removePoint(int x, int y){
-            return grid.removePoint(x - dx, y - dy);
-        }
-        public E removePoint(Point p){
-            return grid.removePoint(p.x - dx, p.y - dy);
-        }
-        public boolean containsPoint(int x, int y){
-            return grid.containsPoint(x - dx, y - dy);
-        }
-        public boolean containsPoint(Point p){
-            return grid.containsPoint(p.x - dx, p.y - dy);
-        }
+        public E get(int x, int y){return grid.get(x - dx, y - dy);}
+        public E set(int x, int y, E e){return grid.set(x - dx, y - dy, e);}
+        public E getOrSet(int x, int y, E e){return grid.getOrSet(x - dx, y - dy, e);}
+        public E removePoint(int x, int y){return grid.removePoint(x - dx, y - dy);}
+        public E compute(int x, int y, Function<? super E, ? extends E> function){return grid.compute(x - dx, y - dy, function);}
+        public boolean containsPoint(int x, int y){return grid.containsPoint(x - dx, y - dy);}
         public Point pointOf(E e){
             Point p = grid.pointOf(e);
             p.translate(dx, dy);
             return p;
         }
-
         public Iterable<Point> points(){
             return () -> new Iterator<>(){
                 final Iterator<Point> it = grid.points().iterator();
@@ -128,16 +85,22 @@ public final class Grids{
                 }
                 public Point next(){
                     Point p = it.next();
-                    return new Point(p.x + dx, p.y + dy);
+                    p.translate(dx, dy);
+                    return  p;
                 }
             };
         }
-
-        public E compute(int x, int y, UnaryOperator<E> operator){
-            return grid.compute(x - dx, y - dy, operator);
-        }
-        public E compute(Point p, UnaryOperator<E> operator){
-            return grid.compute(p.x - dx, p.y - dy, operator);
+        public Iterable<Cell<E>> cells(){
+            return () -> new Iterator<>(){
+                final Iterator<Cell<E>> it = grid.cells().iterator();
+                public boolean hasNext(){
+                    return it.hasNext();
+                }
+                public Cell<E> next(){
+                    Cell<E> c = it.next();
+                    return new Cell<>(c.x + dx, c.y + dy, c.value);
+                }
+            };
         }
     }
 
@@ -156,14 +119,11 @@ public final class Grids{
         }
 
         public E set(int x, int y, E e){throw new UnsupportedOperationException();}
-        public E set(Point p, E e){throw new UnsupportedOperationException();}
-        public void setAll(Grid<? extends E> grid){throw new UnsupportedOperationException();}
+        public E compute(int x, int y, Function<? super E, ? extends E> function){throw new UnsupportedOperationException();}
         public E removePoint(int x, int y){throw new UnsupportedOperationException();}
-        public E removePoint(Point p){throw new UnsupportedOperationException();}
         public boolean removeValue(E e){throw new UnsupportedOperationException();}
+        public void setAll(Grid<? extends E> grid){throw new UnsupportedOperationException();}
         public void clear(){throw new UnsupportedOperationException();}
-        public E compute(int x, int y, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
-        public E compute(Point p, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
     }
 
     public static <E> Grid<E> unmodifiableGrid(Grid<E> grid){

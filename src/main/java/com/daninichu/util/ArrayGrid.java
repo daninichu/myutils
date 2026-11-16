@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 /**
  * A grid with a fixed size. (x,y) coordinates cannot be negative.
@@ -137,6 +137,64 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         E oldValue = (E) data[index];
         data[index] = Objects.requireNonNull(e);
         return oldValue;
+    }
+
+    @Override
+    public E getOrSet(int x, int y, E e){
+        checkInBounds(x, y);
+        int index = index(x, y);
+        E oldValue = (E) data[index];
+        if(oldValue == null){
+            data[index] = Objects.requireNonNull(e);
+        }
+        return oldValue;
+    }
+
+    /**
+     * Returns the value at the given flat index,
+     * or sets and returns the given value if the index is vacant,
+     * where {@code index = y * width() + x}.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @param e The value to set if the index is vacant.
+     * @return The existing value at the given index, or {@code e} if the index was vacant.
+     * @throws IndexOutOfBoundsException if the index is out of bounds of this grid.
+     * @throws NullPointerException if the index is vacant
+     * 		   and {@code e} is null and this grid does not permit null values.
+     */
+    public E getOrSet(int index, E e){
+        E oldValue = (E) data[index];
+        if(oldValue == null){
+            data[index] = Objects.requireNonNull(e);
+        }
+        return oldValue;
+    }
+
+    @Override
+    public E compute(int x, int y, Function<? super E, ? extends E> function){
+        checkInBounds(x, y);
+        int index = index(x, y);
+        E e = function.apply((E) data[index]);
+        data[index] = e;
+        return e;
+    }
+
+    /**
+     * Replaces the value at the given flat index with the result of applying {@code function} to it,
+     * where {@code index = y * width() + x}.
+     * The function receives null if there is no value at the index.
+     * If the function returns null, the value at the index is removed.
+     * This method does not perform a 2D bounds check.
+     * @param index The flat index in row-major (y-major) order.
+     * @param function The function to apply to the current value.
+     * @return The new value at the given index, or null if the index is now vacant.
+     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
+     * @throws NullPointerException if {@code function} is null.
+     */
+    public E compute(int index, Function<? super E, ? extends E> function){
+        E e = function.apply((E) data[index]);
+        data[index] = e;
+        return e;
     }
 
     @Override
@@ -290,33 +348,6 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
             data[lastIndex] = null;
             lastIndex = -1;
         }
-    }
-
-    @Override
-    public E compute(int x, int y, UnaryOperator<E> operator){
-        checkInBounds(x, y);
-        int index = index(x, y);
-        E e = operator.apply((E) data[index]);
-        data[index] = e;
-        return e;
-    }
-
-    /**
-     * Replaces the value at the given flat index with the result of applying {@code operator} to it,
-     * where {@code index = y * width() + x}.
-     * The operator receives null if there is no value at the index.
-     * If the operator returns null, the value at the index is removed.
-     * This method does not perform a 2D bounds check.
-     * @param index The flat index in row-major (y-major) order.
-     * @param operator The function to apply to the current value.
-     * @return The new value at the given index, or null if the index is now vacant.
-     * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
-     * @throws NullPointerException if {@code operator} is null.
-     */
-    public E compute(int index, UnaryOperator<E> operator){
-        E e = operator.apply((E) data[index]);
-        data[index] = e;
-        return e;
     }
 
     @Override

@@ -110,7 +110,7 @@ public class AbstractViewer extends JPanel implements MouseListener,
         double my = camera.toWorldY(e.getY());
 
         double rotation = e.getPreciseWheelRotation();
-        double factor = rotation == 0? 1 : rotation < 0? zoomSpeed : 1 / zoomSpeed;
+        double factor = rotation < 0? zoomSpeed : 1 / zoomSpeed;
         camera.setZoom(Math.max(minZoom, Math.min(camera.getZoom() * factor, maxZoom)));
 
         camera.setPosition(mx - e.getX() / camera.getZoom(), my - e.getY() / camera.getZoom());

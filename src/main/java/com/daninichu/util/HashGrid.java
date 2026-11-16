@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 /**
  * A hash-based Grid backed by a custom open-addressing hash table using
@@ -165,8 +165,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             resize();
             i = findSlot(key);
         }
-        i = ~i;
-        insertAt(i, key, value);
+        insertAt(~i, key, value);
         size++;
         return null;
     }
@@ -177,7 +176,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             return null;
         E oldValue = (E) values[i];
         shiftDelete(i);
-        size--;
         return oldValue;
     }
 
@@ -197,10 +195,11 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         }
         distances[deleted] = 0;
         values[deleted] = null;
+        size--;
     }
 
     private void resize(){
-        int[] oldDists = this.distances;
+        int[] oldDistances = this.distances;
         long[] oldKeys = this.keys;
         Object[] oldValues = this.values;
 
@@ -213,7 +212,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
         int mask = newCap - 1;
         for(int i = 0; i < oldCap; i++){
-            if(oldDists[i] != 0){
+            if(oldDistances[i] != 0){
                 long k = oldKeys[i];
                 insertAt(hash(k) & mask, k, oldValues[i]);
             }
@@ -236,20 +235,39 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public void setAll(Grid<? extends E> grid){
-        if(grid instanceof HashGrid<? extends E> hashGrid){
-            int[] distances = hashGrid.distances;
-            long[] keys = hashGrid.keys;
-            Object[] values = hashGrid.values;
-
-            for(int i = 0, n = distances.length; i < n; i++){
-                if(distances[i] != 0)
-                    rawPut(keys[i], values[i]);
-            }
-        } else{
-            for(Cell<? extends E> cell : grid.cells())
-                rawPut(pack(cell.x, cell.y), cell.value);
+    public E getOrSet(int x, int y, E e){
+        long key = pack(x, y);
+        int i = findSlot(key);
+        if(i >= 0)
+            return (E) values[i];
+        if(size >= threshold){
+            resize();
+            i = findSlot(key);
         }
+        insertAt(~i, key, e);
+        size++;
+        return null;
+    }
+
+    @Override
+    public E compute(int x, int y, Function<? super E, ? extends E> function){
+        long key = pack(x, y);
+        int i = findSlot(key);
+        E e;
+        if(i >= 0){
+            if((e = function.apply((E) values[i])) == null)
+                shiftDelete(i);
+            else
+                values[i] = e;
+        } else if((e = function.apply(null)) != null){
+            if(size >= threshold){
+                resize();
+                i = findSlot(key);
+            }
+            insertAt(~i, key, e);
+            size++;
+        }
+        return e;
     }
 
     @Override
@@ -271,7 +289,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             for(int i = 0, n = distances.length; i < n; i++){
                 if(distances[i] != 0 && values[i] == null){
                     shiftDelete(i);
-                    size--;
                     return true;
                 }
             }
@@ -279,7 +296,6 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             for(int i = 0, n = distances.length; i < n; i++){
                 if(distances[i] != 0 && e.equals(values[i])){
                     shiftDelete(i);
-                    size--;
                     return true;
                 }
             }
@@ -293,15 +309,13 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         Object[] values = this.values;
 
         if(e == null){
-            for(int i = 0, n = distances.length; i < n; i++){
+            for(int i = 0, n = distances.length; i < n; i++)
                 if(distances[i] != 0 && values[i] == null)
                     return true;
-            }
         } else{
-            for(int i = 0, n = distances.length; i < n; i++){
+            for(int i = 0, n = distances.length; i < n; i++)
                 if(distances[i] != 0 && e.equals(values[i]))
                     return true;
-            }
         }
         return false;
     }
@@ -327,6 +341,21 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             }
         }
         return null;
+    }
+
+    @Override
+    public void setAll(Grid<? extends E> grid){
+        if(grid instanceof HashGrid<? extends E> hashGrid){
+            int[] distances = hashGrid.distances;
+            long[] keys = hashGrid.keys;
+            Object[] values = hashGrid.values;
+
+            for(int i = 0, n = distances.length; i < n; i++)
+                if(distances[i] != 0)
+                    rawPut(keys[i], values[i]);
+        } else
+            for(Cell<? extends E> cell : grid.cells())
+                rawPut(pack(cell.x, cell.y), cell.value);
     }
 
     @Override
@@ -406,46 +435,16 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
                 throw new IllegalStateException();
             shiftDelete(lastSlot);
             cursor = (lastSlot - start) & mask;
-            size--;
             lastSlot = -1;
         }
     }
 
     @Override
-    public E compute(int x, int y, UnaryOperator<E> operator){
-        long key = pack(x, y);
-        int i = findSlot(key);
-        if(i >= 0){
-            E e = operator.apply((E) values[i]);
-            if(e == null){
-                shiftDelete(i);
-                size--;
-            } else
-                values[i] = e;
-            return e;
-        } else{
-            E e = operator.apply(null);
-            if(e != null){
-                if(size >= threshold){
-                    resize();
-                    i = findSlot(key);
-                }
-                i = ~i;
-                insertAt(i, key, e);
-                size++;
-            }
-            return e;
-        }
-    }
-
-    @Override
     public boolean equals(Object obj){
-        if(this == obj){
+        if(this == obj)
             return true;
-        }
-        if(!(obj instanceof HashGrid<?> hashGrid) || size != hashGrid.size){
+        if(!(obj instanceof HashGrid<?> hashGrid) || size != hashGrid.size)
             return false;
-        }
         int[] distances = this.distances;
         long[] keys = this.keys;
         Object[] values = this.values;

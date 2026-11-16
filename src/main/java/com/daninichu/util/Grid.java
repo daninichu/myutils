@@ -2,7 +2,7 @@ package com.daninichu.util;
 
 import java.awt.Point;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 /**
  * A two-dimensional collection of values addressed by (x,y) coordinates,
@@ -67,12 +67,54 @@ public interface Grid<E> extends Iterable<E>{
 	E set(Point p, E e);
 
 	/**
-	 * @param grid The grid to set points from.
-	 * @throws IndexOutOfBoundsException if any point in {@code grid} is out of bounds of this grid.
-	 * @throws NullPointerException if {@code grid} is null,
-	 * 		   or if any value from {@code grid} is null and this grid does not permit null values.
+	 * Returns the value at the given point,
+	 * or sets and returns the given value if the point is vacant.
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
+	 * @param e The value to set if the point is vacant.
+	 * @return The existing value at the given point, or {@code e} if the point was vacant.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if the point is vacant
+	 * 		   and {@code e} is null and this grid does not permit null values.
 	 */
-	void setAll(Grid<? extends E> grid);
+	E getOrSet(int x, int y, E e);
+
+	/**
+	 * Returns the value at the given point,
+	 * or sets and returns the given value if the point is vacant.
+	 * @param p The point to get or set the value.
+	 * @param e The value to set if the point is vacant.
+	 * @return The existing value at the given point, or {@code e} if the point was vacant.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if {@code p} is null, or if the point is vacant
+	 * 		   and {@code e} is null and this grid does not permit null values.
+	 */
+	E getOrSet(Point p, E e);
+
+	/**
+	 * Replaces the value at the given point with the result of applying {@code function} to it.
+	 * The function receives null if there is no value at the point.
+	 * If the function returns null, the value at the point is removed.
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
+	 * @param function The function to apply to the current value.
+	 * @return The new value at the given point, or null if the point is now vacant.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if {@code function} is null.
+	 */
+	E compute(int x, int y, Function<? super E, ? extends E> function);
+
+	/**
+	 * Replaces the value at the given point with the result of applying {@code function} to it.
+	 * The function receives null if there is no value at the point.
+	 * If the function returns null, the value at the point is removed.
+	 * @param p The point to apply the function on.
+	 * @param function The function to apply to the current value.
+	 * @return The new value at the given point, or null if the point is now vacant.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if {@code p} or {@code function} is null.
+	 */
+	E compute(Point p, Function<? super E, ? extends E> function);
 
 	/**
 	 * Removes the value at the given point.
@@ -127,6 +169,14 @@ public interface Grid<E> extends Iterable<E>{
 	 * @return One of the points that has the given value, or null if the value is not in this grid.
 	 */
 	Point pointOf(E e);
+
+	/**
+	 * @param grid The grid to set points from.
+	 * @throws IndexOutOfBoundsException if any point in {@code grid} is out of bounds of this grid.
+	 * @throws NullPointerException if {@code grid} is null,
+	 * 		   or if any value from {@code grid} is null and this grid does not permit null values.
+	 */
+	void setAll(Grid<? extends E> grid);
 
 	/**
 	 * Removes all values from this grid.
@@ -187,7 +237,7 @@ public interface Grid<E> extends Iterable<E>{
 
 		@Override
 		public int hashCode(){
-			return 65537 * (65537 * x + y) + Objects.hashCode(value);
+			return 31 * (31 * x + y) + Objects.hashCode(value);
 		}
 
 		@Override
@@ -195,30 +245,4 @@ public interface Grid<E> extends Iterable<E>{
 			return "(" + x + ',' + y + ")=" + value;
 		}
 	}
-
-	/**
-	 * Replaces the value at the given point with the result of applying {@code operator} to it.
-	 * The operator receives null if there is no value at the point.
-	 * If the operator returns null, the value at the point is removed.
-	 * @param x The x coordinate.
-	 * @param y The y coordinate.
-	 * @param operator The function to apply to the current value.
-	 * @return The new value at the given point, or null if the point is now vacant.
-	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
-	 * @throws NullPointerException if {@code operator} is null.
-	 */
-	E compute(int x, int y, UnaryOperator<E> operator);
-
-
-	/**
-	 * Replaces the value at the given point with the result of applying {@code operator} to it.
-	 * The operator receives null if there is no value at the point.
-	 * If the operator returns null, the value at the point is removed.
-	 * @param p The point to apply the operator on.
-	 * @param operator The function to apply to the current value.
-	 * @return The new value at the given point, or null if the point is now vacant.
-	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
-	 * @throws NullPointerException if {@code p} or {@code operator} is null.
-	 */
-	E compute(Point p, UnaryOperator<E> operator);
 }
