@@ -203,7 +203,7 @@ public interface Grid<E> extends Iterable<E>{
 	 * @param x The x coordinate.
 	 * @param y The y coordinate.
 	 * @param operator The function to apply to the current value.
-	 * @return The new value at the given index, or null if the point is now vacant.
+	 * @return The new value at the given point, or null if the point is now vacant.
 	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 * @throws NullPointerException if {@code operator} is null.
 	 */
@@ -216,7 +216,7 @@ public interface Grid<E> extends Iterable<E>{
 	 * If the operator returns null, the value at the point is removed.
 	 * @param p The point to apply the operator on.
 	 * @param operator The function to apply to the current value.
-	 * @return The new value at the given index, or null if the point is now vacant.
+	 * @return The new value at the given point, or null if the point is now vacant.
 	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
 	 * @throws NullPointerException if {@code p} or {@code operator} is null.
 	 */
