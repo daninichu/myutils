@@ -144,10 +144,10 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         checkInBounds(x, y);
         int index = index(x, y);
         E oldValue = (E) data[index];
-        if(oldValue == null){
-            data[index] = Objects.requireNonNull(e);
-        }
-        return oldValue;
+        if(oldValue != null)
+            return oldValue;
+        data[index] = Objects.requireNonNull(e);
+        return e;
     }
 
     /**
@@ -159,15 +159,14 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
      * @param e The value to set if the index is vacant.
      * @return The existing value at the given index, or {@code e} if the index was vacant.
      * @throws IndexOutOfBoundsException if the index is out of bounds of this grid.
-     * @throws NullPointerException if the index is vacant
-     * 		   and {@code e} is null and this grid does not permit null values.
+     * @throws NullPointerException if {@code e} is null.
      */
     public E getOrSet(int index, E e){
         E oldValue = (E) data[index];
-        if(oldValue == null){
-            data[index] = Objects.requireNonNull(e);
-        }
-        return oldValue;
+        if(oldValue != null)
+            return oldValue;
+        data[index] = Objects.requireNonNull(e);
+        return e;
     }
 
     @Override
