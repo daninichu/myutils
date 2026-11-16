@@ -33,6 +33,11 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
+    public E compute(Point p, Function<? super E, ? extends E> function){
+        return compute(p.x, p.y, function);
+    }
+
+    @Override
     public E removePoint(Point p){
         return removePoint(p.x, p.y);
     }
@@ -40,11 +45,6 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
     public boolean containsPoint(Point p){
         return containsPoint(p.x, p.y);
-    }
-
-    @Override
-    public E compute(Point p, Function<? super E, ? extends E> function){
-        return compute(p.x, p.y, function);
     }
 
     @Override
