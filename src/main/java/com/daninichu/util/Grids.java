@@ -71,8 +71,8 @@ public final class Grids{
         public Iterable<Cell<E>> cells(){return grid.cells();}
         public Iterator<E> iterator(){return grid.iterator();}
 
-        public void compute(int x, int y, UnaryOperator<E> operator){grid.compute(x, y, operator);}
-        public void compute(Point p, UnaryOperator<E> operator){grid.compute(p.x, p.y, operator);}
+        public E compute(int x, int y, UnaryOperator<E> operator){return grid.compute(x, y, operator);}
+        public E compute(Point p, UnaryOperator<E> operator){return grid.compute(p.x, p.y, operator);}
     }
 
     private static final class TranslatedGrid<E> extends BackedGrid<E>{
@@ -133,11 +133,11 @@ public final class Grids{
             };
         }
 
-        public void compute(int x, int y, UnaryOperator<E> operator){
-            grid.compute(x - dx, y - dy, operator);
+        public E compute(int x, int y, UnaryOperator<E> operator){
+            return grid.compute(x - dx, y - dy, operator);
         }
-        public void compute(Point p, UnaryOperator<E> operator){
-            grid.compute(p.x - dx, p.y - dy, operator);
+        public E compute(Point p, UnaryOperator<E> operator){
+            return grid.compute(p.x - dx, p.y - dy, operator);
         }
     }
 
@@ -150,7 +150,7 @@ public final class Grids{
         return new TranslatedGrid<>(grid, dx, dy);
     }
 
-    static final class UnmodifiableGrid<E> extends BackedGrid<E>{
+    private static final class UnmodifiableGrid<E> extends BackedGrid<E>{
         public UnmodifiableGrid(Grid<E> grid){
             super(grid);
         }
@@ -162,8 +162,8 @@ public final class Grids{
         public E removePoint(Point p){throw new UnsupportedOperationException();}
         public boolean removeValue(E e){throw new UnsupportedOperationException();}
         public void clear(){throw new UnsupportedOperationException();}
-        public void compute(int x, int y, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
-        public void compute(Point p, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
+        public E compute(int x, int y, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
+        public E compute(Point p, UnaryOperator<E> operator){throw new UnsupportedOperationException();}
     }
 
     public static <E> Grid<E> unmodifiableGrid(Grid<E> grid){

@@ -61,7 +61,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Constructs a new {@code HashGrid} with the same entries as the given {@code HashGrid}
+     * Constructs a new {@code HashGrid} with the same entries as {@code grid}
      * with a default load factor of 0.9 and an initial capacity sufficient to
      * hold the entries of the given grid.
      * @param grid The grid to copy from.
@@ -412,7 +412,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public void compute(int x, int y, UnaryOperator<E> operator){
+    public E compute(int x, int y, UnaryOperator<E> operator){
         long key = pack(x, y);
         int i = findSlot(key);
         if(i >= 0){
@@ -422,6 +422,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
                 size--;
             } else
                 values[i] = e;
+            return e;
         } else{
             E e = operator.apply(null);
             if(e != null){
@@ -433,6 +434,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
                 insertAt(i, key, e);
                 size++;
             }
+            return e;
         }
     }
 

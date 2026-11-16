@@ -34,15 +34,19 @@ public class ArrayBenchmark{
 
     @Benchmark
     public void fill_0(Blackhole bh){
-        for(int i = 0; i < n; i++){
-            data[i] = 0;
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                data[y * width + x] = 0;
+            }
         }
         bh.consume(data);
     }
     @Benchmark
     public void fill_128(Blackhole bh){
-        for(int i = 0; i < n; i++){
-            data[i] = 128;
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                data[y * width + x] = 128;
+            }
         }
         bh.consume(data);
     }

@@ -35,7 +35,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Creates a shallow copy of {@code grid}.
+     * Constructs a new {@code ArrayGrid} as a shallow copy of {@code grid}.
      * The new grid has the same dimensions and contains the same element references.
      * @param grid The grid to copy from.
      * @throws NullPointerException if {@code grid} is {@code null}.
@@ -293,27 +293,30 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public void compute(int x, int y, UnaryOperator<E> operator){
+    public E compute(int x, int y, UnaryOperator<E> operator){
         checkInBounds(x, y);
         int index = index(x, y);
-        data[index] = operator.apply((E) data[index]);
+        E e = operator.apply((E) data[index]);
+        data[index] = e;
+        return e;
     }
 
     /**
      * Replaces the value at the given flat index with the result of applying {@code operator} to it,
      * where {@code index = y * width() + x}.
      * The operator receives null if there is no value at the index.
+     * If the operator returns null, the value at the index is removed.
      * This method does not perform a 2D bounds check.
-     * <p>
-     * Unlike {@link #set(int, Object)}, the result is not null-checked,
-     * so an operator that returns null effectively removes the value.
      * @param index The flat index in row-major (y-major) order.
      * @param operator The function to apply to the current value.
+     * @return The new value at the given index, or null if the index is now vacant.
      * @throws ArrayIndexOutOfBoundsException if {@code index < 0 || index >= length()})
      * @throws NullPointerException if {@code operator} is null.
      */
-    public void compute(int index, UnaryOperator<E> operator){
-        data[index] = operator.apply((E) data[index]);
+    public E compute(int index, UnaryOperator<E> operator){
+        E e = operator.apply((E) data[index]);
+        data[index] = e;
+        return e;
     }
 
     @Override

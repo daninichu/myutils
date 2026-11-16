@@ -5,8 +5,9 @@ import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
- * Grid points are in (x,y) coordinates.
- * @param <E>
+ * A two-dimensional collection of values addressed by (x,y) coordinates,
+ * where {@code x} is the column and {@code y} is the row.
+ * @param <E> The type of values held in this grid.
  */
 public interface Grid<E> extends Iterable<E>{
 	/**
@@ -142,11 +143,37 @@ public interface Grid<E> extends Iterable<E>{
 	 */
 	Iterable<Cell<E>> cells();
 
+	/**
+	 * An immutable pairing of a point's (x,y) coordinates and the value at that point.
+	 * <p>
+	 * A {@code Cell} is a snapshot. It is not a view of the grid, so it does not
+	 * reflect later changes to the grid, and modifying it is not possible.
+	 * @param <E> The type of the value.
+	 * @see Grid#cells()
+	 */
 	final class Cell<E>{
+		/**
+		 * The x coordinate of this cell.
+		 */
 		public final int x;
+
+		/**
+		 * The y coordinate of this cell.
+		 */
 		public final int y;
+
+		/**
+		 * The value at this cell's point.
+		 */
 		public final E value;
 
+		/**
+		 * Constructs a {@code Cell} with the given coordinates and value.
+		 * This constructor does not check that the point is within any particular grid.
+		 * @param x The x coordinate.
+		 * @param y The y coordinate.
+		 * @param value The value at the point.
+		 */
 		public Cell(int x, int y, E value){
 			this.x = x;
 			this.y = y;
@@ -169,7 +196,29 @@ public interface Grid<E> extends Iterable<E>{
 		}
 	}
 
-	void compute(int x, int y, UnaryOperator<E> operator);
+	/**
+	 * Replaces the value at the given point with the result of applying {@code operator} to it.
+	 * The operator receives null if there is no value at the point.
+	 * If the operator returns null, the value at the point is removed.
+	 * @param x The x coordinate.
+	 * @param y The y coordinate.
+	 * @param operator The function to apply to the current value.
+	 * @return The new value at the given index, or null if the point is now vacant.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if {@code operator} is null.
+	 */
+	E compute(int x, int y, UnaryOperator<E> operator);
 
-	void compute(Point p, UnaryOperator<E> operator);
+
+	/**
+	 * Replaces the value at the given point with the result of applying {@code operator} to it.
+	 * The operator receives null if there is no value at the point.
+	 * If the operator returns null, the value at the point is removed.
+	 * @param p The point to apply the operator on.
+	 * @param operator The function to apply to the current value.
+	 * @return The new value at the given index, or null if the point is now vacant.
+	 * @throws IndexOutOfBoundsException if the point is out of bounds of this grid.
+	 * @throws NullPointerException if {@code p} or {@code operator} is null.
+	 */
+	E compute(Point p, UnaryOperator<E> operator);
 }

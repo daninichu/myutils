@@ -44,13 +44,8 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
-    public void compute(int x, int y, UnaryOperator<E> operator){
-        set(x, y, operator.apply(get(x, y)));
-    }
-
-    @Override
-    public void compute(Point p, UnaryOperator<E> operator){
-        set(p.x, p.y, operator.apply(get(p.x, p.y)));
+    public E compute(Point p, UnaryOperator<E> operator){
+        return compute(p.x, p.y, operator);
     }
 
     @Override
