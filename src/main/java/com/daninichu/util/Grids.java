@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class Grids{
     private Grids(){}
@@ -46,6 +47,7 @@ public final class Grids{
         public E set(int x, int y, E e){return grid.set(x, y, e);}
         public E getOrSet(int x, int y, E e){return grid.getOrSet(x, y, e);}
         public E compute(int x, int y, Function<? super E, ? extends E> function){return grid.compute(x, y, function);}
+        public E computeIfAbsent(int x, int y, Supplier<? extends E> function){return grid.computeIfAbsent(x, y, function);}
         public E removePoint(int x, int y){return grid.removePoint(x, y);}
         public boolean removeValue(E e){return grid.removeValue(e);}
         public boolean containsPoint(int x, int y){return grid.containsPoint(x, y);}
@@ -71,6 +73,7 @@ public final class Grids{
         public E getOrSet(int x, int y, E e){return grid.getOrSet(x - dx, y - dy, e);}
         public E removePoint(int x, int y){return grid.removePoint(x - dx, y - dy);}
         public E compute(int x, int y, Function<? super E, ? extends E> function){return grid.compute(x - dx, y - dy, function);}
+        public E computeIfAbsent(int x, int y, Supplier<? extends E> function){return grid.computeIfAbsent(x - dx, y - dy, function);}
         public boolean containsPoint(int x, int y){return grid.containsPoint(x - dx, y - dy);}
         public Point pointOf(E e){
             Point p = grid.pointOf(e);
@@ -119,7 +122,9 @@ public final class Grids{
         }
 
         public E set(int x, int y, E e){throw new UnsupportedOperationException();}
+        public E getOrSet(int x, int y, E e){throw new UnsupportedOperationException();}
         public E compute(int x, int y, Function<? super E, ? extends E> function){throw new UnsupportedOperationException();}
+        public E computeIfAbsent(int x, int y, Supplier<? extends E> function){throw new UnsupportedOperationException();}
         public E removePoint(int x, int y){throw new UnsupportedOperationException();}
         public boolean removeValue(E e){throw new UnsupportedOperationException();}
         public void setAll(Grid<? extends E> grid){throw new UnsupportedOperationException();}

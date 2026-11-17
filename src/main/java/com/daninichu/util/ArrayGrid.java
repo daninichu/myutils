@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A grid with a fixed size. (x,y) coordinates cannot be negative.
@@ -118,10 +119,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public E set(int x, int y, E e){
         checkInBounds(x, y);
-        int index = index(x, y);
-        E oldValue = (E) data[index];
-        data[index] = Objects.requireNonNull(e);
-        return oldValue;
+        return set(index(x, y), e);
     }
 
     /**
@@ -142,12 +140,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public E getOrSet(int x, int y, E e){
         checkInBounds(x, y);
-        int index = index(x, y);
-        E oldValue = (E) data[index];
-        if(oldValue != null)
-            return oldValue;
-        data[index] = Objects.requireNonNull(e);
-        return e;
+        return getOrSet(index(x, y), e);
     }
 
     /**
@@ -172,10 +165,7 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     @Override
     public E compute(int x, int y, Function<? super E, ? extends E> function){
         checkInBounds(x, y);
-        int index = index(x, y);
-        E e = function.apply((E) data[index]);
-        data[index] = e;
-        return e;
+        return compute(index(x, y), function);
     }
 
     /**
@@ -197,12 +187,24 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     @Override
+    public E computeIfAbsent(int x, int y, Supplier<? extends E> function){
+        checkInBounds(x, y);
+        return computeIfAbsent(index(x, y), function);
+    }
+
+    public E computeIfAbsent(int index, Supplier<? extends E> function){
+        E oldValue = (E) data[index];
+        if(oldValue != null)
+            return oldValue;
+        E e = function.get();
+        data[index] = e;
+        return e;
+    }
+
+    @Override
     public E removePoint(int x, int y){
         checkInBounds(x, y);
-        int index = index(x, y);
-        E e = (E) data[index];
-        data[index] = null;
-        return e;
+        return removePoint(index(x, y));
     }
 
     /**

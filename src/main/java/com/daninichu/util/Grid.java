@@ -3,6 +3,7 @@ package com.daninichu.util;
 import java.awt.Point;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A two-dimensional collection of values addressed by (x,y) coordinates,
@@ -115,6 +116,10 @@ public interface Grid<E> extends Iterable<E>{
 	 * @throws NullPointerException if {@code p} or {@code function} is null.
 	 */
 	E compute(Point p, Function<? super E, ? extends E> function);
+
+	E computeIfAbsent(int x, int y, Supplier<? extends E> function);
+
+	E computeIfAbsent(Point p, Supplier<? extends E> function);
 
 	/**
 	 * Removes the value at the given point.

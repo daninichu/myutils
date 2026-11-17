@@ -3,6 +3,7 @@ package com.daninichu.util;
 import java.awt.Point;
 import java.util.Iterator;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
@@ -13,13 +14,12 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
     public E getOrDefault(int x, int y, E defaultValue){
         E e = get(x, y);
-        return e == null? defaultValue : e;
+        return e == null && !containsPoint(x, y)? defaultValue : e;
     }
 
     @Override
     public E getOrDefault(Point p, E defaultValue){
-        E e = get(p.x, p.y);
-        return e == null? defaultValue : e;
+        return getOrDefault(p.x, p.y, defaultValue);
     }
 
     @Override
@@ -35,6 +35,11 @@ public abstract class AbstractGrid<E> implements Grid<E>{
     @Override
     public E compute(Point p, Function<? super E, ? extends E> function){
         return compute(p.x, p.y, function);
+    }
+
+    @Override
+    public E computeIfAbsent(Point p, Supplier<? extends E> function){
+        return computeIfAbsent(p.x, p.y, function);
     }
 
     @Override

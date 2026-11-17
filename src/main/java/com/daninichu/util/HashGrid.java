@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A hash-based Grid backed by a custom open-addressing hash table using
@@ -111,8 +112,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         int i = hash(key) & mask;
         int d = 1;
         while(true){
-            int residentDist = distances[i];
-            if(residentDist < d)
+            if(distances[i] < d)
                 return ~i;
             if(keys[i] == key)
                 return i;
@@ -154,6 +154,15 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         values[i] = value;
     }
 
+    private void insertAndIncrement(int i, long key, Object value){
+        if(size >= threshold){
+            resize();
+            i = ~findSlot(key);
+        }
+        insertAt(i, key, value);
+        size++;
+    }
+
     private E rawPut(long key, Object value){
         int i = findSlot(key);
         if(i >= 0){
@@ -161,12 +170,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             values[i] = value;
             return oldValue;
         }
-        if(size >= threshold){
-            resize();
-            i = findSlot(key);
-        }
-        insertAt(~i, key, value);
-        size++;
+        insertAndIncrement(~i, key, value);
         return null;
     }
 
@@ -240,12 +244,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         int i = findSlot(key);
         if(i >= 0)
             return (E) values[i];
-        if(size >= threshold){
-            resize();
-            i = findSlot(key);
-        }
-        insertAt(~i, key, e);
-        size++;
+        insertAndIncrement(~i, key, e);
         return null;
     }
 
@@ -259,14 +258,20 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
                 shiftDelete(i);
             else
                 values[i] = e;
-        } else if((e = function.apply(null)) != null){
-            if(size >= threshold){
-                resize();
-                i = findSlot(key);
-            }
-            insertAt(~i, key, e);
-            size++;
-        }
+        } else if((e = function.apply(null)) != null)
+            insertAndIncrement(~i, key, e);
+        return e;
+    }
+
+    @Override
+    public E computeIfAbsent(int x, int y, Supplier<? extends E> function){
+        long key = pack(x, y);
+        int i = findSlot(key);
+        E e;
+        if(i >= 0){
+            return (E) values[i];
+        } else if((e = function.get()) != null)
+            insertAndIncrement(~i, key, e);
         return e;
     }
 
