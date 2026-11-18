@@ -64,14 +64,25 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     /**
      * Constructs a new {@code HashGrid} with the same entries as {@code grid}
      * with a default load factor of 0.9 and an initial capacity sufficient to
-     * hold the entries of the given grid.
+     * hold the entries of {@code grid}.
      * @param grid The grid to copy from.
      * @throws NullPointerException if {@code grid} is null.
      */
     public HashGrid(HashGrid<? extends E> grid){
         this.loadFactor = 0.9f;
-        init(grid.distances.length);
-        setAll(grid);
+        this.size = grid.size;
+
+        int[] distances = grid.distances;
+        long[] keys = grid.keys;
+        Object[] values = grid.values;
+        init(distances.length);
+
+        for(int i = 0, mask = distances.length - 1; i <= mask; i++){
+            if(distances[i] != 0){
+                long key = keys[i];
+                insertAt(hash(key) & mask, key, values[i]);
+            }
+        }
     }
 
     private void init(int capacity){
@@ -137,13 +148,13 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         while(distances[i] != 0){
             int residentDist = distances[i];
             if(residentDist < d){
-                long k = keys[i];
-                Object v = values[i];
+                long tmpKey = keys[i];
+                Object tmpValue = values[i];
                 distances[i] = d;
                 keys[i] = key;
                 values[i] = value;
-                key = k;
-                value = v;
+                key = tmpKey;
+                value = tmpValue;
                 d = residentDist;
             }
             i = (i + 1) & mask;
@@ -157,7 +168,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     private void insertAndIncrement(int i, long key, Object value){
         if(size >= threshold){
             resize();
-            i = ~findSlot(key);
+            i = hash(key) & (distances.length - 1);
         }
         insertAt(i, key, value);
         size++;
@@ -203,9 +214,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     private void resize(){
-        int[] oldDistances = this.distances;
-        long[] oldKeys = this.keys;
-        Object[] oldValues = this.values;
+        int[] distances = this.distances;
+        long[] keys = this.keys;
+        Object[] values = this.values;
 
         int oldCap = keys.length;
         int newCap = oldCap << 1;
@@ -213,12 +224,11 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             throw new OutOfMemoryError("Capacity cannot grow any further");
         }
         init(newCap);
-
         int mask = newCap - 1;
         for(int i = 0; i < oldCap; i++){
-            if(oldDistances[i] != 0){
-                long k = oldKeys[i];
-                insertAt(hash(k) & mask, k, oldValues[i]);
+            if(distances[i] != 0){
+                long key = keys[i];
+                insertAt(hash(key) & mask, key, values[i]);
             }
         }
     }
