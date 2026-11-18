@@ -75,8 +75,8 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         int[] distances = grid.distances;
         long[] keys = grid.keys;
         Object[] values = grid.values;
-        init(distances.length);
 
+        init(distances.length);
         for(int i = 0, mask = distances.length - 1; i <= mask; i++){
             if(distances[i] != 0){
                 long key = keys[i];
@@ -110,8 +110,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Returns the slot index of {@code key} if present,
-     * or {@code ~insertSlot} (a negative value) if absent.
+     * Returns the slot of {@code key} if present, or {@code ~slot} (a negative value) if absent.
      * The insert slot is the first slot that is empty or holds an entry
      * closer to its home than {@code key} would be at that slot.
      */
@@ -133,8 +132,8 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     /**
-     * Inserts an entry known to be absent, starting at {@code i}, the insert slot
-     * returned by {@link #findSlot}. Entries that are closer to their home than the
+     * Inserts an entry known to be absent, starting at {@code i}.
+     * Entries that are closer to their home than the
      * carried entry are displaced forward ("steal from the rich").
      * Does not check the threshold or modify {@code size}.
      */
@@ -153,9 +152,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
                 distances[i] = d;
                 keys[i] = key;
                 values[i] = value;
+                d = residentDist;
                 key = tmpKey;
                 value = tmpValue;
-                d = residentDist;
             }
             i = (i + 1) & mask;
             d++;
@@ -167,8 +166,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
     private void insertAndIncrement(int i, long key, Object value){
         if(size >= threshold){
-            resize();
-            i = hash(key) & (distances.length - 1);
+            int newCap = distances.length << 1;
+            resize(newCap);
+            i = hash(key) & (newCap - 1);
         }
         insertAt(i, key, value);
         size++;
@@ -213,28 +213,42 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         size--;
     }
 
-    private void resize(){
+    private void resize(int newCap){
+        if(newCap < 0)
+            throw new OutOfMemoryError("Capacity cannot grow any further");
         int[] distances = this.distances;
         long[] keys = this.keys;
         Object[] values = this.values;
 
         int oldCap = keys.length;
-        int newCap = oldCap << 1;
-        if(newCap < 0){
-            throw new OutOfMemoryError("Capacity cannot grow any further");
-        }
         init(newCap);
-        int mask = newCap - 1;
-        for(int i = 0; i < oldCap; i++){
-            if(distances[i] != 0){
-                long key = keys[i];
-                insertAt(hash(key) & mask, key, values[i]);
+        if(size != 0){
+            int mask = newCap - 1;
+            for(int i = 0; i < oldCap; i++){
+                if(distances[i] != 0){
+                    long key = keys[i];
+                    insertAt(hash(key) & mask, key, values[i]);
+                }
             }
         }
     }
 
+    /**
+     * Increases the table capacity of this {@code HashGrid}, if necessary,
+     * to ensure that it can hold at least {@code minCapacity} entries.
+     * @param minCapacity the desired minimum capacity
+     */
+    public void ensureCapacity(int minCapacity){
+        if(minCapacity > threshold)
+            resize(Integer.highestOneBit((int) Math.ceil(minCapacity / loadFactor) - 1) << 1);
+    }
+
     public int size(){
         return size;
+    }
+
+    public boolean isEmpty(){
+        return size == 0;
     }
 
     @Override
@@ -277,10 +291,10 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     public E computeIfAbsent(int x, int y, Supplier<? extends E> function){
         long key = pack(x, y);
         int i = findSlot(key);
-        E e;
-        if(i >= 0){
+        if(i >= 0)
             return (E) values[i];
-        } else if((e = function.get()) != null)
+        E e = function.get();
+        if(e != null)
             insertAndIncrement(~i, key, e);
         return e;
     }
