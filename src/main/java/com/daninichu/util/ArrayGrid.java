@@ -278,6 +278,21 @@ public class ArrayGrid<E> extends AbstractGrid<E> implements Grid<E>{
         return null;
     }
 
+    @Override
+    public void setAll(Grid<? extends E> grid){
+        if(grid instanceof ArrayGrid<? extends E> arrayGrid){
+            Object[] data = this.data;
+            Object[] otherData = arrayGrid.data;
+            for(int i = 0, n = otherData.length; i < n; i++){
+                Object o = otherData[i];
+                if(o != null)
+                    data[i] = o;
+            }
+        } else
+            for(Cell<? extends E> cell : grid.cells())
+                set(cell.x, cell.y, cell.value);
+    }
+
     /**
      * Sets every point in this grid to the given value.
      * @param e The value to fill this grid with.
