@@ -23,7 +23,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     private long[] keys;
     private Object[] values;
 
-    private int size, threshold;
+    private int size, threshold, mask;
     private final float loadFactor;
 
     /**
@@ -77,7 +77,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         Object[] values = grid.values;
 
         init(distances.length);
-        for(int i = 0, mask = distances.length - 1; i <= mask; i++){
+        for(int i = 0, mask = this.mask; i <= mask; i++){
             if(distances[i] != 0){
                 long key = keys[i];
                 insertAt(hash(key) & mask, key, values[i]);
@@ -90,6 +90,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         keys = new long[capacity];
         values = new Object[capacity];
         threshold = (int) (capacity * loadFactor);
+        mask = capacity - 1;
     }
 
     private static long pack(int x, int y){
@@ -118,7 +119,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         int[] distances = this.distances;
         long[] keys = this.keys;
 
-        int mask = distances.length - 1;
+        int mask = this.mask;
         int i = hash(key) & mask;
         int d = 1;
         while(true){
@@ -142,7 +143,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         long[] keys = this.keys;
         Object[] values = this.values;
 
-        int mask = distances.length - 1;
+        int mask = this.mask;
         int d = ((i - hash(key)) & mask) + 1;
         while(distances[i] != 0){
             int residentDist = distances[i];
@@ -166,9 +167,9 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
 
     private void insertAndIncrement(int i, long key, Object value){
         if(size >= threshold){
-            int newCap = distances.length << 1;
-            resize(newCap);
-            i = hash(key) & (newCap - 1);
+            int newCapacity = distances.length << 1;
+            resize(newCapacity);
+            i = hash(key) & mask;
         }
         insertAt(i, key, value);
         size++;
@@ -199,7 +200,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         long[] keys = this.keys;
         Object[] values = this.values;
 
-        int mask = distances.length - 1;
+        int mask = this.mask;
         int next = (deleted + 1) & mask;
         while(distances[next] > 1){
             distances[deleted] = distances[next] - 1;
@@ -213,18 +214,18 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
         size--;
     }
 
-    private void resize(int newCap){
-        if(newCap < 0)
+    private void resize(int newCapacity){
+        if(newCapacity < 0)
             throw new OutOfMemoryError("Capacity cannot grow any further");
         int[] distances = this.distances;
         long[] keys = this.keys;
         Object[] values = this.values;
 
-        int oldCap = keys.length;
-        init(newCap);
+        int oldCapacity = keys.length;
+        init(newCapacity);
         if(size != 0){
-            int mask = newCap - 1;
-            for(int i = 0; i < oldCap; i++){
+            int mask = this.mask;
+            for(int i = 0; i < oldCapacity; i++){
                 if(distances[i] != 0){
                     long key = keys[i];
                     insertAt(hash(key) & mask, key, values[i]);
@@ -428,7 +429,7 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
     }
 
     private abstract class HashGridIterator<T> implements Iterator<T>{
-        final int start, mask;
+        final int start;
         int cursor, lastSlot = -1;
 
         HashGridIterator(){
@@ -437,14 +438,13 @@ public class HashGrid<E> extends AbstractGrid<E> implements Grid<E>{
             while(distances[i] != 0)
                 i++;
             start = i;
-            mask = distances.length - 1;
         }
 
         @Override
         public boolean hasNext(){
             int[] distances = HashGrid.this.distances;
-            int n = distances.length;
-            while(cursor < n){
+            int mask = HashGrid.this.mask;
+            while(cursor <= mask){
                 if(distances[(start + cursor) & mask] != 0)
                     return true;
                 cursor++;
